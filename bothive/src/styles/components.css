@@ -1,0 +1,23 @@
+.nav-hover-pill {
+  background: radial-gradient(120px 40px at center, rgba(62,64,149,0.10), transparent 60%);
+}
+
+.text-shadow-active {
+  text-shadow: 0 0 20px rgba(62,64,149,0.12);
+}
+
+.gradient-background {
+  background: linear-gradient(135deg, #5900E2 0%, #5a57d9 100%);
+}
+
+.hover-radial-white {
+  background: radial-gradient(120px 50px at center, #fff, transparent 60%);
+}
+
+.client-gradient {
+  background: linear-gradient(135deg, rgba(62,64,149,0.07), rgba(90,87,217,0.07));
+}
+
+.client-overlay {
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
