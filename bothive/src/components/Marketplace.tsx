@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Search, Star, Download, TrendingUp, Filter } from "lucide-react";
 import { AgentDefinition } from "@/lib/agentTypes";
 
@@ -100,6 +101,16 @@ export default function Marketplace() {
     }
   };
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 8, scale: 0.995 },
+    show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } },
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -129,6 +140,7 @@ export default function Marketplace() {
         <div className="flex items-center gap-2">
           <Filter className="w-5 h-5 text-white/60" />
           <select
+            aria-label="Category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-white/30"
@@ -142,11 +154,14 @@ export default function Marketplace() {
         </div>
       </div>
 
-      {/* Agent Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Agent Grid (mobile-first, animated) */}
+      <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" variants={container} initial="hidden" animate="show">
         {filteredAgents.map((agent) => (
-          <div
+          <motion.div
             key={agent.id}
+            variants={item}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.995 }}
             className="p-6 rounded-xl bg-white/5 border border-white/10 hover:border-white/30 transition group"
           >
             <div className="flex items-start justify-between mb-4">
@@ -190,14 +205,15 @@ export default function Marketplace() {
               </div>
               <button
                 onClick={() => handleInstall(agent)}
+                aria-label={`Install ${agent.name}`}
                 className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition"
               >
                 Install
               </button>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {filteredAgents.length === 0 && (
         <div className="text-center py-12 text-white/40">

@@ -15,14 +15,14 @@ import {
 } from "lucide-react";
 
 const items = [
-  { title: "User-friendly dashboard", desc: "Perform complex SEO audits and optimizations with a single click.", icon: BarChart2 },
+  { title: "User-friendly dashboard", desc: "Perform comprehensive audits and optimizations with a single click.", icon: BarChart2 },
   { title: "Visual reports", desc: "Visual insights into your site’s performance.", icon: PieChart },
-  { title: "Smart Keyword Generator", desc: "Automatic suggestions and the best keywords to target.", icon: Zap },
+  { title: "Smart Content Generator", desc: "Automatic suggestions to help you write better content.", icon: Zap },
   { title: "Content evaluation", desc: "Simple corrections for immediate improvements.", icon: FileText },
-  { title: "SEO goal setting", desc: "Helps you set and achieve SEO goals with guided assistance.", icon: Target },
-  { title: "Automated alerts", desc: "Automatic notifications about your SEO health, including quick fixes.", icon: Bell },
-  { title: "Link Optimization Wizard", desc: "Guides you through the process of creating and managing links.", icon: LinkIcon },
-  { title: "One-click optimization", desc: "Perform complex SEO audits and optimizations with a single click.", icon: Bolt },
+  { title: "Goal setting", desc: "Helps you set and achieve performance goals with guided assistance.", icon: Target },
+  { title: "Automated alerts", desc: "Automatic notifications about your project health, including quick fixes.", icon: Bell },
+  { title: "Link Management Wizard", desc: "Guides you through creating and managing links.", icon: LinkIcon },
+  { title: "One-click improvements", desc: "Perform common improvements with a single click.", icon: Bolt },
   { title: "Competitor reports", desc: "Provides insights into competitors’ keyword strategies and ranking.", icon: Columns },
 ];
 
@@ -50,8 +50,8 @@ export default function Features() {
 
         <div className="relative z-10 grid md:grid-cols-3 gap-8 items-start">
           <div className="pr-4">
-            <h2 className="text-4xl md:text-6xl lg:text-7xl  leading-tight">Elevate your SEO efforts.</h2>
-            <p className="mt-6 text-white/70 max-w-lg">Powerful tools and clear visualizations designed to make SEO approachable and effective for teams of any size.</p>
+            <h2 className="text-4xl max-w-md md:text-6xl lg:text-7xl  leading-tight">Elevate your performance.</h2>
+            <p className="mt-6 text-white/70 max-w-lg">Powerful tools and clear visualizations designed to make site performance and workflows approachable for teams of any size.</p>
           </div>
 
           <motion.div variants={container} initial="hidden" whileInView="show" viewport={{ once: true }} className="md:col-span-2 grid sm:grid-cols-2 lg:grid-cols-3 gap-8">

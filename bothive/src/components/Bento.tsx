@@ -53,11 +53,11 @@ function AppWindow({ children, className = "" }: { children: React.ReactNode; cl
 export default function Bento() {
   return (
     <section className="mx-auto w-full max-w-6xl px-6">
-      <h2 className="text-center text-3xl md:text-4xl  tracking-tight">
-        Harness the power of AI, making
-        <br className="hidden md:block" /> search engine optimization intuitive
-        <br className="hidden md:block" /> and effective for all skill levels.
-      </h2>
+          <h2 className="text-center text-3xl md:text-4xl  tracking-tight">
+            Harness the power of AI to simplify
+            <br className="hidden md:block" /> content and performance workflows
+            <br className="hidden md:block" /> for teams of any size.
+          </h2>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         {/* Top-left: 3D object card */}
@@ -66,8 +66,8 @@ export default function Bento() {
             <Image src="/3dring.png" alt="3D object" width={320} height={240} className="opacity-90" />
           </div>
           <div>
-            <h3 className="text-white ">SEO goal setting</h3>
-            <p className="text-white/70 text-sm mt-1">Helps you set and achieve SEO goals with guided assistance.</p>
+            <h3 className="text-white ">Goal setting</h3>
+            <p className="text-white/70 text-sm mt-1">Helps you set and achieve performance goals with guided assistance.</p>
           </div>
         </Frame>
 
@@ -95,8 +95,8 @@ export default function Bento() {
             <Image src="/Userf.png" alt="3D object" width={720} height={640} className="opacity-90 mt-0" />
           </div>
           <div>
-            <h3 className="text-white ">SEO goal setting</h3>
-            <p className="text-white/70 text-sm mt-1">Helps you set and achieve SEO goals with guided assistance.</p>
+            <h3 className="text-white font-semibold">Goal setting</h3>
+            <p className="text-white/70 text-sm mt-1">Helps you set and achieve performance goals with guided assistance.</p>
           </div>
         </Frame>
 
@@ -143,8 +143,8 @@ export default function Bento() {
             <Image src="/3dcone.png" alt="3D shape" width={320} height={240} className="opacity-90" />
           </div>
           <div>
-            <h3 className="text-white font-semibold">Smart Keyword Generator</h3>
-            <p className="text-white/70 text-sm mt-1">Automatic suggestions and the best keywords to target.</p>
+            <h3 className="text-white font-semibold">Smart Content Generator</h3>
+            <p className="text-white/70 text-sm mt-1">Automatic suggestions to help you write better content.</p>
           </div>
         </Frame>
       </div>

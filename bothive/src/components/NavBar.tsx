@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function NavBar() {
   const [scrolled, setScrolled] = useState(false);
@@ -101,13 +102,13 @@ export default function NavBar() {
           </div>
 
           {/* Mobile menu button */}
-          <div className="flex md:hidden
-          ">
+          <div className="flex md:hidden">
             <button
               type="button"
               className="inline-flex items-center justify-center rounded-md p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-expanded="false"
+              aria-expanded={mobileMenuOpen ? "true" : "false"}
+              aria-controls="mobile-menu"
             >
               <span className="sr-only">Open main menu</span>
               {mobileMenuOpen ? (
@@ -120,41 +121,76 @@ export default function NavBar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
-      <div
-        className={`md:hidden transition-all duration-300 ease-in-out overflow-hidden ${
-          mobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-        }`}
-      >
-        <div className="space-y-1 px-4 pb-3 pt-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="block rounded-md px-3 py-2 text-base font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white"
+      {/* Mobile menu - animated bottom sheet */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            />
+
+            {/* Sheet */}
+            <motion.div
+              id="mobile-menu"
+              key="sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 260, damping: 30 }}
+              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-[#0b0b0f]/95 border-t border-white/6 p-4 shadow-2xl"
             >
-              {item.name}
-            </Link>
-          ))}
-          <div className="border-t border-zinc-800 pt-4 mt-2">
-            <Link
-              href="/login"
-              className="block w-full text-center rounded-md bg-zinc-800 px-3 py-2 text-base font-medium text-white hover:bg-zinc-700 mb-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="btn-primary block w-full text-center px-3 py-2 text-base font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </div>
+              <div className="mx-auto max-w-3xl">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="text-sm font-semibold">Menu</div>
+                  <button
+                    aria-label="Close menu"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-300 hover:bg-zinc-800"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <nav className="grid gap-2">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block rounded-lg px-4 py-3 text-base font-medium text-white/90 hover:bg-white/5"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </nav>
+
+                <div className="mt-4 space-y-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block w-full text-center rounded-lg bg-white/8 px-4 py-3 text-sm font-semibold"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block w-full text-center rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-black"
+                  >
+                    Get Started
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

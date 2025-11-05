@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 
 /*
   Clients section implementation matching the provided design:
@@ -39,23 +40,31 @@ const Clients: React.FC = () => {
   );
 
   const [index, setIndex] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [paused, setPaused] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Auto-advance interval (pausable). Avoid defining functions after useEffect to fix lint warnings.
   useEffect(() => {
-    start();
-    return stop;
-  }, [index]);
-
-  const start = () => {
-    stop();
-    timerRef.current = setTimeout(() => {
+    if (paused) return;
+    const id = setInterval(() => {
       setIndex((i) => (i + 1) % slides.length);
     }, 4500);
-  };
+    return () => clearInterval(id);
+  }, [paused, slides.length]);
 
-  const stop = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+  // Touch/swipe support for mobile
+  const touchStartX = useRef<number | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0) setIndex((i) => (i + 1) % slides.length);
+      else setIndex((i) => (i - 1 + slides.length) % slides.length);
+    }
+    touchStartX.current = null;
   };
 
   return (
@@ -83,17 +92,23 @@ const Clients: React.FC = () => {
         {/* Carousel container matching exact card visuals */}
         <div
           className="relative mt-10 overflow-hidden rounded-2xl border border-white/15 bg-white/3 sm:mt-14 md:mt-20"
-          onMouseEnter={stop}
-          onMouseLeave={start}
-          ref={containerRef}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
         >
           {/* Card edge highlight */}
           <div className="pointer-events-none absolute inset-0 rounded-[22px] ring-1 ring-inset ring-white/10" />
           <GridLines />
 
-          <div
-            className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{ transform: `translateX(-${index * 100}%)` }}
+          <motion.div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            ref={containerRef}
+            className="flex"
+            animate={{ x: `-${index * 100}%` }}
+            transition={{ type: "spring", stiffness: 260, damping: 26 }}
+            style={{ width: `${slides.length * 100}%` }}
           >
             {slides.map((s, i) => (
               <article key={i} className="grid w-full shrink-0 grid-cols-1 items-stretch sm:grid-cols-1 md:grid-cols-[320px_1fr]">
@@ -135,7 +150,7 @@ const Clients: React.FC = () => {
                 </div>
               </article>
             ))}
-          </div>
+          </motion.div>
 
           {/* Indicators */}
           <div className="pointer-events-none absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 sm:gap-2 md:bottom-6">

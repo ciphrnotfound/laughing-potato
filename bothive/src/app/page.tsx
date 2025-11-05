@@ -91,9 +91,7 @@ export default function Home() {
         
         <CTA/>
 
-        <Marketplace/>
-
-       <Integrations/>
+        
     </div>
   );
 }
