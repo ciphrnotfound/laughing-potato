@@ -50,8 +50,8 @@ export default function Pricing() {
           {plans.map((p) => (
             <div
               key={p.id}
-              className={`relative w-full max-w-[320px] overflow-hidden rounded-2xl border border-white/10 p-6 shadow-lg transition-transform ${
-                p.featured ? "scale-105 -translate-y-1 bg-transparent" : "bg-black/60"
+              className={`relative w-full max-w-[320px] overflow-hidden rounded-3xl border border-white/20 p-6 shadow-lg transition-all backdrop-blur-xl group hover:border-white/40 dark:hover:border-white/20 ${
+                p.featured ? "scale-105 -translate-y-1 bg-white/15 dark:bg-white/10" : "bg-white/10 dark:bg-white/5"
               }`}
             >
               {/* left/right purple vignette */}

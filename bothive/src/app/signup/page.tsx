@@ -1,18 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
-import { ArrowLeft, Loader2, Mail, Lock, User } from "lucide-react";
-import { ProfessionalAlert } from "@/components/ui/professional-alert";
+import React, { useEffect, useState } from "react";
+import { ArrowLeft, Mail, Lock, Loader2, Chrome, Github, User } from "lucide-react";
+import ProfessionalAlert from "@/components/ui/game-alert";
 import { motion } from "framer-motion";
+import { AuthLoader } from "@/components/ui/auth-loader";
 
 export default function SignUp() {
   const [showAlert, setShowAlert] = useState<{
-    type: "success" | "error" | "warning" | "info";
+    variant: "success" | "error" | "warning" | "info";
     title: string;
     message?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isScreenLoading, setIsScreenLoading] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -34,7 +36,7 @@ export default function SignUp() {
 
       if (!response.ok) {
         setShowAlert({
-          type: "error",
+          variant: "error",
           title: "Signup Failed",
           message: data.error || "Failed to create account",
         });
@@ -42,7 +44,7 @@ export default function SignUp() {
       }
 
       setShowAlert({
-        type: "success",
+        variant: "success",
         title: "Account Created",
         message: "Your Bothive account has been successfully created. Redirecting...",
       });
@@ -53,7 +55,7 @@ export default function SignUp() {
       }, 1500);
     } catch (error) {
       setShowAlert({
-        type: "error",
+        variant: "error",
         title: "Error",
         message: "An error occurred. Please try again.",
       });
@@ -62,159 +64,194 @@ export default function SignUp() {
     }
   };
 
+  useEffect(() => {
+    const timeout = setTimeout(() => setIsScreenLoading(false), 900);
+    return () => clearTimeout(timeout);
+  }, []);
+
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-black px-4 py-16 sm:px-6 lg:px-8">
-      {/* Mobile-optimized grid background */}
-      <div className="pointer-events-none fixed inset-0">
-        <div className="h-full w-full bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[2rem_2rem] sm:bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]" />
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#04020A] via-[#090417] to-[#12062A] text-white">
+      {isScreenLoading && <AuthLoader />}
 
-      {/* Enhanced gradient overlays for mobile */}
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute inset-0 bg-linear-to-b from-purple-950/30 via-black/20 to-black" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_10%,#000_70%)]" />
-      </div>
-      
-      {/* Animated purple ring */}
-      <div className="pointer-events-none fixed">
-        <div className="h-screen w-screen animate-[spin_10s_linear_infinite] rounded-full bg-[conic-gradient(from_0deg,transparent_0%,#7c3aed10_50%,transparent_100%)]" />
-      </div>
-
-      {showAlert && (
-        <ProfessionalAlert
-          type={showAlert.type}
-          title={showAlert.title}
-          message={showAlert.message}
-          onClose={() => setShowAlert(null)}
+      <div className="pointer-events-none absolute inset-0">
+        <motion.div
+          className="absolute inset-0 opacity-10"
+          animate={{ backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"] }}
+          transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 10% 15%, rgba(139,92,246,0.25), transparent 45%), radial-gradient(circle at 82% 8%, rgba(88,28,135,0.2), transparent 40%), radial-gradient(circle at 90% 85%, rgba(71,12,134,0.25), transparent 45%)",
+          }}
         />
-      )}
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05)_7%,transparent_12%),linear-gradient(-120deg,rgba(255,255,255,0.03)_7%,transparent_12%)] bg-[length:160px_160px] opacity-[0.22]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(140,88,255,0.25)_1px,transparent_1px),linear-gradient(to_bottom,rgba(140,88,255,0.25)_1px,transparent_1px)] bg-[length:42px_42px] opacity-[0.22]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(13,5,29,0.8)_1px,transparent_1px),linear-gradient(to_bottom,rgba(13,5,29,0.8)_1px,transparent_1px)] bg-[length:12px_12px] opacity-[0.18] mix-blend-screen" />
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute left-0 right-0 top-0 flex justify-center p-4 sm:justify-start"
-      >
-        <Link
-          href="/"
-          className="group flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-sm text-white/70 backdrop-blur-sm transition hover:bg-white/10 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          <span>Back home</span>
-        </Link>
-      </motion.div>
+      <ProfessionalAlert
+        open={Boolean(showAlert)}
+        variant={showAlert?.variant}
+        title={showAlert?.title}
+        message={showAlert?.message}
+        onClose={() => setShowAlert(null)}
+      />
 
-      <div className="relative w-full max-w-md">
-        {/* Enhanced glow effect */}
-        <div className="pointer-events-none absolute -inset-x-20 -top-40 -z-10 h-120 w-full">
-          <div className="absolute inset-0 rounded-[40rem] bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,rgba(124,58,237,0.3)_360deg)] opacity-40 blur-[100px]" />
-          <div className="absolute inset-0 rounded-[40rem] bg-purple-500/10 mix-blend-overlay blur-[120px]" />
-        </div>
-
-        {/* Form */}
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-lg flex-col items-center justify-center px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          onSubmit={handleSubmit}
-          className="relative mx-auto w-full space-y-6 rounded-xl border border-white/10 bg-black/80 backdrop-blur-2xl p-5 sm:p-8 lg:p-10 shadow-2xl"
+          transition={{ duration: 0.45 }}
+          className="mb-6 flex w-full items-center justify-between text-[11px] uppercase tracking-[0.35em] text-white/50"
         >
-          <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              Create Account
-            </h1>
-            <p className="text-sm sm:text-base text-white/60">
-              Join Bothive and start building with AI agents
-            </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5 text-white/70 transition hover:border-white/30 hover:text-white"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="tracking-normal">Back home</span>
+          </Link>
+          <span>Bothive</span>
+        </motion.div>
+
+        <motion.form
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          onSubmit={handleSubmit}
+          className="w-full space-y-6 rounded-3xl border border-white/12 bg-[radial-gradient(circle_at_top_left,rgba(110,60,255,0.18),#0A0616)] px-6 py-8 shadow-[0_30px_80px_rgba(6,3,18,0.65)] backdrop-blur-xl sm:px-9"
+        >
+          <div className="space-y-4 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white/80 shadow-[0_15px_40px_rgba(88,28,135,0.35)]">
+              <User className="h-4 w-4" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-[11px] uppercase tracking-[0.35em] text-white/60">Create account</p>
+              <h1 className="text-2xl font-semibold text-white/95">Deploy your Bothive profile</h1>
+              <p className="text-sm text-white/65">
+                Provision credentials to access orchestrations, analytics, and monetisation tools.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-5">
+            <div className="space-y-3">
+              <p className="text-[11px] uppercase tracking-[0.3em] text-white/50">Continue with</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  className="flex items-center justify-center gap-3 rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white/80 transition hover:border-[#A07BFF]/40 hover:bg-white/10"
+                >
+                  <Chrome className="h-4 w-4" />
+                  Google
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-center gap-3 rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white/80 transition hover:border-[#A07BFF]/40 hover:bg-white/10"
+                >
+                  <Github className="h-4 w-4" />
+                  GitHub
+                </button>
+              </div>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <div className="h-px w-full bg-white/10" />
+              <span className="absolute bg-[#0A041A] px-4 text-[11px] uppercase tracking-[0.3em] text-white/45">
+                Or use email
+              </span>
+            </div>
+
             <div className="space-y-2">
-              <label
-                htmlFor="name"
-                className="text-sm font-medium text-white/90 flex items-center gap-2"
-              >
-                <User className="h-4 w-4" />
-                Full Name
+              <label htmlFor="name" className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-white/65">
+                <User className="h-4 w-4 text-[#B5A2FF]" />
+                Handle
               </label>
               <input
                 id="name"
                 name="name"
                 type="text"
                 required
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm sm:text-base text-white placeholder:text-white/40 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
-                placeholder="John Doe"
+                className="w-full rounded-xl border border-white/12 bg-[#080313]/80 px-4 py-3 text-sm text-white placeholder:text-white/35 transition focus:border-[#B5A2FF]/40 focus:outline-none focus:ring-2 focus:ring-[#B5A2FF]/20"
+                placeholder="NovaArchitect"
               />
             </div>
 
             <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="text-sm font-medium text-white/90 flex items-center gap-2"
-              >
-                <Mail className="h-4 w-4" />
-                Email Address
+              <label htmlFor="email" className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-white/65">
+                <Mail className="h-4 w-4 text-[#B5A2FF]" />
+                Email
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 required
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm sm:text-base text-white placeholder:text-white/40 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
-                placeholder="you@example.com"
+                className="w-full rounded-xl border border-white/12 bg-[#080313]/80 px-4 py-3 text-sm text-white placeholder:text-white/35 transition focus:border-[#B5A2FF]/40 focus:outline-none focus:ring-2 focus:ring-[#B5A2FF]/20"
+                placeholder="you@bothive.dev"
               />
             </div>
 
             <div className="space-y-2">
-              <label
-                htmlFor="password"
-                className="text-sm font-medium text-white/90 flex items-center gap-2"
-              >
-                <Lock className="h-4 w-4" />
+              <label htmlFor="password" className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-white/65">
+                <Lock className="h-4 w-4 text-[#B5A2FF]" />
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={8}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm sm:text-base text-white placeholder:text-white/40 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
-                placeholder="••••••••"
-              />
-              <p className="text-xs text-white/50">
-                Must be at least 8 characters
-              </p>
+              <div className="rounded-xl border border-white/12 bg-[#080313]/80 p-2">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  minLength={8}
+                  required
+                  className="w-full rounded-lg border border-transparent bg-transparent px-2 py-2 text-sm text-white placeholder:text-white/40 transition focus:border-[#B5A2FF]/40 focus:outline-none focus:ring-2 focus:ring-[#B5A2FF]/20"
+                  placeholder="Use at least 8 characters"
+                />
+                <p className="mt-1 px-2 text-xs text-white/45">Include numbers and symbols for maximum integrity.</p>
+              </div>
             </div>
+
+            <label className="flex items-start gap-3 rounded-2xl border border-white/12 bg-[#0C0C0C]/70 p-4 text-xs text-white/55">
+              <input
+                type="checkbox"
+                required
+                className="mt-1 h-4 w-4 cursor-pointer rounded border-white/25 bg-black accent-[#B5A2FF]"
+              />
+              <span>
+                I agree to the {" "}
+                <a className="text-[#CBB5FF] underline-offset-2 hover:underline" href="#">
+                  Terms of Service
+                </a>{" "}
+                and {" "}
+                <a className="text-[#CBB5FF] underline-offset-2 hover:underline" href="#">
+                  Privacy Policy
+                </a>
+              </span>
+            </label>
           </div>
 
-          <div className="space-y-4">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full overflow-hidden rounded-lg bg-linear-to-r from-purple-600 to-purple-700 py-3 text-sm sm:text-base font-semibold text-white transition-all hover:from-purple-700 hover:to-purple-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 shadow-lg shadow-purple-500/20"
-            >
-              <div className="relative flex items-center justify-center gap-2">
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Creating account...</span>
-                  </>
-                ) : (
-                  <span>Create Account</span>
-                )}
-              </div>
-            </button>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="group relative w-full overflow-hidden rounded-xl border border-white/15 bg-white py-3 text-sm font-semibold text-black transition hover:bg-white/90"
+          >
+            <div className="flex items-center justify-center gap-2">
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Deploy profile</span>
+                </>
+              ) : (
+                <span>Deploy profile</span>
+              )}
+            </div>
+            <span className="absolute inset-0 block translate-x-[-100%] bg-gradient-to-r from-transparent via-black/10 to-transparent opacity-0 transition group-hover:opacity-100" />
+          </button>
 
-            <p className="text-center text-sm sm:text-base">
-              <span className="text-white/60">Already have an account?</span>{" "}
-              <Link
-                href="/dashboard"
-                className="group relative font-medium text-purple-400 hover:text-purple-300 transition-colors"
-              >
-                Sign in
-                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-linear-to-r from-purple-400/40 via-purple-400 to-purple-400/40 transition-all group-hover:w-full" />
-              </Link>
-            </p>
+          <div className="flex items-center justify-between text-xs text-white/65">
+            <p>Need to log in instead?</p>
+            <Link href="/signin" className="inline-flex items-center gap-2 text-white/80 underline-offset-2 hover:underline">
+              Switch to sign in
+            </Link>
           </div>
         </motion.form>
       </div>

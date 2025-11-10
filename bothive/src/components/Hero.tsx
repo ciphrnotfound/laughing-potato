@@ -291,8 +291,8 @@ const Hero = () => {
             <div aria-hidden="true">
                 {/* Primary violet wash */}
                 <Spotlight className="-top-6 left-6 md:left-24 md:top-10 h-[82vh] opacity-80" fill="#7C3AED" />
-                {/* Secondary amber accent on the right */}
-                <Spotlight className="-top-8 left-full md:right-20 md:top-16 h-[76vh] opacity-65" fill="#F59E0B" />
+                {/* Secondary violet accent on the right */}
+                <Spotlight className="-top-8 left-full md:right-20 md:top-16 h-[76vh] opacity-65" fill="#6A00FF" />
                 {/* Subtle indigo blend to tie the center */}
                 <Spotlight className="-top-[72px] left-[72px] h-[64vh] w-[50vw] opacity-60" fill="#6366F1" />
                 <Spotlight2 />
@@ -313,7 +313,7 @@ const Hero = () => {
                         className="absolute left-1/2 top-1/2 h-[58vmin] w-[58vmin] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
                         style={{
                             background:
-                                "conic-gradient(from 180deg at 50% 50%, rgba(124,58,237,0.16), rgba(245,158,11,0.12), rgba(99,102,241,0.14), rgba(124,58,237,0.16))",
+                                "conic-gradient(from 180deg at 50% 50%, rgba(124,58,237,0.16), rgba(106,0,255,0.12), rgba(99,102,241,0.14), rgba(124,58,237,0.16))",
                         }}
                     />
                 </div>
@@ -353,7 +353,7 @@ const Hero = () => {
 
                         {/* CTA row */}
                         <div className="mt-5 flex flex-col items-center gap-3 sm:mt-6 sm:flex-row">
-                            <a href="signup" aria-label="Get started">
+                            <a href="/getting-started" aria-label="Get started">
                                 <button className="rounded-lg bg-white px-6 py-3 text-sm font-semibold text-black shadow-[0_8px_30px_rgba(124,58,237,0.25)] transition-all duration-300 hover:scale-[1.02]">
                                     Get Started
                                 </button>

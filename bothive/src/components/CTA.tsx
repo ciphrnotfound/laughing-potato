@@ -5,27 +5,11 @@ import React from "react";
 export default function CTA() {
   return (
     <section className="mx-auto px-6 py-20">
-      <div className="relative mx-auto max-w-6xl rounded-2xl overflow-hidden">
+      <div className="relative mx-auto max-w-6xl rounded-3xl overflow-hidden border border-white/20 bg-white/10 dark:bg-white/5 backdrop-blur-xl group hover:border-white/40 dark:hover:border-white/20 transition-all">
         {/* top purple band */}
-        <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(180deg,rgba(124,58,237,0.95),transparent)]" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(180deg,rgba(124,58,237,0.15),transparent)]" />
 
         {/* grid background */}
-        {/* <div className="absolute inset-0 bg-black/80">
-          <svg
-            aria-hidden
-            className="pointer-events-none absolute inset-0 h-full w-full opacity-30 mix-blend-overlay"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <pattern id="cta-grid" width="64" height="64" patternUnits="userSpaceOnUse">
-                <path d="M0 0 H64 M0 0 V64" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="4 6" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#cta-grid)" />
-          </svg>
-          {/* dark vignette */}
-          <div className="absolute inset-0 bg-linear-to-b from-transparent via-black/30 to-black/80" />
-        {/* </div>  */}
         <GridLines/>
 
         {/* content */}
@@ -42,14 +26,16 @@ export default function CTA() {
                 type="email"
                 placeholder="Your email"
                 aria-label="Your email"
-                className="flex-1 min-w-0 rounded-md border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 ring-0 focus:outline-none focus:ring-2 focus:ring-[#7c3aed]/30"
+                className="flex-1 min-w-0 rounded-xl border border-white/20 bg-white/10 dark:bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40 ring-0 focus:outline-none focus:ring-2 focus:ring-white/30 backdrop-blur-sm hover:border-white/30 dark:hover:border-white/20 transition-all"
               />
 
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_6px_24px_rgba(124,58,237,0.28)] hover:brightness-95 transition"
+                className="group relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-violet-600 via-violet-500 to-violet-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all hover:scale-[1.02] active:scale-[0.98] border border-white/20"
               >
-                Join waitlist
+                {/* Shine effect */}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-700" />
+                <span className="relative">Join waitlist</span>
               </button>
             </form>
           </div>

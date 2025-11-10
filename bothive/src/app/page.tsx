@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import NavBar from "@/components/NavBar";
 import Navbar2 from "@/components/Navbar2";
 import Hero from "@/components/Hero";
 import Bento from "@/components/Bento";
@@ -14,6 +15,7 @@ import AgentBuilder from "@/components/AgentBuilder";
 import Marketplace from "@/components/Marketplace";
 import Orchestrator from "@/components/Orchestrator";
 import Integrations from "@/components/Integrations";
+import SecondaryHero from "@/components/SecondaryHero";
 export default function Home() {
   const logos = [
     "/brands/harvard.png",

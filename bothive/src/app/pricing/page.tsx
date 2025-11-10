@@ -70,7 +70,7 @@ export default function PricingPage() {
               key={tier.id}
               variants={item}
               className={`relative flex flex-col rounded-2xl border border-white/6 p-6 bg-white/3 backdrop-blur-sm shadow-sm overflow-hidden ${
-                tier.highlighted ? "ring-2 ring-amber-400/20 scale-102" : ""
+                tier.highlighted ? "ring-2 ring-violet-400/20 scale-102" : ""
               }`}
             >
               <div className="flex-1">
@@ -95,7 +95,7 @@ export default function PricingPage() {
                 <button
                   aria-label={`${tier.cta} for ${tier.name}`}
                   className={`w-full rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
-                    tier.highlighted ? "bg-amber-500 text-black hover:bg-amber-600" : "bg-white/6 text-white hover:bg-white/10"
+                    tier.highlighted ? "bg-violet-600 text-black hover:bg-violet-700" : "bg-white/6 text-white hover:bg-white/10"
                   }`}
                 >
                   {tier.cta}

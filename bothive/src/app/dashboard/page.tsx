@@ -85,18 +85,18 @@ function DashboardContent() {
   ];
 
   return (
-    <div className="bg-black text-white min-h-screen flex relative overflow-hidden">
+    <div className="bg-white dark:bg-black text-black dark:text-white min-h-screen flex relative overflow-hidden transition-colors duration-300">
       {/* Futuristic grid background */}
-      <div className="fixed inset-0 opacity-30 pointer-events-none">
-        <div className="h-full w-full bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div className="fixed inset-0 opacity-20 dark:opacity-30 pointer-events-none">
+        <div className="h-full w-full bg-[linear-gradient(to_right,rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
         {/* Diagonal grid overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(124,58,237,0.03)_1px,transparent_1px),linear-gradient(-45deg,rgba(124,58,237,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(124,58,237,0.02)_1px,transparent_1px),linear-gradient(-45deg,rgba(124,58,237,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(45deg,rgba(124,58,237,0.03)_1px,transparent_1px),linear-gradient(-45deg,rgba(124,58,237,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
       </div>
 
-      {/* Purple gradient overlays */}
+      {/* Gradient overlays */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent" />
-        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-gradient-to-tl from-purple-500/5 via-transparent to-transparent" />
+        <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-gradient-to-br from-violet-500/3 dark:from-violet-500/5 via-transparent to-transparent" />
+        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-gradient-to-tl from-violet-500/3 dark:from-violet-500/5 via-transparent to-transparent" />
       </div>
 
       {/* Sidebar */}
@@ -117,60 +117,60 @@ function DashboardContent() {
         {/* Content */}
         <main className="flex-1 overflow-y-auto">
           {activeTab === "overview" && (
-            <div className="p-4 sm:p-6 lg:p-8 relative">
-              {/* Futuristic accent lines */}
-              <div className="absolute top-0 left-8 w-px h-32 bg-gradient-to-b from-purple-500/50 via-purple-500/20 to-transparent" />
-              
+            <div className="relative p-4 sm:p-6 lg:p-8">
               {/* Welcome Section */}
-              <div className="mb-8 relative">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-1 h-8 bg-gradient-to-b from-purple-500 to-transparent rounded-full" />
-                  <div>
-                    <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                      Dashboard
-                    </h1>
-                    <p className="text-white/60 font-mono text-sm mt-1">SYSTEM_STATUS: OPERATIONAL</p>
-                  </div>
+              <div className="mb-8 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.3em] text-black/35 dark:text-white/35">Overview</p>
+                  <h1 className="text-3xl sm:text-4xl font-semibold text-black dark:text-white">Your command center</h1>
                 </div>
-                <p className="text-white/60 ml-4">Monitor and manage your AI agent ecosystem</p>
+                <p className="max-w-2xl text-sm text-black/55 dark:text-white/55">
+                  Track your agents, workflows, and activity in one minimalist workspace.
+                </p>
               </div>
 
+              {/* Welcome Card */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                className="mb-8 p-6 rounded-2xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md"
+              >
+                <h2 className="text-lg font-semibold text-black dark:text-white mb-1">Welcome back 👋</h2>
+                <p className="text-sm text-black/60 dark:text-white/60">You have {agents.length} active agents and 8 workflows in motion. Keep building.</p>
+              </motion.div>
+
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+              <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat, index) => {
                   const Icon = stat.icon;
                   const colorClasses = {
-                    purple: "bg-purple-500/10 text-purple-400",
-                    blue: "bg-blue-500/10 text-blue-400",
-                    green: "bg-green-500/10 text-green-400",
-                    orange: "bg-orange-500/10 text-orange-400",
+                    purple: { bg: "bg-white/30 dark:bg-white/5", text: "text-black dark:text-white", border: "border-black/10 dark:border-white/10" },
+                    blue: { bg: "bg-white/30 dark:bg-white/5", text: "text-black dark:text-white", border: "border-black/10 dark:border-white/10" },
+                    green: { bg: "bg-white/30 dark:bg-white/5", text: "text-black dark:text-white", border: "border-black/10 dark:border-white/10" },
+                    orange: { bg: "bg-white/30 dark:bg-white/5", text: "text-black dark:text-white", border: "border-black/10 dark:border-white/10" },
                   };
+                  const colors = colorClasses[stat.color as keyof typeof colorClasses];
                   return (
                     <motion.div
                       key={stat.label}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="p-4 sm:p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm hover:border-white/20 transition-all hover:scale-[1.02] relative overflow-hidden group"
+                      transition={{ delay: index * 0.05, duration: 0.3 }}
+                      whileHover={{ y: -4 }}
+                      className={`p-5 sm:p-6 rounded-2xl border ${colors.border} ${colors.bg} backdrop-blur-md transition-colors duration-200`}
                     >
-                      {/* Grid pattern overlay */}
-                      <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:10px_10px]" />
-                      
-                      {/* Corner accent */}
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-purple-500/10 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                      
-                      <div className="relative z-10 flex items-start justify-between mb-4">
-                        <div className={`p-3 rounded-lg ${colorClasses[stat.color as keyof typeof colorClasses]} relative`}>
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <Icon className="w-5 h-5 relative z-10" />
+                      <div className="flex items-start justify-between mb-3">
+                        <div className={`p-2.5 rounded-lg bg-white/70 dark:bg-white/10 ${colors.text} transition-colors`}>
+                          <Icon className="w-4 h-4" />
                         </div>
-                        <span className="text-xs sm:text-sm text-green-400 font-medium font-mono">
+                        <span className="text-xs sm:text-sm text-black/50 dark:text-white/60 font-medium">
                           {stat.change}
                         </span>
                       </div>
-                      <div className="space-y-1 relative z-10">
-                        <p className="text-2xl sm:text-3xl font-bold font-mono">{stat.value}</p>
-                        <p className="text-xs sm:text-sm text-white/60">{stat.label}</p>
+                      <div className="space-y-1">
+                        <p className={`text-2xl sm:text-3xl font-semibold ${colors.text}`}>{stat.value}</p>
+                        <p className="text-xs sm:text-sm text-black/60 dark:text-white/60">{stat.label}</p>
                       </div>
                     </motion.div>
                   );
@@ -178,66 +178,63 @@ function DashboardContent() {
               </div>
 
               {/* Quick Actions & Recent Activity */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm relative overflow-hidden"
+                  className="relative overflow-hidden rounded-xl border border-black/10 bg-white/60 p-6 backdrop-blur-md dark:border-white/10 dark:bg-white/5"
                 >
-                  {/* Grid pattern */}
-                  <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:15px_15px]" />
-                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500/50 to-transparent" />
-                  
-                  <h3 className="text-lg font-semibold mb-4 relative z-10 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-purple-500 rounded-full" />
-                    Quick Actions
+                  <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,rgba(0,0,0,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.08)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:18px_18px]" />
+
+                  <h3 className="relative z-10 mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-black/60 dark:text-white/60">
+                    Quick actions
                   </h3>
-                  <div className="space-y-2">
+                  <div className="relative z-10 space-y-2">
                     <button
                       onClick={() => handleTabChange("agents")}
-                      className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition group"
+                      className="flex w-full items-center justify-between rounded-lg border border-black/10 bg-white/80 p-4 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition">
-                          <Plus className="w-4 h-4 text-purple-400" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 bg-white text-black dark:border-white/15 dark:bg-white/10 dark:text-white">
+                          <Plus className="h-4 w-4" />
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-medium">Create New Agent</p>
-                          <p className="text-xs text-white/50">Build a custom AI agent</p>
+                          <p className="text-sm font-medium text-black dark:text-white">Create new agent</p>
+                          <p className="text-xs text-black/50 dark:text-white/55">Start with a fresh blueprint</p>
                         </div>
                       </div>
-                      <span className="text-xs text-white/40 group-hover:text-white transition">→</span>
+                      <span className="text-xs text-black/40 transition dark:text-white/50">→</span>
                     </button>
                     <button
                       onClick={() => handleTabChange("orchestrator")}
-                      className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition group"
+                      className="flex w-full items-center justify-between rounded-lg border border-black/10 bg-white/80 p-4 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition">
-                          <Network className="w-4 h-4 text-blue-400" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 bg-white text-black dark:border-white/15 dark:bg-white/10 dark:text-white">
+                          <Network className="h-4 w-4" />
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-medium">Build Workflow</p>
-                          <p className="text-xs text-white/50">Connect agents together</p>
+                          <p className="text-sm font-medium text-black dark:text-white">Build workflow</p>
+                          <p className="text-xs text-black/50 dark:text-white/55">Connect agents into a swarm</p>
                         </div>
                       </div>
-                      <span className="text-xs text-white/40 group-hover:text-white transition">→</span>
+                      <span className="text-xs text-black/40 transition dark:text-white/50">→</span>
                     </button>
                     <button
                       onClick={() => handleTabChange("marketplace")}
-                      className="w-full flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition group"
+                      className="flex w-full items-center justify-between rounded-lg border border-black/10 bg-white/80 p-4 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition">
-                          <Zap className="w-4 h-4 text-green-400" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 bg-white text-black dark:border-white/15 dark:bg-white/10 dark:text-white">
+                          <Zap className="h-4 w-4" />
                         </div>
                         <div className="text-left">
-                          <p className="text-sm font-medium">Browse Marketplace</p>
-                          <p className="text-xs text-white/50">Discover pre-built agents</p>
+                          <p className="text-sm font-medium text-black dark:text-white">Browse marketplace</p>
+                          <p className="text-xs text-black/50 dark:text-white/55">Discover ready-made agents</p>
                         </div>
                       </div>
-                      <span className="text-xs text-white/40 group-hover:text-white transition">→</span>
+                      <span className="text-xs text-black/40 transition dark:text-white/50">→</span>
                     </button>
                   </div>
                 </motion.div>
@@ -246,38 +243,36 @@ function DashboardContent() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm relative overflow-hidden"
+                  className="relative overflow-hidden rounded-xl border border-black/10 bg-white/60 p-6 backdrop-blur-md dark:border-white/10 dark:bg-white/5"
                 >
-                  {/* Grid pattern */}
-                  <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:15px_15px]" />
-                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500/50 to-transparent" />
-                  
-                  <h3 className="text-lg font-semibold mb-4 relative z-10 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-blue-500 rounded-full" />
-                    Recent Activity
+                  <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,rgba(0,0,0,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.08)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:18px_18px]" />
+
+                  <h3 className="relative z-10 mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-black/60 dark:text-white/60">
+                    Recent activity
                   </h3>
-                  <div className="space-y-2">
+                  <div className="relative z-10 space-y-2">
                     {agents.slice(0, 5).map((agent) => (
                       <div
                         key={agent.id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition"
+                        className="flex items-center gap-3 rounded-lg border border-black/10 bg-white/80 p-3 transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
                       >
-                        <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                        <div className="h-2 w-2 animate-pulse rounded-full bg-[#6A00FF]" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{agent.name}</p>
-                          <p className="text-xs text-white/50">Agent created</p>
+                          <p className="truncate text-sm font-medium text-black dark:text-white">{agent.name}</p>
+                          <p className="text-xs text-black/50 dark:text-white/55">Agent created</p>
                         </div>
-                        <span className="text-xs text-white/40">Just now</span>
+                        <span className="text-xs text-black/40 dark:text-white/50">Just now</span>
                       </div>
                     ))}
                     {agents.length === 0 && (
-                      <div className="text-center py-8">
-                        <p className="text-sm text-white/50">No recent activity</p>
+                      <div className="rounded-lg border border-dashed border-black/10 py-8 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
+                        No recent activity
                         <button
                           onClick={() => handleTabChange("agents")}
-                          className="mt-4 text-sm text-purple-400 hover:text-purple-300 transition"
+                          className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-black/60 transition hover:text-black dark:text-white/60 dark:hover:text-white"
                         >
-                          Create your first agent →
+                          <span>Create your first agent</span>
+                          <span aria-hidden="true">→</span>
                         </button>
                       </div>
                     )}

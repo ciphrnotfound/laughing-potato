@@ -11,7 +11,7 @@ interface GlassAlertProps {
   show?: boolean;
 }
 
-export function GlassAlert({ type, message, onClose, show = true }: GlassAlertProps) {
+export function  ProfessionalAlert({ type, message, onClose, show = true }: GlassAlertProps) {
   const [isVisible, setIsVisible] = useState(show);
 
   useEffect(() => {

@@ -11,7 +11,7 @@ const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 async function ensureDataDir() {
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
-  } catch (error) {
+  } catch (_error) {
     // Directory might already exist
   }
 }
@@ -22,7 +22,7 @@ async function readFile<T>(filePath: string, defaultValue: T): Promise<T> {
     await ensureDataDir();
     const data = await fs.readFile(filePath, "utf-8");
     return JSON.parse(data) as T;
-  } catch (error) {
+  } catch (_error) {
     return defaultValue;
   }
 }
@@ -32,42 +32,45 @@ async function writeFile<T>(filePath: string, data: T): Promise<void> {
   await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
 }
 
+type KeyValueStore = Record<string, unknown>;
+type MemoryStore = unknown[];
+
 // Agents storage
 export const agentsStorage = {
-  async read() {
-    return readFile<Record<string, any>>(AGENTS_FILE, {});
+  async read(): Promise<KeyValueStore> {
+    return readFile<KeyValueStore>(AGENTS_FILE, {} as KeyValueStore);
   },
-  async write(data: Record<string, any>) {
+  async write(data: KeyValueStore): Promise<void> {
     await writeFile(AGENTS_FILE, data);
   },
 };
 
 // Users storage
 export const usersStorage = {
-  async read() {
-    return readFile<Record<string, any>>(USERS_FILE, {});
+  async read(): Promise<KeyValueStore> {
+    return readFile<KeyValueStore>(USERS_FILE, {} as KeyValueStore);
   },
-  async write(data: Record<string, any>) {
+  async write(data: KeyValueStore): Promise<void> {
     await writeFile(USERS_FILE, data);
   },
 };
 
 // Memory storage
 export const memoryStorage = {
-  async read() {
-    return readFile<any[]>(MEMORY_FILE, []);
+  async read(): Promise<MemoryStore> {
+    return readFile<MemoryStore>(MEMORY_FILE, [] as MemoryStore);
   },
-  async write(data: any[]) {
+  async write(data: MemoryStore): Promise<void> {
     await writeFile(MEMORY_FILE, data);
   },
 };
 
 // Sessions storage
 export const sessionsStorage = {
-  async read() {
-    return readFile<Record<string, any>>(SESSIONS_FILE, {});
+  async read(): Promise<KeyValueStore> {
+    return readFile<KeyValueStore>(SESSIONS_FILE, {} as KeyValueStore);
   },
-  async write(data: Record<string, any>) {
+  async write(data: KeyValueStore): Promise<void> {
     await writeFile(SESSIONS_FILE, data);
   },
 };

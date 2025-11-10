@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { HoverBorderGradient } from "./ui/hover-border-gradient";
+import ThemeToggle from "./ThemeToggle";
 
 type NavItem = { name: string; href: string };
 
@@ -150,6 +151,7 @@ export default function Navbar() {
 
           {/* RIGHT: actions */}
           <div className="flex items-center justify-end flex-1 gap-3">
+            <ThemeToggle />
          
             <Link
               href="/signin"

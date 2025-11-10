@@ -17,10 +17,10 @@ import React from "react";
 function Frame({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      className={`relative rounded-2xl border border-white/10 bg-black/70 overflow-hidden ${className}`}
+      className={`relative rounded-3xl border border-white/20 bg-white/10 dark:bg-white/5 overflow-hidden backdrop-blur-xl group hover:border-white/40 dark:hover:border-white/20 transition-all ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(1200px_600px_at_50%_120%,rgba(139,92,246,0.16),transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)],[background-size:28px_28px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(1200px_600px_at_50%_120%,rgba(139,92,246,0.1),transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-10 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)],[background-size:28px_28px]" />
       {children}
     </div>
   );
@@ -28,8 +28,8 @@ function Frame({ children, className = "" }: { children: React.ReactNode; classN
 
 function AppWindow({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`relative rounded-2xl border border-white/10 bg-[#0b0b0f]/90 overflow-hidden ${className}`}>
-      <div className="absolute inset-0 bg-linear-to-b from-transparent via-purple-900/10 to-purple-900/30" />
+    <div className={`relative rounded-3xl border border-white/20 bg-white/10 dark:bg-white/5 overflow-hidden backdrop-blur-xl ${className}`}>
+      <div className="absolute inset-0 bg-linear-to-b from-transparent via-purple-900/5 to-purple-900/10" />
       {/* Topbar */}
       <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/10">
         <div className="flex items-center gap-2">

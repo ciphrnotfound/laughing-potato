@@ -37,7 +37,7 @@ export const TextGenerateEffect2 = ({
                     return (
                         <motion.span
                             key={word + idx}
-                            className={` ${idx > 1 ? 'text-transparent bg-gradient-to-br from-white/40 to-[#7C3AED] bg-clip-text' : ' text-white '} opacity-0`}
+                            className={` ${idx > 1 ? 'text-transparent bg-gradient-to-br from-white/40 to-[#6208c9] bg-clip-text' : ' text-white '} opacity-0`}
                             style={{
                                 filter: filter ? "blur(10px)" : "none",
                             }}
@@ -51,7 +51,7 @@ export const TextGenerateEffect2 = ({
     };
 
     return (
-        <div className={cn("font-medium max-w-xl ", className)}>
+        <div className={cn(" max-w-xl ", className)}>
             <div className="">
                 <div className=" text-white  leading-snug ">
                     {renderWords()}

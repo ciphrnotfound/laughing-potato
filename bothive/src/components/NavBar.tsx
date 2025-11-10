@@ -33,7 +33,7 @@ export default function NavBar() {
     <header 
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? 'bg-black/80 backdrop-blur-md border-b border-white/5 shadow-lg' 
+          ? 'bg-black/85 backdrop-blur-md border-b border-white/10 shadow-[0_12px_40px_rgba(12,12,16,0.6)]' 
           : 'bg-transparent border-b border-transparent'
       }`}
     >
@@ -50,9 +50,9 @@ export default function NavBar() {
                 priority
                 className="transition-transform duration-300 group-hover:scale-110"
               />
-              <div className="absolute inset-0 -z-10 rounded-full bg-amber-500/20 blur-md group-hover:bg-amber-500/30 transition-colors duration-300" />
+              <div className="absolute inset-0 -z-10 rounded-full bg-white/10 blur-md group-hover:bg-[#a78bfa]/20 transition-colors duration-300" />
             </div>
-            <span className="text-lg font-bold bg-clip-text text-transparent bg-linear-to-r from-amber-400 to-amber-300">
+            <span className="text-lg font-bold text-white tracking-[0.22em]">
               Bothive
             </span>
           </Link>
@@ -63,10 +63,10 @@ export default function NavBar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-sm font-medium text-zinc-300 hover:text-white transition duration-200 relative group transform-gpu will-change-transform"
+                className="text-sm font-medium text-zinc-200 hover:text-white transition duration-200 relative group transform-gpu will-change-transform"
               >
                 <span className="inline-block transition-transform duration-200 group-hover:-translate-y-1">{item.name}</span>
-                <span className="absolute -bottom-1 left-0 h-0.5 w-full origin-left scale-x-0 bg-amber-400 transition-transform duration-300 group-hover:scale-x-100" />
+                <span className="absolute -bottom-1 left-0 h-[2px] w-full origin-left scale-x-0 bg-linear-to-r from-white/80 via-white to-transparent transition-transform duration-300 group-hover:scale-x-100" />
               </Link>
             ))}
           </nav>
@@ -81,7 +81,7 @@ export default function NavBar() {
             </Link>
             <Link
               href="/register"
-              className="btn-primary inline-flex items-center px-4 py-2 text-sm font-medium"
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_35px_rgba(124,58,237,0.22)] transition hover:-translate-y-0.5"
             >
               Get Started
               <svg
@@ -105,7 +105,7 @@ export default function NavBar() {
           <div className="flex md:hidden">
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-md p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
+              className="inline-flex items-center justify-center rounded-md p-2 text-zinc-300 hover:bg-zinc-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#a78bfa] focus:ring-offset-2 focus:ring-offset-zinc-900"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen ? "true" : "false"}
               aria-controls="mobile-menu"
@@ -181,7 +181,7 @@ export default function NavBar() {
                   <Link
                     href="/register"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full text-center rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-black"
+                    className="block w-full text-center rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black shadow-[0_8px_30px_rgba(124,58,237,0.2)]"
                   >
                     Get Started
                   </Link>
