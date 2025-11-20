@@ -7,10 +7,17 @@ import {
   ToolContext,
   ToolManifestEntry,
 } from "@/lib/agentTypes";
-import { generalTools, codingTools, studyTools } from "@/lib/tools";
+import { generalTools, codingTools, studyTools, socialTools, messagingTools, integrationTools } from "@/lib/tools";
 import { createSharedMemory } from "@/lib/sharedMemory";
 
-const TOOLSETS: ToolDescriptor[] = [...generalTools, ...codingTools, ...studyTools];
+const TOOLSETS: ToolDescriptor[] = [
+  ...generalTools,
+  ...codingTools,
+  ...studyTools,
+  ...socialTools,
+  ...messagingTools,
+  ...integrationTools,
+];
 const TOOL_MAP = TOOLSETS.reduce<Record<string, ToolDescriptor>>((acc, tool) => {
   acc[tool.capability] = tool;
   return acc;

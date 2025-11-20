@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const agentId = searchParams.get("agentId");
   const key = searchParams.get("key");
 
-  const allEntries = await memoryStorage.read();
+  const allEntries = (await memoryStorage.read()) as MemoryEntry[];
 
   if (agentId) {
     const entries = allEntries.filter((e: MemoryEntry) => e.agentId === agentId);

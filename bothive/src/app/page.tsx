@@ -11,11 +11,16 @@ import Features from "@/components/Features";
 import Clients from "@/components/Clients";
 import Pricing from "@/components/Pricing";
 import CTA from "@/components/CTA";
+import Footer from "@/components/Footer";
 import AgentBuilder from "@/components/AgentBuilder";
 import Marketplace from "@/components/Marketplace";
 import Orchestrator from "@/components/Orchestrator";
 import Integrations from "@/components/Integrations";
 import SecondaryHero from "@/components/SecondaryHero";
+import LightLanding from "@/app/landing-page/light/page";
+import LandingPage from "@/app/landing-page/page";
+import {TimelineDemo} from "@/components/Timeline";
+import {WorldMapDemo} from "@/components/WorldMapDemo";
 export default function Home() {
   const logos = [
     "/brands/harvard.png",
@@ -81,18 +86,21 @@ export default function Home() {
       
       {/* Hero */}
       <Hero />
-
+      
       {/* Bento showcase (design section) */}
-      <Bento />
-
-      <Features/>
+      <TimelineDemo />
+      
+      <WorldMapDemo/>
       
         <Clients/>
-
+      
         <Pricing/>
         
         <CTA/>
 
+      <Footer />
+
+      {/*<LightLanding/>*/}
         
     </div>
   );

@@ -5,10 +5,20 @@ import { randomBytes } from "crypto";
 // Dynamic import for bcryptjs (Next.js compatibility)
 const bcrypt = require("bcryptjs");
 
+// Local type to describe stored user records
+type StoredUser = {
+  id: string;
+  email: string;
+  password: string; // hashed
+  [key: string]: unknown;
+};
+
+type UsersByEmail = Record<string, StoredUser>;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password } = body;
+    const { email, password } = body as { email?: string; password?: string };
 
     if (!email || !password) {
       return Response.json(
@@ -17,10 +27,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const users = await usersStorage.read();
+    const users = (await usersStorage.read()) as UsersByEmail;
     const user = users[email];
 
-    if (!user) {
+    if (!user || typeof user.password !== "string") {
       return Response.json(
         { error: "Invalid email or password" },
         { status: 401 }
@@ -38,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     // Create session
     const sessionId = randomBytes(32).toString("hex");
-    const sessions = await sessionsStorage.read();
+    const sessions = (await sessionsStorage.read()) as Record<string, any>;
     sessions[sessionId] = {
       userId: user.id,
       email: user.email,
@@ -48,7 +58,7 @@ export async function POST(req: NextRequest) {
     await sessionsStorage.write(sessions);
 
     // Don't send password back
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _pw, ...userWithoutPassword } = user;
 
     // Set cookie
     const response = NextResponse.json({

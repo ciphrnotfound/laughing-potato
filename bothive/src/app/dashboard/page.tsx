@@ -1,17 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { 
-  Network, 
-  Zap, 
-  TrendingUp, 
-  Activity, 
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CalendarDays,
+  MoreHorizontal,
+  Network,
+  PenSquare,
   Plus,
+  SlidersHorizontal,
+  TrendingUp,
+  UserPlus,
+  Zap,
+  Activity,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import DashboardSidebarWrapper from "@/components/DashboardSidebarWrapper";
-import DashboardHeader from "@/components/DashboardHeader";
 import AgentBuilder from "@/components/AgentBuilder";
 import Orchestrator from "@/components/Orchestrator";
 import Marketplace from "@/components/Marketplace";
@@ -19,8 +26,103 @@ import MemoryTracker from "@/components/MemoryTracker";
 import Integrations from "@/components/Integrations";
 import { AgentDefinition } from "@/lib/agentTypes";
 import { cn } from "@/lib/utils";
+import DashboardHeader from "@/components/DashboardHeader";
 
 type DashboardTab = "overview" | "agents" | "orchestrator" | "marketplace" | "memory" | "integrations";
+
+const TIMEFRAME_OPTIONS = ["12 months", "30 days", "7 days", "24 hours"] as const;
+
+type TimeframeOption = typeof TIMEFRAME_OPTIONS[number];
+
+const MRR_SERIES: Record<TimeframeOption, { label: string; value: number }[]> = {
+  "12 months": [
+    { label: "Jan", value: 15400 },
+    { label: "Feb", value: 15840 },
+    { label: "Mar", value: 16280 },
+    { label: "Apr", value: 16720 },
+    { label: "May", value: 17100 },
+    { label: "Jun", value: 17560 },
+    { label: "Jul", value: 17820 },
+    { label: "Aug", value: 18140 },
+    { label: "Sep", value: 18360 },
+    { label: "Oct", value: 18520 },
+    { label: "Nov", value: 18680 },
+    { label: "Dec", value: 18880 },
+  ],
+  "30 days": [
+    { label: "Day 1", value: 18040 },
+    { label: "Day 5", value: 18110 },
+    { label: "Day 10", value: 18280 },
+    { label: "Day 15", value: 18410 },
+    { label: "Day 20", value: 18540 },
+    { label: "Day 25", value: 18620 },
+    { label: "Day 30", value: 18880 },
+  ],
+  "7 days": [
+    { label: "Mon", value: 18520 },
+    { label: "Tue", value: 18580 },
+    { label: "Wed", value: 18620 },
+    { label: "Thu", value: 18660 },
+    { label: "Fri", value: 18740 },
+    { label: "Sat", value: 18810 },
+    { label: "Sun", value: 18880 },
+  ],
+  "24 hours": [
+    { label: "02:00", value: 18740 },
+    { label: "06:00", value: 18780 },
+    { label: "10:00", value: 18820 },
+    { label: "14:00", value: 18840 },
+    { label: "18:00", value: 18860 },
+    { label: "22:00", value: 18870 },
+    { label: "24:00", value: 18880 },
+  ],
+};
+
+const SUMMARY_METRICS = [
+  { label: "Total members", value: "4,862", change: "+9.2%" },
+  { label: "Paid members", value: "2,671", change: "+6.6%" },
+  { label: "Email open rate", value: "82%", change: "+8.1%" },
+];
+
+const ACTION_SHORTCUTS = [
+  {
+    title: "Compose mission update",
+    description: "Share the latest deployment status with the crew.",
+    icon: PenSquare,
+    accent: "from-[#8A2FFF] to-[#4F2EFF]",
+  },
+  {
+    title: "Invite collaborator",
+    description: "Bring teammates into Bothive mission control.",
+    icon: UserPlus,
+    accent: "from-[#28D1FF] to-[#1276FF]",
+  },
+];
+
+const RECENT_POSTS = [
+  {
+    id: "post-1",
+    title: "UX review presentations",
+    excerpt: "How our product design team prepares async show-and-tell updates.",
+    gradient: "from-[#8A2FFF] via-[#5936FF] to-[#130A2C]",
+  },
+  {
+    id: "post-2",
+    title: "Migrating to Linear 101",
+    excerpt: "A tactical breakdown of migrating workflows without losing momentum.",
+    gradient: "from-[#28D1FF] via-[#1763FF] to-[#0A1226]",
+  },
+];
+
+const TOP_MEMBERS = [
+  { name: "Phoenix Baker", detail: "Member since Feb 2025" },
+  { name: "Lana Steiner", detail: "Member since Jan 2025" },
+  { name: "Demi Wilkinson", detail: "Member since Mar 2025" },
+  { name: "Candice Wu", detail: "Member since Feb 2025" },
+  { name: "Natali Craig", detail: "Member since Jan 2025" },
+  { name: "Orlando Diggs", detail: "Member since Apr 2025" },
+  { name: "Drew Cano", detail: "Member since Apr 2025" },
+];
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -30,6 +132,69 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
   const [agents, setAgents] = useState<AgentDefinition[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTimeframe, setActiveTimeframe] = useState<TimeframeOption>("12 months");
+
+  const chartSeries = MRR_SERIES[activeTimeframe] ?? [];
+
+  const chartGeometry = useMemo(() => {
+    if (!chartSeries.length) {
+      return { line: "", area: "", min: 0, max: 0 };
+    }
+
+    const values = chartSeries.map((point) => point.value);
+    const maxValue = Math.max(...values);
+    const minValue = Math.min(...values);
+    const range = Math.max(maxValue - minValue, 1);
+    const coords = chartSeries.map((point, index) => {
+      const x = (index / Math.max(chartSeries.length - 1, 1)) * 100;
+      const y = 85 - ((point.value - minValue) / range) * 70;
+      return { x, y };
+    });
+
+    const line = coords
+      .map((coord, index) => `${index === 0 ? "M" : "L"} ${coord.x.toFixed(2)} ${coord.y.toFixed(2)}`)
+      .join(" ");
+
+    const area = [
+      `M ${coords[0]?.x.toFixed(2) ?? 0} 100`,
+      ...coords.map((coord) => `L ${coord.x.toFixed(2)} ${coord.y.toFixed(2)}`),
+      `L ${coords.at(-1)?.x.toFixed(2) ?? 100} 100`,
+      "Z",
+    ].join(" ");
+
+    return { line, area, min: minValue, max: maxValue };
+  }, [chartSeries]);
+
+  const currentMRR = chartSeries.at(-1)?.value ?? 0;
+  const startingMRR = chartSeries[0]?.value ?? 0;
+  const mrrDeltaPercent = startingMRR ? ((currentMRR - startingMRR) / startingMRR) * 100 : 0;
+
+  const dashboardStats: { label: string; value: string; change: string; icon: LucideIcon }[] = [
+    {
+      label: "Active agents",
+      value: agents.length.toString(),
+      change: "+12%",
+      icon: Zap,
+    },
+    {
+      label: "Workflows",
+      value: "8",
+      change: "+3",
+      icon: Network,
+    },
+    {
+      label: "Success rate",
+      value: "94.2%",
+      change: "+2.1%",
+      icon: TrendingUp,
+    },
+    {
+      label: "Total interactions",
+      value: "1.2K",
+      change: "+156",
+      icon: Activity,
+    },
+  ];
 
   useEffect(() => {
     // Get tab from URL
@@ -118,166 +283,308 @@ function DashboardContent() {
         <main className="flex-1 overflow-y-auto">
           {activeTab === "overview" && (
             <div className="relative p-4 sm:p-6 lg:p-8">
-              {/* Welcome Section */}
-              <div className="mb-8 space-y-3">
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-[0.3em] text-black/35 dark:text-white/35">Overview</p>
-                  <h1 className="text-3xl sm:text-4xl font-semibold text-black dark:text-white">Your command center</h1>
+              <div className="flex flex-col gap-8">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-[0.3em] text-black/35 dark:text-white/35">Dashboard</p>
+                    <h1 className="text-3xl sm:text-4xl font-semibold text-black dark:text-white">
+                      Mission telemetry
+                    </h1>
+                    <p className="max-w-xl text-sm text-black/55 dark:text-white/55">
+                      Monitor Bothive swarms, orchestrations, and customer momentum in a single control panel.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {TIMEFRAME_OPTIONS.map((option) => {
+                      const isActive = option === activeTimeframe;
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setActiveTimeframe(option)}
+                          className={cn(
+                            "rounded-full px-4 py-2 text-xs font-medium transition border",
+                            isActive
+                              ? "border-violet-500/80 bg-violet-500/10 text-violet-500"
+                              : "border-black/10 bg-white/60 text-black/60 hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/5 dark:text-white/60 dark:hover:border-white/20"
+                          )}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <p className="max-w-2xl text-sm text-black/55 dark:text-white/55">
-                  Track your agents, workflows, and activity in one minimalist workspace.
-                </p>
-              </div>
 
-              {/* Welcome Card */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.4 }}
-                className="mb-8 p-6 rounded-2xl border border-black/5 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md"
-              >
-                <h2 className="text-lg font-semibold text-black dark:text-white mb-1">Welcome back 👋</h2>
-                <p className="text-sm text-black/60 dark:text-white/60">You have {agents.length} active agents and 8 workflows in motion. Keep building.</p>
-              </motion.div>
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
+                  <motion.section
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="relative overflow-hidden rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
+                  >
+                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top,rgba(124,58,237,0.18),transparent_65%)]" />
+                    <div className="relative z-10 flex flex-col gap-6">
+                      <header className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.25em] text-black/50 dark:text-white/50">MRR</p>
+                          <div className="mt-2 flex items-baseline gap-3">
+                            <span className="text-3xl font-semibold text-black dark:text-white">
+                              ${currentMRR.toLocaleString()}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-500">
+                              <ArrowUpRight className="h-3 w-3" />
+                              {mrrDeltaPercent >= 0 ? `+${mrrDeltaPercent.toFixed(1)}%` : `${mrrDeltaPercent.toFixed(1)}%`}
+                            </span>
+                          </div>
+                          <p className="text-xs text-black/45 dark:text-white/45">Revenue trend across {activeTimeframe.toLowerCase()}.</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-xs font-semibold text-black/70 hover:border-black/20 dark:border-white/15 dark:bg-white/10 dark:text-white/70">
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            Select dates
+                          </button>
+                          <button className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-xs font-semibold text-black/70 hover:border-black/20 dark:border-white/15 dark:bg-white/10 dark:text-white/70">
+                            <SlidersHorizontal className="h-3.5 w-3.5" />
+                            Filters
+                          </button>
+                        </div>
+                      </header>
 
-              {/* Stats Grid */}
-              <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat, index) => {
-                  const Icon = stat.icon;
-                  const colorClasses = {
-                    purple: { bg: "bg-white/30 dark:bg-white/5", text: "text-black dark:text-white", border: "border-black/10 dark:border-white/10" },
-                    blue: { bg: "bg-white/30 dark:bg-white/5", text: "text-black dark:text-white", border: "border-black/10 dark:border-white/10" },
-                    green: { bg: "bg-white/30 dark:bg-white/5", text: "text-black dark:text-white", border: "border-black/10 dark:border-white/10" },
-                    orange: { bg: "bg-white/30 dark:bg-white/5", text: "text-black dark:text-white", border: "border-black/10 dark:border-white/10" },
-                  };
-                  const colors = colorClasses[stat.color as keyof typeof colorClasses];
-                  return (
-                    <motion.div
-                      key={stat.label}
+                      <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-white via-white/80 to-white/60 dark:border-white/10 dark:from-transparent dark:via-white/5 dark:to-white/5">
+                        <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
+                          <defs>
+                            <linearGradient id="mrr-area" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="rgba(124,58,237,0.32)" />
+                              <stop offset="100%" stopColor="rgba(124,58,237,0)" />
+                            </linearGradient>
+                            <linearGradient id="mrr-line" x1="0" y1="0" x2="1" y2="0">
+                              <stop offset="0%" stopColor="rgba(167,139,250,1)" />
+                              <stop offset="100%" stopColor="rgba(124,58,237,1)" />
+                            </linearGradient>
+                          </defs>
+                          <path d={chartGeometry.area} fill="url(#mrr-area)" fillOpacity={0.9} />
+                          <path d={chartGeometry.line} fill="none" stroke="url(#mrr-line)" strokeWidth={1.4} strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-x-6 bottom-4 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
+                          {chartSeries.map((point) => (
+                            <span key={point.label}>{point.label}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.section>
+
+                  <div className="space-y-6">
+                    <motion.section
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, duration: 0.3 }}
-                      whileHover={{ y: -4 }}
-                      className={`p-5 sm:p-6 rounded-2xl border ${colors.border} ${colors.bg} backdrop-blur-md transition-colors duration-200`}
+                      transition={{ delay: 0.1, duration: 0.35 }}
+                      className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className={`p-2.5 rounded-lg bg-white/70 dark:bg-white/10 ${colors.text} transition-colors`}>
-                          <Icon className="w-4 h-4" />
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
+                          Summary
+                        </h2>
+                        <button className="text-xs text-violet-500 hover:text-violet-400">View report</button>
+                      </div>
+                      <div className="mt-5 space-y-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                          {SUMMARY_METRICS.map((metric) => (
+                            <div key={metric.label} className="space-y-1">
+                              <p className="text-xs uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
+                                {metric.label}
+                              </p>
+                              <p className="text-2xl font-semibold text-black dark:text-white">{metric.value}</p>
+                              <p className="text-xs text-emerald-400">{metric.change}</p>
+                            </div>
+                          ))}
                         </div>
-                        <span className="text-xs sm:text-sm text-black/50 dark:text-white/60 font-medium">
-                          {stat.change}
-                        </span>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {dashboardStats.map((stat) => {
+                            const Icon = stat.icon;
+                            return (
+                              <div
+                                key={stat.label}
+                                className="flex items-center justify-between rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm text-black/70 dark:border-white/10 dark:bg-white/10 dark:text-white/70"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-500">
+                                    <Icon className="h-4 w-4" />
+                                  </span>
+                                  <div>
+                                    <p className="text-xs uppercase tracking-[0.15em] text-black/45 dark:text-white/45">{stat.label}</p>
+                                    <p className="text-base font-semibold text-black dark:text-white">{stat.value}</p>
+                                  </div>
+                                </div>
+                                <span className="text-xs font-semibold text-emerald-400">{stat.change}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <p className={`text-2xl sm:text-3xl font-semibold ${colors.text}`}>{stat.value}</p>
-                        <p className="text-xs sm:text-sm text-black/60 dark:text-white/60">{stat.label}</p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
+                    </motion.section>
 
-              {/* Quick Actions & Recent Activity */}
-              <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="relative overflow-hidden rounded-xl border border-black/10 bg-white/60 p-6 backdrop-blur-md dark:border-white/10 dark:bg-white/5"
-                >
-                  <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,rgba(0,0,0,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.08)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:18px_18px]" />
-
-                  <h3 className="relative z-10 mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-black/60 dark:text-white/60">
-                    Quick actions
-                  </h3>
-                  <div className="relative z-10 space-y-2">
-                    <button
-                      onClick={() => handleTabChange("agents")}
-                      className="flex w-full items-center justify-between rounded-lg border border-black/10 bg-white/80 p-4 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
+                    <motion.section
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.18, duration: 0.35 }}
+                      className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 bg-white text-black dark:border-white/15 dark:bg-white/10 dark:text-white">
-                          <Plus className="h-4 w-4" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-black dark:text-white">Create new agent</p>
-                          <p className="text-xs text-black/50 dark:text-white/55">Start with a fresh blueprint</p>
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
+                          Top members
+                        </h2>
+                        <button className="text-xs text-violet-500 hover:text-violet-400">Manage</button>
                       </div>
-                      <span className="text-xs text-black/40 transition dark:text-white/50">→</span>
-                    </button>
-                    <button
-                      onClick={() => handleTabChange("orchestrator")}
-                      className="flex w-full items-center justify-between rounded-lg border border-black/10 bg-white/80 p-4 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 bg-white text-black dark:border-white/15 dark:bg-white/10 dark:text-white">
-                          <Network className="h-4 w-4" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-black dark:text-white">Build workflow</p>
-                          <p className="text-xs text-black/50 dark:text-white/55">Connect agents into a swarm</p>
-                        </div>
-                      </div>
-                      <span className="text-xs text-black/40 transition dark:text-white/50">→</span>
-                    </button>
-                    <button
-                      onClick={() => handleTabChange("marketplace")}
-                      className="flex w-full items-center justify-between rounded-lg border border-black/10 bg-white/80 p-4 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-black/10 bg-white text-black dark:border-white/15 dark:bg-white/10 dark:text-white">
-                          <Zap className="h-4 w-4" />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-medium text-black dark:text-white">Browse marketplace</p>
-                          <p className="text-xs text-black/50 dark:text-white/55">Discover ready-made agents</p>
-                        </div>
-                      </div>
-                      <span className="text-xs text-black/40 transition dark:text-white/50">→</span>
-                    </button>
+                      <ul className="mt-4 space-y-3 text-sm text-black/70 dark:text-white/70">
+                        {TOP_MEMBERS.map((member) => (
+                          <li key={member.name} className="flex items-center justify-between rounded-xl border border-black/10 bg-white/80 px-4 py-2 dark:border-white/10 dark:bg-white/10">
+                            <div className="flex items-center gap-3">
+                              <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-violet-500/10 text-violet-400">
+                                {member.name
+                                  .split(" ")
+                                  .map((part) => part[0])
+                                  .join("")}
+                              </span>
+                              <div>
+                                <p className="font-medium text-black dark:text-white">{member.name}</p>
+                                <p className="text-xs text-black/45 dark:text-white/45">{member.detail}</p>
+                              </div>
+                            </div>
+                            <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
+                          </li>
+                        ))}
+                      </ul>
+                    </motion.section>
                   </div>
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="relative overflow-hidden rounded-xl border border-black/10 bg-white/60 p-6 backdrop-blur-md dark:border-white/10 dark:bg-white/5"
-                >
-                  <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,rgba(0,0,0,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.08)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:18px_18px]" />
-
-                  <h3 className="relative z-10 mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-black/60 dark:text-white/60">
-                    Recent activity
-                  </h3>
-                  <div className="relative z-10 space-y-2">
-                    {agents.slice(0, 5).map((agent) => (
-                      <div
-                        key={agent.id}
-                        className="flex items-center gap-3 rounded-lg border border-black/10 bg-white/80 p-3 transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
-                      >
-                        <div className="h-2 w-2 animate-pulse rounded-full bg-[#6A00FF]" />
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate text-sm font-medium text-black dark:text-white">{agent.name}</p>
-                          <p className="text-xs text-black/50 dark:text-white/55">Agent created</p>
-                        </div>
-                        <span className="text-xs text-black/40 dark:text-white/50">Just now</span>
-                      </div>
-                    ))}
-                    {agents.length === 0 && (
-                      <div className="rounded-lg border border-dashed border-black/10 py-8 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
-                        No recent activity
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+                  <motion.section
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25, duration: 0.35 }}
+                    className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
+                        Quick actions
+                      </h2>
+                      <button className="text-xs text-violet-500 hover:text-violet-400">View all</button>
+                    </div>
+                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {ACTION_SHORTCUTS.map((action) => (
                         <button
-                          onClick={() => handleTabChange("agents")}
-                          className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-black/60 transition hover:text-black dark:text-white/60 dark:hover:text-white"
+                          key={action.title}
+                          type="button"
+                          onClick={() => {
+                            if (action.title.toLowerCase().includes("mission")) {
+                              handleTabChange("orchestrator");
+                              return;
+                            }
+                            handleTabChange("agents");
+                          }}
+                          className="group relative overflow-hidden rounded-2xl border border-black/10 bg-white/80 p-6 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
                         >
-                          <span>Create your first agent</span>
-                          <span aria-hidden="true">→</span>
+                          <div className={cn("pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300", `bg-gradient-to-br ${action.accent}`)} />
+                          <div className="relative flex h-full flex-col gap-4">
+                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
+                              <action.icon className="h-4 w-4" />
+                            </span>
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold text-black dark:text-white">{action.title}</p>
+                              <p className="text-xs text-black/55 dark:text-white/55">{action.description}</p>
+                            </div>
+                            <span className="mt-auto inline-flex items-center gap-2 text-xs font-semibold text-violet-500">
+                              Initiate
+                              <ArrowUpRight className="h-3 w-3" />
+                            </span>
+                          </div>
                         </button>
-                      </div>
-                    )}
+                      ))}
+                    </div>
+                  </motion.section>
+
+                  <motion.section
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.35 }}
+                    className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
+                        Recent posts
+                      </h2>
+                      <button className="text-xs text-violet-500 hover:text-violet-400">Open library</button>
+                    </div>
+                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {RECENT_POSTS.map((post) => (
+                        <article
+                          key={post.id}
+                          className={cn(
+                            "relative overflow-hidden rounded-2xl border border-black/10 bg-white/80 p-4 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20",
+                            `bg-gradient-to-br ${post.gradient}`
+                          )}
+                        >
+                          <div className="space-y-2 text-white">
+                            <p className="text-xs uppercase tracking-[0.18em] text-white/70">{post.id}</p>
+                            <h3 className="text-lg font-semibold leading-tight">{post.title}</h3>
+                            <p className="text-sm text-white/80">{post.excerpt}</p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </motion.section>
+                </div>
+
+                <motion.section
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35, duration: 0.35 }}
+                  className="grid gap-4 rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
+                >
+                  <div className="space-y-3">
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
+                      Activity feed
+                    </h2>
+                    <ul className="space-y-3 text-sm text-black/70 dark:text-white/70">
+                      {agents.slice(0, 4).map((agent) => (
+                        <li key={agent.id} className="flex items-center justify-between rounded-xl border border-black/10 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/10">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-500">
+                              <Zap className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-black dark:text-white">{agent.name}</p>
+                              <p className="text-xs text-black/45 dark:text-white/45">Agent deployed</p>
+                            </div>
+                          </div>
+                          <span className="text-xs text-black/40 dark:text-white/50">moments ago</span>
+                        </li>
+                      ))}
+                      {agents.length === 0 && (
+                        <li className="rounded-xl border border-dashed border-black/15 bg-white/50 px-4 py-6 text-center text-sm text-black/45 dark:border-white/20 dark:bg-white/5 dark:text-white/50">
+                          No agent activity yet. Seed the hive to populate this stream.
+                        </li>
+                      )}
+                    </ul>
                   </div>
-                </motion.div>
+
+                  <div className="space-y-4 rounded-2xl border border-black/10 bg-white/80 p-5 dark:border-white/10 dark:bg-white/10">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-black/50 dark:text-white/50">Release notes</p>
+                      <h3 className="mt-1 text-lg font-semibold text-black dark:text-white">Hive Store refresh</h3>
+                      <p className="mt-2 text-sm text-black/55 dark:text-white/55">
+                        Discover curated copilots, spotlighted vendors, and the newest orchestrations approved for the marketplace.
+                      </p>
+                    </div>
+                    <button className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs font-semibold text-violet-500 transition hover:border-violet-500/30 hover:text-violet-400">
+                      Read changelog
+                      <ArrowUpRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                </motion.section>
               </div>
             </div>
           )}

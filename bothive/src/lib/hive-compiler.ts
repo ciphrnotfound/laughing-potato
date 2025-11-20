@@ -1,3 +1,5 @@
+import { HIVE_MACRO_LIBRARY } from "./hive-macros";
+
 export type HiveDiagnosticSeverity = "error" | "warning";
 
 export interface HiveDiagnostic {
@@ -40,7 +42,34 @@ interface HiveMemoryNode {
   keys: string[];
 }
 
-export type HiveStep = HiveIfNode | HiveLoopNode | HiveSayNode | HiveToolsNode | HiveMemoryNode;
+interface HiveCallNode {
+  type: "call";
+  tool: string;
+  args: Record<string, string>;
+}
+
+interface HiveRememberNode {
+  type: "remember";
+  key: string;
+  value: string;
+}
+
+interface HiveSetNode {
+  type: "set";
+  key: string;
+  mode: "literal" | "path";
+  value: string;
+}
+
+export type HiveStep =
+  | HiveIfNode
+  | HiveLoopNode
+  | HiveSayNode
+  | HiveToolsNode
+  | HiveMemoryNode
+  | HiveCallNode
+  | HiveRememberNode
+  | HiveSetNode;
 
 export interface HiveAst {
   name: string;
@@ -69,10 +98,15 @@ const SAY_MULTILINE_START = /^say\s+"""$/i;
 const SAY_MULTILINE_END = /^"""$/;
 const TOOLS_STATEMENT = /^tools\(([^)]*)\)$/i;
 const MEMORY_STATEMENT = /^memory\[([^\]]*)\]$/i;
+const CALL_STATEMENT = /^call\s+([A-Za-z0-9._-]+)(?:\s+with\s+(.+))?$/i;
+const REMEMBER_STATEMENT = /^remember\s+([A-Za-z0-9._-]+)\s+"([^"]*)"$/i;
 const IF_STATEMENT = /^if\s+(.+)$/i;
 const ELSE_STATEMENT = /^else$/i;
 const LOOP_STATEMENT = /^loop\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s+in\s+(.+))?$/i;
 const END_STATEMENT = /^end$/i;
+const COMMENT_STATEMENT = /^--/;
+const MACRO_STATEMENT = /^use\s+macro\s+([A-Za-z0-9_-]+)$/i;
+const SET_STATEMENT = /^set\s+([A-Za-z0-9_.-]+)\s+(?:"([^"]*)"|([A-Za-z0-9_.-]+))$/i;
 
 interface ParseContext {
   ast: HiveAst;
@@ -126,7 +160,21 @@ export async function compileHive(source: string, options: HiveCompileOptions = 
       continue;
     }
 
-    if (!line) continue;
+    if (!line || COMMENT_STATEMENT.test(line)) continue;
+
+    if (MACRO_STATEMENT.test(line)) {
+      const [, macroName] = line.match(MACRO_STATEMENT) ?? [];
+      const macroKey = (macroName ?? "").toLowerCase();
+      const macroSource = HIVE_MACRO_LIBRARY[macroKey];
+      if (!macroSource) {
+        diagnostics.push(makeDiagnostic(lineNumber, 1, "error", `Unknown macro '${macroName}'`));
+        continue;
+      }
+      const macroLines = macroSource.split(/\r?\n/);
+      trimmedSource.splice(index, 1, ...macroLines);
+      index -= 1;
+      continue;
+    }
 
     if (!ctx.ast.name) {
       const botMatch = line.match(BOT_DECLARATION);
@@ -199,6 +247,58 @@ export async function compileHive(source: string, options: HiveCompileOptions = 
       }
       keys.forEach((key) => ctx.ast.memory.add(key));
       appendStep(ctx, { type: "memory", keys });
+      continue;
+    }
+
+    if (CALL_STATEMENT.test(line)) {
+      const [, toolName, argsRaw] = line.match(CALL_STATEMENT) ?? [];
+      const tool = toolName?.trim();
+      if (!tool) {
+        diagnostics.push(makeDiagnostic(lineNumber, 1, "error", "call requires a tool identifier"));
+        continue;
+      }
+      ctx.ast.tools.add(tool);
+      const args: Record<string, string> = {};
+      if (argsRaw) {
+        argsRaw
+          .split(/,(?![^\"]*\")/)
+          .map((segment) => segment.trim())
+          .filter(Boolean)
+          .forEach((segment) => {
+            const [key, value] = segment.split(":").map((token) => token.trim());
+            if (key) {
+              const cleanedValue = value?.replace(/^"|"$/g, "") ?? "";
+              args[key] = cleanedValue;
+            }
+          });
+      }
+      appendStep(ctx, { type: "call", tool, args });
+      continue;
+    }
+
+    if (REMEMBER_STATEMENT.test(line)) {
+      const [, key, value] = line.match(REMEMBER_STATEMENT) ?? [];
+      if (!key) {
+        diagnostics.push(makeDiagnostic(lineNumber, 1, "error", "remember requires a key"));
+        continue;
+      }
+      appendStep(ctx, { type: "remember", key, value: value ?? "" });
+      continue;
+    }
+
+    if (SET_STATEMENT.test(line)) {
+      const [, key, literal, pathRef] = line.match(SET_STATEMENT) ?? [];
+      if (!key) {
+        diagnostics.push(makeDiagnostic(lineNumber, 1, "error", "set requires a target key"));
+        continue;
+      }
+      if (!literal && !pathRef) {
+        diagnostics.push(makeDiagnostic(lineNumber, 1, "error", "set requires a literal value or source path"));
+        continue;
+      }
+      const mode: HiveSetNode["mode"] = literal !== undefined ? "literal" : "path";
+      const value = (literal ?? pathRef ?? "").trim();
+      appendStep(ctx, { type: "set", key, mode, value });
       continue;
     }
 
@@ -292,9 +392,31 @@ function buildJavaScript(ast: HiveAst, options: HiveCompileOptions, diagnostics:
     return value ?? '';
   });
 
+const resolveValue = (path, ctx) => {
+  if (!path) return undefined;
+  const segments = String(path).split('.');
+  const sources = [ctx.locals ?? {}, ctx.input ?? {}];
+  for (const source of sources) {
+    let acc = source;
+    let matched = true;
+    for (const segment of segments) {
+      if (acc == null || !(segment in acc)) {
+        matched = false;
+        break;
+      }
+      acc = acc[segment];
+    }
+    if (matched && acc !== undefined) {
+      return acc;
+    }
+  }
+  return undefined;
+};
+
 const resolveCollection = async (key, ctx) => {
   if (!key) return [];
-  if (Array.isArray(ctx?.input?.[key])) return ctx.input[key];
+  const resolved = resolveValue(key, ctx);
+  if (Array.isArray(resolved)) return resolved;
   const resolver = ctx?.resolveCollection ?? ctx?.memory?.get;
   if (resolver) {
     const value = await resolver.call(ctx.memory ?? ctx, key, ctx);
@@ -307,9 +429,24 @@ const executeSteps = async (steps, ctx, transcript) => {
   for (const step of steps) {
     switch (step.type) {
       case 'say': {
-        const rendered = interpolate(step.payload, ctx.input ?? {});
+        const rendered = interpolate(step.payload, { ...(ctx.input ?? {}), ...(ctx.locals ?? {}) });
         ctx.emit?.({ type: 'say', payload: rendered });
         transcript.push({ type: 'say', payload: rendered });
+        break;
+      }
+      case 'call': {
+        const args = Object.fromEntries(
+          Object.entries(step.args ?? {}).map(([key, raw]) => [
+            key,
+            raw && /^[A-Za-z0-9_.-]+$/.test(raw)
+              ? resolveValue(raw, ctx)
+              : raw,
+          ])
+        );
+        if (ctx.callTool) {
+          const result = await ctx.callTool(step.tool, { ...ctx, args });
+          transcript.push({ type: 'tool', tool: step.tool, result, args });
+        }
         break;
       }
       case 'tools': {
@@ -321,6 +458,32 @@ const executeSteps = async (steps, ctx, transcript) => {
         }
         break;
       }
+      case 'remember': {
+        const value = interpolate(step.payload ?? '', { ...(ctx.input ?? {}), ...(ctx.locals ?? {}) });
+        if (ctx.memory?.append) {
+          await ctx.memory.append(step.key, value);
+        } else if (ctx.memory?.set) {
+          await ctx.memory.set(step.key, value);
+        }
+        transcript.push({ type: 'memory.append', key: step.key, value });
+        break;
+      }
+      case 'set': {
+        const value = step.mode === 'literal' ? step.payload : resolveValue(step.payload, ctx);
+        if (!ctx.locals) ctx.locals = {};
+        const segments = String(step.key).split('.');
+        let target = ctx.locals;
+        for (let i = 0; i < segments.length - 1; i += 1) {
+          const segment = segments[i];
+          if (typeof target[segment] !== 'object' || target[segment] === null) {
+            target[segment] = {};
+          }
+          target = target[segment];
+        }
+        target[segments.at(-1)] = value;
+        transcript.push({ type: 'set', key: step.key, value, mode: step.mode });
+        break;
+      }
       case 'memory': {
         for (const key of step.keys) {
           const value = await ctx.memory?.get?.(key);
@@ -330,14 +493,18 @@ const executeSteps = async (steps, ctx, transcript) => {
       }
       case 'if': {
         const allow = (await ctx.evaluate?.(step.condition, ctx)) ?? false;
-        const branch = allow ? step.then : step.else ?? [];
+        const branch = allow ? step.then ?? [] : step.else ?? [];
         await executeSteps(branch, ctx, transcript);
         break;
       }
       case 'loop': {
         const collection = await resolveCollection(step.source, ctx);
         for (const item of collection) {
-          const childScope = { ...ctx, input: { ...ctx.input, [step.iterator ?? 'item']: item } };
+          const childScope = {
+            ...ctx,
+            input: { ...ctx.input, [step.iterator ?? 'item']: item },
+            locals: ctx.locals,
+          };
           await executeSteps(step.steps, childScope, transcript);
         }
         break;
@@ -360,6 +527,7 @@ const program = {
     const transcript = [];
     const scope = {
       input: ctx.input ?? {},
+      locals: ctx.locals ? { ...ctx.locals } : {},
       emit: ctx.emit ?? (() => undefined),
       callTool: ctx.callTool,
       memory: ctx.memory ?? { get: async () => undefined },
@@ -386,6 +554,10 @@ interface SerializableStep {
   payload?: string;
   tools?: string[];
   keys?: string[];
+  tool?: string;
+  args?: Record<string, string>;
+  key?: string;
+  mode?: string;
   then?: SerializableStep[];
   else?: SerializableStep[];
   steps?: SerializableStep[];
@@ -402,6 +574,12 @@ function convertSteps(steps: HiveStep[]): SerializableStep[] {
         return { type: "tools", tools: step.tools };
       case "memory":
         return { type: "memory", keys: step.keys };
+      case "call":
+        return { type: "call", tool: step.tool, args: step.args };
+      case "remember":
+        return { type: "remember", key: step.key, payload: step.value };
+      case "set":
+        return { type: "set", key: step.key, mode: step.mode, payload: step.value };
       case "if":
         return {
           type: "if",

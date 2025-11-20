@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { motion, stagger, useAnimate } from "motion/react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme-context";
 
 export const TextGenerateEffect2 = ({
                                        words,
@@ -15,6 +16,8 @@ export const TextGenerateEffect2 = ({
     duration?: number;
 }) => {
     const [scope, animate] = useAnimate();
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
     let wordsArray = words.split(" ");
     useEffect(() => {
         animate(
@@ -33,30 +36,31 @@ export const TextGenerateEffect2 = ({
     const renderWords = () => {
         return (
             <motion.div ref={scope}>
-                {wordsArray.map((word, idx) => {
-                    return (
-                        <motion.span
-                            key={word + idx}
-                            className={` ${idx > 1 ? 'text-transparent bg-gradient-to-br from-white/40 to-[#6208c9] bg-clip-text' : ' text-white '} opacity-0`}
-                            style={{
-                                filter: filter ? "blur(10px)" : "none",
-                            }}
-                        >
-                            {word}{" "}
-                        </motion.span>
-                    );
-                })}
+                {wordsArray.map((word, idx) => (
+                    <motion.span
+                        key={word + idx}
+                        className={cn(
+                            idx > 2
+                                ? isDark
+                                    ? "text-transparent bg-gradient-to-br from-white/90 via-white to-white bg-clip-text"
+                                    : "text-transparent bg-gradient-to-br from-violet-700 via-violet-500 to-purple-800 bg-clip-text"
+                                : isDark
+                                    ? "text-white"
+                                    : "text-slate-900",
+                            "opacity-0"
+                        )}
+                        style={{
+                            filter: filter ? "blur(10px)" : "none",
+                        }}
+                    >
+                        {word}{" "}
+                    </motion.span>
+                ))}
             </motion.div>
         );
     };
 
     return (
-        <div className={cn(" max-w-xl ", className)}>
-            <div className="">
-                <div className=" text-white  leading-snug ">
-                    {renderWords()}
-                </div>
-            </div>
-        </div>
+        <div className={cn("max-w-xl", className, isDark ? "text-white" : "text-slate-900")}>{renderWords()}</div>
     );
 };

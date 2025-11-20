@@ -74,13 +74,13 @@ export default function NavBar() {
           <div className="hidden md:flex items-center gap-4">
             <ThemeToggle />
             <Link
-              href="/login"
+              href="/signin"
               className="text-sm font-medium text-zinc-300 hover:text-white transition-colors duration-200 hover:-translate-y-0.5 transform"
             >
               Sign in
             </Link>
             <Link
-              href="/register"
+              href="/signup?redirect=%2Fgetting-started"
               className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_35px_rgba(124,58,237,0.22)] transition hover:-translate-y-0.5"
             >
               Get Started
@@ -172,14 +172,14 @@ export default function NavBar() {
 
                 <div className="mt-4 space-y-3">
                   <Link
-                    href="/login"
+                    href="/signin"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block w-full text-center rounded-lg bg-white/8 px-4 py-3 text-sm font-semibold"
                   >
                     Sign in
                   </Link>
                   <Link
-                    href="/register"
+                    href="/signup?redirect=%2Fgetting-started"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block w-full text-center rounded-lg bg-white px-4 py-3 text-sm font-semibold text-black shadow-[0_8px_30px_rgba(124,58,237,0.2)]"
                   >

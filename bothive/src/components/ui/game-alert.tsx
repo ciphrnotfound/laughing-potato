@@ -496,21 +496,22 @@ function ProgressBar({ color, duration, running }: { color: string; duration: nu
   const [progress, setProgress] = useState(0);
 
   const step = useCallback(
-    (ts: number) => {
+    function stepFrame(ts: number) {
       if (!running) return;
-      if (!startRef.current) startRef.current = ts - progress * duration;
+      if (!startRef.current) startRef.current = ts;
       const elapsed = ts - startRef.current;
       const p = Math.min(1, elapsed / duration);
       setProgress(p);
       if (p < 1) {
-        rafRef.current = requestAnimationFrame(step);
+        rafRef.current = requestAnimationFrame(stepFrame);
       }
     },
-    [duration, running, progress]
+    [duration, running]
   );
 
   useEffect(() => {
     if (running) {
+      setProgress(0);
       rafRef.current = requestAnimationFrame(step);
     }
     return () => {

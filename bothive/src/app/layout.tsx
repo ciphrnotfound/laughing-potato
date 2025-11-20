@@ -1,24 +1,19 @@
 import type { Metadata } from "next";
-import { DM_Sans, JetBrains_Mono,Aldrich, Open_Sans  } from "next/font/google";
-import NavBar from "@/components/NavBar";
+import { DM_Sans, Harmattan } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme-context";
+import ThemeToggle from "@/components/ThemeToggle";
+import { AppSessionProvider } from "@/lib/app-session-context";
 
-import "./globals.css"
+import "./globals.css";
+import {devToolsConfigMiddleware} from "next/dist/next-devtools/server/devtools-config-middleware";
+
 const dmSans = DM_Sans({
   variable: "--font-dmsans",
   subsets: ["latin"],
   display: "swap",
 });
-const openSans = Open_Sans({ 
-  variable: "--font-opensans",
-  subsets: ["latin"],
-  display: "swap",
-});
 
-const aldrich = Aldrich({
-  variable: "--font-aldrich",
-  weight: "400"
-});
+
 export const metadata: Metadata = {
   title: "Bothive — The Digital Hive Where AI Agents Collaborate",
   description:
@@ -54,8 +49,13 @@ export default function RootLayout({
       </head>
       <body className={`${dmSans.className} antialiased bg-white dark:bg-gradient-to-br dark:from-black dark:to-violet-950 text-black dark:text-white transition-colors duration-300`}>
         <ThemeProvider>
-          {/*<NavBar />*/}
-          {children}
+          <AppSessionProvider>
+            {/*<NavBar />*/}
+            {children}
+            <div className="fixed bottom-4 right-4 z-50">
+              <ThemeToggle />
+            </div>
+          </AppSessionProvider>
         </ThemeProvider>
       </body>
     </html>

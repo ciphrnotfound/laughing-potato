@@ -1,6 +1,21 @@
 import { AgentDefinition } from "./agentTypes";
 import { agentsStorage } from "./storage";
 
+function isAgentDefinition(value: unknown): value is AgentDefinition {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<AgentDefinition>;
+  const hasId = typeof candidate.id === "string" && candidate.id.trim().length > 0;
+  const hasName = typeof candidate.name === "string" && candidate.name.trim().length > 0;
+  const skillsValid = Array.isArray(candidate.skills);
+  if (!hasId || !hasName || !skillsValid) {
+    return false;
+  }
+  if (candidate.memoryKeys && !Array.isArray(candidate.memoryKeys)) {
+    return false;
+  }
+  return true;
+}
+
 class AgentRegistry {
   private agents: Map<string, AgentDefinition> = new Map();
   private initialized = false;
@@ -9,7 +24,20 @@ class AgentRegistry {
     if (this.initialized) return;
     try {
       const data = await agentsStorage.read();
-      this.agents = new Map(Object.entries(data));
+      const entries: [string, AgentDefinition][] = [];
+      for (const [id, value] of Object.entries(data ?? {})) {
+        if (isAgentDefinition(value)) {
+          const normalized: AgentDefinition = {
+            id: value.id ?? id,
+            name: value.name,
+            description: value.description ?? "",
+            skills: Array.isArray(value.skills) ? value.skills : [],
+            memoryKeys: value.memoryKeys && Array.isArray(value.memoryKeys) ? value.memoryKeys : [],
+          };
+          entries.push([normalized.id, normalized]);
+        }
+      }
+      this.agents = new Map(entries);
       this.initialized = true;
     } catch (error) {
       console.error("Failed to load agents:", error);

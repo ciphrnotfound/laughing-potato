@@ -5,42 +5,40 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   Activity,
+  AlertTriangle,
   ArrowUpRight,
   Bell,
+  CheckCircle2,
   ClipboardCheck,
+  Clock,
   CloudUpload,
   Code2,
+  Database,
+  FileText,
   Gauge,
-  Globe,
+  Keyboard,
   LifeBuoy,
   LineChart,
   Loader2,
-  Laptop,
   MessageCircle,
   MessageSquare,
-  MoreHorizontal,
-  Monitor,
-  RefreshCw,
-  Puzzle,
   PlayCircle,
-  Smartphone,
-  SidebarClose,
-  SidebarOpen,
-  Star,
+  RefreshCw,
   Rocket,
   Settings2,
   Sparkles,
   Store,
   Users,
+  Webhook,
+  Zap,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ProfessionalAlert } from "@/components/ui/glass-alert";
 import { compileHive } from "@/lib/hive-compiler";
 import { supabase } from "@/lib/supabase";
 import { cn, slugify } from "@/lib/utils";
-import type { ToolManifestEntry } from "@/lib/agentTypes";
+import type { AgentMessage, BotCapability, RunResult, ToolManifestEntry } from "@/lib/agentTypes";
 import AmbientBackdrop from "@/components/AmbientBackdrop";
-import type { LucideIcon } from "lucide-react";
 
 import type { EditorProps, OnChange } from "@monaco-editor/react";
 
@@ -65,7 +63,7 @@ const MODEL_OPTIONS = [
 ];
 
 type BotTemplate = {
-  id: "general" | "coding" | "study";
+  id: "general" | "coding" | "study" | "reminder" | "publisher";
   label: string;
   blurb: string;
   capabilities: BotCapability[];
@@ -84,6 +82,10 @@ const TEMPLATE_SYSTEM_PROMPTS: Record<BotTemplate["id"], string> = {
     "You are the Bothive Forge, a senior engineer focused on high-quality TypeScript and modern tooling. Produce diffs, list caveats, and request reviews from teammates when work spans multiple files. Prefer actionable checklists.",
   study:
     "You are the Bothive Mentor, an adaptive tutor. Break concepts into digestible modules, generate spaced-repetition prompts, and track student progress via shared memory keys.",
+  reminder:
+    "You are the RemindMe Orchestrator. Gather tenant context, confirm reminder slots with users, and schedule WhatsApp sends backed by the tenant's data store. Always log state updates to Firebase before dispatching a message.",
+  publisher:
+    "You are the Hive Broadcaster, a social campaign specialist. Craft concise posts, confirm platform tone, and publish updates using the connected Twitter/X account. If credentials or context are missing, ask the user to connect or supply details before posting.",
 };
 
 const TEMPLATE_TOOL_MANIFEST: Record<BotTemplate["id"], ToolManifestEntry[]> = {
@@ -97,6 +99,46 @@ const TEMPLATE_TOOL_MANIFEST: Record<BotTemplate["id"], ToolManifestEntry[]> = {
   study: [
     { capability: "study.tutor", tool: "study.explain", enabled: true, description: "Explain topics with structure" },
     { capability: "study.quiz", tool: "study.quizBuilder", enabled: true, description: "Generate flashcards and quizzes" },
+  ],
+  reminder: [
+    {
+      capability: "integrations.firebase.read",
+      tool: "integrations.firebase.read",
+      enabled: true,
+      description: "Fetch tenant reminder payloads from Firebase",
+    },
+    {
+      capability: "integrations.firebase.write",
+      tool: "integrations.firebase.write",
+      enabled: true,
+      description: "Persist reminder state back to Firebase",
+    },
+    {
+      capability: "integrations.whatsapp.send",
+      tool: "integrations.whatsapp.send",
+      enabled: true,
+      description: "Dispatch WhatsApp notifications via tenant credentials",
+    },
+  ],
+  publisher: [
+    {
+      capability: "social.publish",
+      tool: "social.publish",
+      enabled: true,
+      description: "Publish to the connected Twitter/X account",
+    },
+    {
+      capability: "social.publish",
+      tool: "social.schedule",
+      enabled: true,
+      description: "Queue Twitter/X posts for scheduled delivery",
+    },
+    {
+      capability: "general.respond",
+      tool: "general.respond",
+      enabled: true,
+      description: "Hold planning conversations before posting",
+    },
   ],
 };
 
@@ -131,10 +173,177 @@ end
   end
 end
 `,
+  reminder: `bot RemindMeOrchestrator
+  description "Coordinates tenant reminders using Firebase and WhatsApp"
+
+  memory namespace "remindme"
+
+  on input
+    set $tenantId to input.tenantId
+    call integrations.firebase.read with {
+      document: "tenants/" + $tenantId + "/reminders/" + input.reminderId
+    }
+    say """
+      I found a reminder for {input.recipientName} set for {input.sendAt}. Scheduling the WhatsApp send now.
+    """
+    call integrations.whatsapp.send with {
+      to: input.phone,
+      body: input.message
+    }
+    call integrations.firebase.write with {
+      document: "tenants/" + $tenantId + "/reminders/" + input.reminderId,
+      data: {
+        status: "sent",
+        sentAt: now()
+      }
+    }
+  end
+end
+`,
+  publisher: `bot HiveAutoScheduler
+  description "Generates or schedules Twitter/X updates automatically"
+
+  memory shared
+    scheduled store key "hive.autoposter.queue"
+  end
+
+  on input
+    if input.text?
+      remember input.text as tweet
+    else
+      say "Drafting fresh copy for X…"
+      call general.respond with {
+        prompt: "Write a concise Twitter/X update announcing Bothive progress. Include one emoji and a short CTA. Keep it under 240 characters."
+      } as draft
+      remember draft.output as tweet
+    end
+
+    if tweet.blank?
+      say "I need a topic or draft before I can post."
+      stop
+    end
+
+    set $publishAt to input.publishAt ?? format("%sT09:00:00Z", today())
+    call social.schedule with {
+      platform: "twitter",
+      content: tweet,
+      scheduledFor: $publishAt,
+      source: "trend_bot"
+    } as record
+
+    call shared.scheduled.append with {
+      createdAt: now(),
+      tweet,
+      scheduledFor: $publishAt,
+      postId: record.data.id
+    }
+
+    say "Queued an X update for {$publishAt}."
+  end
+end
+`,
 };
 
 const POSTGREST_NO_ROWS_CODE = "PGRST116";
 const POSTGRES_UNDEFINED_COLUMN = "42703";
+
+const AVAILABLE_TOOL_CATALOG: Array<{
+  tool: string;
+  capability: BotCapability;
+  label: string;
+  description: string;
+}> = [
+  {
+    tool: "general.recordTask",
+    capability: "general.respond",
+    label: "Record task",
+    description: "Capture a follow-up or TODO in the shared automation queue.",
+  },
+  {
+    tool: "calendar.scheduleDailyStandup",
+    capability: "general.respond",
+    label: "Schedule standup",
+    description: "Book a short meeting slot and log a reminder task.",
+  },
+  {
+    tool: "crm.logInteraction",
+    capability: "general.respond",
+    label: "Log CRM interaction",
+    description: "Save a customer touchpoint and queue a follow-up.",
+  },
+  {
+    tool: "crm.createLead",
+    capability: "general.respond",
+    label: "Create lead",
+    description: "Add a new lead with auto-generated nurture tasks.",
+  },
+  {
+    tool: "content.draftStatusUpdate",
+    capability: "general.respond",
+    label: "Draft status update",
+    description: "Generate a weekly status summary with highlights/blockers.",
+  },
+  {
+    tool: "content.generateSocialThread",
+    capability: "general.respond",
+    label: "Social thread",
+    description: "Produce a four-post announcement thread.",
+  },
+  {
+    tool: "coding.generateSnippet",
+    capability: "coding.generate",
+    label: "Generate snippet",
+    description: "Draft strongly typed code snippets from a spec.",
+  },
+  {
+    tool: "coding.reviewSnippet",
+    capability: "coding.review",
+    label: "Review snippet",
+    description: "Audit code and highlight improvements.",
+  },
+  {
+    tool: "study.explain",
+    capability: "study.tutor",
+    label: "Explain concept",
+    description: "Break down a topic into digestible lessons.",
+  },
+  {
+    tool: "study.quizBuilder",
+    capability: "study.quiz",
+    label: "Quiz builder",
+    description: "Generate flashcards or quizzes for spaced repetition.",
+  },
+  {
+    tool: "integrations.firebase.read",
+    capability: "integrations.firebase.read",
+    label: "Fetch tenant data",
+    description: "Query a tenant's Firebase store for reminders or user context.",
+  },
+  {
+    tool: "integrations.firebase.write",
+    capability: "integrations.firebase.write",
+    label: "Update tenant data",
+    description: "Persist reminder status or metadata back to the tenant Firebase store.",
+  },
+  {
+    tool: "integrations.whatsapp.send",
+    capability: "integrations.whatsapp.send",
+    label: "Send WhatsApp message",
+    description: "Deliver reminders to end users over WhatsApp via tenant credentials.",
+  },
+  {
+    tool: "social.publish",
+    capability: "social.publish",
+    label: "Publish to Twitter/X",
+    description: "Post updates to the authenticated Twitter/X account using social.publish.",
+  },
+  {
+    tool: "social.schedule",
+    capability: "social.publish",
+    label: "Schedule Twitter/X post",
+    description: "Create a scheduled or draft post in the social queue using social.schedule.",
+  },
+];
 
 function isNoRowError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
@@ -147,6 +356,8 @@ const TEMPLATE_MEMORY_STRATEGY: Record<BotTemplate["id"], string> = {
   general: "ephemeral",
   coding: "ephemeral",
   study: "ephemeral",
+  reminder: "session",
+  publisher: "ephemeral",
 };
 
 const MEMORY_STRATEGY_OPTIONS = [
@@ -161,9 +372,64 @@ const CAPABILITY_LABELS: Record<BotCapability, string> = {
   "coding.review": "Code review",
   "study.tutor": "Tutor",
   "study.quiz": "Quiz builder",
+  "integrations.firebase.read": "Firebase read",
+  "integrations.firebase.write": "Firebase write",
+  "integrations.whatsapp.send": "WhatsApp send",
+  "social.publish": "Social publish",
 };
 
+type TenantStepTone = "required" | "recommended" | "upcoming";
+
+const TENANT_BADGE_STYLES: Record<TenantStepTone, string> = {
+  required: "border border-rose-500/30 bg-rose-500/10 text-rose-200",
+  recommended: "border border-emerald-400/25 bg-emerald-400/10 text-emerald-200",
+  upcoming: "border border-slate-500/30 bg-slate-500/10 text-slate-200",
+};
+
+const TENANT_SETUP_STEPS: Array<{
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: TenantStepTone;
+  badgeLabel: string;
+}> = [
+  {
+    id: "firebase",
+    title: "Firebase adapter",
+    description: "Store service account credentials or REST token so the bot can read and write tenant reminders.",
+    icon: Database,
+    tone: "required",
+    badgeLabel: "Required",
+  },
+  {
+    id: "whatsapp",
+    title: "WhatsApp adapter",
+    description: "Connect the tenant's WhatsApp provider (Twilio / Meta Cloud) and map sending numbers to workspace users.",
+    icon: Webhook,
+    tone: "required",
+    badgeLabel: "Required",
+  },
+  {
+    id: "scheduler",
+    title: "Scheduler webhook",
+    description: "Register the external scheduler callback so timed jobs invoke this bot with reminder payloads.",
+    icon: Clock,
+    tone: "upcoming",
+    badgeLabel: "Coming soon",
+  },
+];
+
 const BOT_TEMPLATES: BotTemplate[] = [
+  {
+    id: "reminder",
+    label: "RemindMe orchestrator",
+    blurb: "Tenant-scoped reminder flow using Firebase data and WhatsApp delivery.",
+    capabilities: ["integrations.firebase.read", "integrations.firebase.write", "integrations.whatsapp.send"],
+    systemPrompt: TEMPLATE_SYSTEM_PROMPTS.reminder,
+    toolManifest: TEMPLATE_TOOL_MANIFEST.reminder,
+    memoryStrategy: TEMPLATE_MEMORY_STRATEGY.reminder,
+  },
   {
     id: "general",
     label: "General assistant",
@@ -190,6 +456,15 @@ const BOT_TEMPLATES: BotTemplate[] = [
     systemPrompt: TEMPLATE_SYSTEM_PROMPTS.study,
     toolManifest: TEMPLATE_TOOL_MANIFEST.study,
     memoryStrategy: TEMPLATE_MEMORY_STRATEGY.study,
+  },
+  {
+    id: "publisher",
+    label: "X autoposter",
+    blurb: "Drafts and publishes updates to Twitter/X using connected credentials.",
+    capabilities: ["general.respond", "social.publish"],
+    systemPrompt: TEMPLATE_SYSTEM_PROMPTS.publisher,
+    toolManifest: TEMPLATE_TOOL_MANIFEST.publisher,
+    memoryStrategy: TEMPLATE_MEMORY_STRATEGY.publisher,
   },
 ];
 
@@ -266,6 +541,40 @@ const TEST_SCENARIOS: Record<BotTemplate["id"], TestScenario[]> = {
       },
     },
   ],
+  reminder: [
+    {
+      id: "reminder-daily-check",
+      title: "Confirm daily reminder",
+      description: "Ensure the WhatsApp notification is scheduled with tenant context.",
+      capability: "integrations.whatsapp.send",
+      payload: {
+        to: "+15555550123",
+        body: "Reminder: Send the daily summary to the Growth channel.",
+      },
+    },
+    {
+      id: "reminder-sync-firebase",
+      title: "Sync Firebase payload",
+      description: "Load reminder payload from tenant Firebase namespace and acknowledge.",
+      capability: "integrations.firebase.read",
+      payload: {
+        document: "tenants/sample-tenant/reminders/sample",
+      },
+    },
+  ],
+  publisher: [
+    {
+      id: "publisher-post-launch",
+      title: "Post product launch update",
+      description: "Schedule a celebratory update to Twitter/X.",
+      capability: "social.publish",
+      payload: {
+        platform: "twitter",
+        content: "We just shipped the Bothive X autoposter! Follow for launch threads and insights. 🚀",
+        scheduledFor: "2025-01-01T09:00:00Z",
+      },
+    },
+  ],
 };
 
 type CompileDiagnostic = {
@@ -314,27 +623,6 @@ type ChatMessage = {
 
 type SectionId = "overview" | "build" | "play" | "deploy" | "store";
 
-type StoreFormState = {
-  tagline: string;
-  shortDescription: string;
-  longDescription: string;
-  category: string;
-  landingUrl: string;
-  heroImage: string;
-  previewVideo: string;
-  supportEmail: string;
-  complianceAcknowledged: boolean;
-};
-
-const STORE_CATEGORIES = [
-  "General Assistant",
-  "Developer Tools",
-  "Education",
-  "Productivity",
-  "Sales & Success",
-  "Custom",
-];
-
 const SECTION_COPY: Record<SectionId, { title: string; description: string }> = {
   overview: {
     title: "My Feed",
@@ -358,92 +646,44 @@ const SECTION_COPY: Record<SectionId, { title: string; description: string }> = 
   },
 };
 
-const PANEL_CLASS = "rounded-3xl border border-slate-900 bg-black/80 shadow-[0_45px_90px_-60px_rgba(10,10,40,0.9)] backdrop-blur-xl";
+const PANEL_CLASS =
+  "rounded-3xl border border-white/8 bg-[#0b0b18]/80 backdrop-blur-2xl shadow-[0_42px_90px_-60px_rgba(0,0,0,0.65)]";
+const CAPS_LABEL = "text-[11px] font-medium uppercase tracking-[0.14em] text-white/65";
 
-const FEED_CARDS = [
+type FeedCard = {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const FEED_CARDS: FeedCard[] = [
   {
     id: "ai",
     title: "AI-Driven Enhancements",
-    description: "Build sleek, high-performing websites faster than ever with our powerful UI kit — the ultimate boost for your SaaS product.",
+    description: "Build sleek, high-performing experiences faster with swarm tooling.",
     icon: Sparkles,
   },
   {
     id: "languages",
     title: "Languages Support",
-    description: "Seamlessly adapt your product to global audiences with multilingual support and smooth language switching.",
-    icon: Globe,
+    description: "Localize conversations across markets with automatic translation flows.",
+    icon: Users,
   },
   {
     id: "plugins",
     title: "Plugins and extensions",
-    description: "Extend your platform with compatible plugins, marketplace integrations, and powerful automation.",
-    icon: Puzzle,
+    description: "Wire external tooling into the hive via tool manifests and shared memory.",
+    icon: Settings2,
   },
 ];
 
-const QUICK_COMMANDS = [
+const QUICK_COMMANDS: Array<{ id: string; label: string; shortcut: string }> = [
   { id: "compile", label: "Compile code", shortcut: "⌘K" },
   { id: "nodes", label: "Switch to logic nodes", shortcut: "⌘L" },
   { id: "collaborators", label: "Add collaborators", shortcut: "⇧⌘C" },
 ];
 
-const FAKE_STORE_LISTINGS: Array<{
-  id: string;
-  name: string;
-  category: string;
-  blurb: string;
-  rating: string;
-  icon: LucideIcon;
-}> = [
-  {
-    id: "concierge-ai",
-    name: "Concierge AI",
-    category: "Productivity",
-    blurb: "Automates daily standups, drafts recaps, and pings owners when blockers linger too long.",
-    rating: "4.9",
-    icon: Sparkles,
-  },
-  {
-    id: "sales-sensei",
-    name: "Sales Sensei",
-    category: "Customer success",
-    blurb: "Qualifies inbound leads, recommends follow-up playbooks, and syncs outcomes into your CRM.",
-    rating: "4.8",
-    icon: MessageCircle,
-  },
-  {
-    id: "atlas-analytics",
-    name: "Atlas Analytics",
-    category: "Developers",
-    blurb: "Explains complex telemetry in human terms and suggests experiments to boost retention.",
-    rating: "4.7",
-    icon: Activity,
-  },
-  {
-    id: "mentor-muse",
-    name: "Mentor Muse",
-    category: "Education",
-    blurb: "Delivers adaptive lesson plans and synchronous study prompts for remote classrooms.",
-    rating: "4.9",
-    icon: Globe,
-  },
-  {
-    id: "support-pro",
-    name: "Support Pro",
-    category: "Customer success",
-    blurb: "Drafts empathetic replies, escalates urgent threads, and keeps knowledge bases up to date.",
-    rating: "4.8",
-    icon: LifeBuoy,
-  },
-  {
-    id: "fusion-forge",
-    name: "Fusion Forge",
-    category: "Developers",
-    blurb: "Pairs with engineers to scaffold services, review pull requests, and generate release notes.",
-    rating: "4.9",
-    icon: Code2,
-  },
-];
 
 const CODE_SNIPPET = `bot SupportGuide
   description "Answers onboarding questions for new Hive members"
@@ -469,11 +709,15 @@ const CODE_SNIPPET = `bot SupportGuide
 end`;
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-white/5 bg-[#10131f] px-4 py-2 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-indigo-400/40 focus:outline-none focus:ring-0";
+  "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white/90 placeholder:text-white/35 transition focus:border-white/40 focus:outline-none focus:ring-0";
 const TEXTAREA_CLASS =
-  "w-full rounded-xl border border-white/5 bg-[#10131f] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-indigo-400/40 focus:outline-none focus:ring-0";
+  "w-full rounded-xl border border-white/12 bg-white/5 px-4 py-3 text-sm text-white/90 placeholder:text-white/35 transition focus:border-white/40 focus:outline-none focus:ring-0";
 const SELECT_CLASS =
-  "w-full rounded-lg border border-white/5 bg-[#10131f] px-3 py-2 text-sm text-slate-100 transition focus:border-indigo-400/40 focus:outline-none focus:ring-0";
+  "w-full appearance-none rounded-xl border border-white/12 bg-white/5 px-3 py-2.5 text-sm text-white/90 transition focus:border-white/40 focus:outline-none focus:ring-0";
+const SURFACE_CARD = "rounded-2xl border border-white/10 bg-white/[0.04]";
+const SURFACE_INSET = "rounded-2xl border border-white/10 bg-white/[0.02]";
+const CHIP_MUTED =
+  "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-white/60";
 
 export default function BuilderPage() {
   const [botName, setBotName] = useState("");
@@ -485,9 +729,11 @@ export default function BuilderPage() {
   const [diagnostics, setDiagnostics] = useState<CompileDiagnostic[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
   const [isCompiling, setIsCompiling] = useState(false);
+  const compileStartedAt = useRef<number | null>(null);
+  const [compileDurationMs, setCompileDurationMs] = useState<number | null>(null);
   const [versionHistory, setVersionHistory] = useState<BotVersion[]>([]);
   const [activeTab, setActiveTab] = useState<"preview" | "diagnostics">("preview");
-  const [templateId, setTemplateId] = useState<BotTemplate["id"]>("general");
+  const [templateId, setTemplateId] = useState<BotTemplate["id"]>("reminder");
   const [lastBotId, setLastBotId] = useState<string | null>(null);
   const [lastBotVersionId, setLastBotVersionId] = useState<string | null>(null);
   const [isRunningScenario, setIsRunningScenario] = useState(false);
@@ -495,8 +741,6 @@ export default function BuilderPage() {
   const [runOutput, setRunOutput] = useState<string>("");
   const [runError, setRunError] = useState<string | null>(null);
   const [lastScenarioId, setLastScenarioId] = useState<string | null>(null);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const compileTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const [alert, setAlert] = useState<AlertState | null>(null);
@@ -505,6 +749,7 @@ export default function BuilderPage() {
   const [toolManifest, setToolManifest] = useState<ToolManifestEntry[]>(() =>
     (TEMPLATE_TOOL_MANIFEST.general ?? []).map((entry) => ({ ...entry }))
   );
+  const [toolSearch, setToolSearch] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isSendingChat, setIsSendingChat] = useState(false);
@@ -512,17 +757,6 @@ export default function BuilderPage() {
   const [chatError, setChatError] = useState<string | null>(null);
   const [selectedChatCapability, setSelectedChatCapability] = useState<BotCapability>("general.respond");
   const [activeSection, setActiveSection] = useState<SectionId>("build");
-  const [storeDraft, setStoreDraft] = useState<StoreFormState>({
-    tagline: "",
-    shortDescription: "",
-    longDescription: "",
-    category: STORE_CATEGORIES[0] ?? "General Assistant",
-    landingUrl: "",
-    heroImage: "",
-    previewVideo: "",
-    supportEmail: "",
-    complianceAcknowledged: false,
-  });
   const dismissAlert = useCallback(() => setAlert(null), []);
   const triggerAlert = useCallback(
     (variant: AlertState["variant"], title: string, message?: string, autoClose?: number) => {
@@ -537,30 +771,77 @@ export default function BuilderPage() {
     return Math.random().toString(36).slice(2);
   }, []);
 
-  const toggleManifestEntry = useCallback((toolName: string) => {
-    setToolManifest((prev) =>
-      prev.map((entry) => {
-        if (entry.tool !== toolName) return entry;
-        const currentlyEnabled = entry.enabled !== false;
-        return { ...entry, enabled: !currentlyEnabled };
-      })
-    );
-  }, []);
-
-  const sidebarItems = useMemo(
+  const navItems = useMemo(
     () => [
       { id: "overview" as SectionId, label: "Mission control", icon: Gauge },
       { id: "build" as SectionId, label: "Forge", icon: Code2 },
       { id: "play" as SectionId, label: "Playground", icon: MessageSquare },
       { id: "deploy" as SectionId, label: "Launch", icon: Rocket },
-      { id: "store" as SectionId, label: "Hive store", icon: Store },
+      { id: "store" as SectionId, label: "Hive Store", icon: Store },
     ],
     []
   );
 
-  const handleStoreChange = useCallback(<K extends keyof StoreFormState>(key: K, value: StoreFormState[K]) => {
-    setStoreDraft((prev) => ({ ...prev, [key]: value }));
+  const activeManifest = useMemo(() => toolManifest.filter((entry) => entry.enabled !== false), [toolManifest]);
+  const disabledManifest = useMemo(() => toolManifest.filter((entry) => entry.enabled === false), [toolManifest]);
+
+  const editorStatus = useMemo(() => {
+    if (isCompiling) {
+      return {
+        tone: "bg-amber-400",
+        label: "Compiling",
+        helper: "Crunching the latest hive draft...",
+      };
+    }
+
+    if (diagnostics.length > 0) {
+      return {
+        tone: "bg-rose-400",
+        label: `${diagnostics.length} diagnostic${diagnostics.length === 1 ? "" : "s"}`,
+        helper: "Review issues in the Diagnostics tab",
+      };
+    }
+
+    return {
+      tone: "bg-emerald-400",
+      label: "Ready",
+      helper: "Build is clean and ready for testing",
+    };
+  }, [diagnostics.length, isCompiling]);
+
+  const handleToggleTool = useCallback((tool: string, capability: BotCapability) => {
+    setToolManifest((prev) => {
+      const exists = prev.some((entry) => entry.tool === tool);
+      if (!exists) {
+        return [...prev, { tool, capability, enabled: true }];
+      }
+      return prev.map((entry) =>
+        entry.tool === tool ? { ...entry, enabled: entry.enabled === false ? true : false } : entry
+      );
+    });
   }, []);
+
+  const handleCapabilityChange = useCallback((tool: string, capability: BotCapability) => {
+    setToolManifest((prev) => prev.map((entry) => (entry.tool === tool ? { ...entry, capability } : entry)));
+  }, []);
+
+  const handleRemoveTool = useCallback((tool: string) => {
+    setToolManifest((prev) => prev.filter((entry) => entry.tool !== tool));
+  }, []);
+
+  const filteredAvailableTools = useMemo(() => {
+    const activeTools = new Set(toolManifest.map((entry) => entry.tool));
+    const query = toolSearch.trim().toLowerCase();
+    return AVAILABLE_TOOL_CATALOG.filter((record) => {
+      if (activeTools.has(record.tool)) return false;
+      if (!query) return true;
+      return (
+        record.label.toLowerCase().includes(query) ||
+        record.description.toLowerCase().includes(query) ||
+        record.tool.toLowerCase().includes(query)
+      );
+    });
+  }, [toolManifest, toolSearch]);
 
   const resetEditor = useCallback(() => {
     const template = BOT_TEMPLATES.find((entry) => entry.id === templateId);
@@ -646,14 +927,16 @@ export default function BuilderPage() {
     [templateId]
   );
 
-  const activeManifest = useMemo(
-    () => toolManifest.filter((entry) => entry.enabled !== false),
-    [toolManifest]
-  );
-
   const selectableCapabilities = useMemo(
-    () => (activeManifest.length > 0 ? activeManifest.map((entry) => entry.capability) : selectedTemplate.capabilities),
-    [activeManifest, selectedTemplate]
+    () =>
+      Array.from(
+        new Set([
+          ...(selectedTemplate.capabilities ?? []),
+          ...activeManifest.map((entry) => entry.capability),
+          ...filteredAvailableTools.map((record) => record.capability),
+        ])
+      ),
+    [activeManifest, filteredAvailableTools, selectedTemplate.capabilities]
   );
 
   const activeChatCapability = useMemo(() => {
@@ -868,165 +1151,6 @@ export default function BuilderPage() {
     setToolManifest((template.toolManifest ?? []).map((entry) => ({ ...entry })));
   }, [templateId]);
 
-  const toggleSidebarCollapse = useCallback(() => {
-    setIsSidebarCollapsed((previous) => !previous);
-  }, []);
-
-  const openMobileSidebar = useCallback(() => {
-    setIsMobileSidebarOpen(true);
-  }, []);
-
-  const closeMobileSidebar = useCallback(() => {
-    setIsMobileSidebarOpen(false);
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setIsMobileSidebarOpen(false);
-      }
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  const renderSidebarContent = useCallback(
-    (isCompact: boolean, variant: "desktop" | "mobile" = "desktop") => {
-      const now = new Date();
-
-      const handleNavigate = (id: SectionId) => {
-        setActiveSection(id);
-        if (variant === "mobile") {
-          closeMobileSidebar();
-        }
-      };
-
-      return (
-        <div className="flex h-full flex-col gap-6">
-          <div
-            className={cn(
-              "flex items-center gap-3 text-sm font-medium text-slate-300",
-              isCompact ? "justify-center" : ""
-            )}
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#11111a] text-indigo-300">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            {!isCompact && (
-              <div className="leading-tight">
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-500">.code</p>
-                <p className="text-base text-slate-200">Nebula Forge</p>
-              </div>
-            )}
-            {variant === "mobile" && (
-              <button
-                type="button"
-                onClick={closeMobileSidebar}
-                className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 text-slate-300 transition hover:border-indigo-400/40"
-                aria-label="Close sidebar"
-              >
-                <SidebarClose className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          <div
-            className={cn(
-              "rounded-2xl border border-slate-800/70 bg-[#11111a]/80 px-4 py-3 text-xs text-slate-400",
-              isCompact ? "text-center" : "flex items-center justify-between"
-            )}
-          >
-            <div
-              className={cn(
-                "flex flex-col",
-                isCompact ? "items-center gap-1" : ""
-              )}
-            >
-              <span className="uppercase tracking-[0.35em]">Server time</span>
-              <span className="mt-1 text-slate-200">
-                {now.toLocaleDateString()} · {now.toLocaleTimeString()}
-              </span>
-            </div>
-            {!isCompact && <MoreHorizontal className="h-4 w-4 text-slate-600" />}
-          </div>
-
-          <nav className="space-y-1 text-sm text-slate-300">
-            {sidebarItems.map(({ id, label, icon: Icon }) => {
-              const isActive = id === activeSection;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-label={label}
-                  onClick={() => handleNavigate(id)}
-                  className={cn(
-                    "flex w-full items-center rounded-2xl py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60",
-                    isCompact ? "justify-center gap-0 px-0" : "gap-3 px-4",
-                    isActive
-                      ? "bg-[linear-gradient(135deg,rgba(108,99,255,0.35),rgba(45,33,76,0.6))] text-white shadow-[0_12px_35px_-20px_rgba(96,90,255,0.8)]"
-                      : "bg-transparent text-slate-500 hover:bg-[#12121f] hover:text-slate-100"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {!isCompact && <span className="font-medium tracking-wide">{label}</span>}
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="mt-auto space-y-3 text-sm text-slate-400">
-            <button
-              type="button"
-              className={cn(
-                "flex w-full items-center justify-between rounded-2xl border border-slate-800/70 bg-[#10101a] px-4 py-3 text-left transition hover:border-indigo-400/40",
-                isCompact ? "flex-col gap-2 text-center" : ""
-              )}
-            >
-              <div className={cn("flex items-center gap-3", isCompact ? "justify-center" : "")}>{
-                <>
-                  <LifeBuoy className="h-4 w-4 text-slate-500" />
-                  {!isCompact && <span>Support</span>}
-                </>
-              }</div>
-              {!isCompact && <ArrowUpRight className="h-4 w-4 text-slate-600" />}
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "flex w-full items-center justify-between rounded-2xl border border-slate-800/70 bg-[#10101a] px-4 py-3 text-left transition hover:border-indigo-400/40",
-                isCompact ? "flex-col gap-2 text-center" : ""
-              )}
-            >
-              <div className={cn("flex items-center gap-3", isCompact ? "justify-center" : "")}>{
-                <>
-                  <Settings2 className="h-4 w-4 text-slate-500" />
-                  {!isCompact && <span>Settings</span>}
-                </>
-              }</div>
-              {!isCompact && <ArrowUpRight className="h-4 w-4 text-slate-600" />}
-            </button>
-
-            {variant === "desktop" && (
-              <button
-                type="button"
-                onClick={toggleSidebarCollapse}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/5 bg-[#11111a] px-4 py-2 text-xs font-medium text-slate-300 transition hover:border-indigo-400/40"
-              >
-                {isCompact ? <SidebarOpen className="h-4 w-4" /> : <SidebarClose className="h-4 w-4" />}
-                {!isCompact && <span>{isCompact ? "Expand" : "Collapse"}</span>}
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    },
-    [activeSection, closeMobileSidebar, sidebarItems, toggleSidebarCollapse]
-  );
-
   const renderSection = () => {
     switch (activeSection) {
       case "overview": {
@@ -1046,16 +1170,15 @@ export default function BuilderPage() {
 
         return (
           <div className="grid gap-8 xl:grid-cols-[minmax(0,0.65fr)_minmax(0,0.35fr)]">
-            <div className="space-y-6">
-              <PanelContainer withAmbient={false} className="p-8">
+            <div className="min-w-0 space-y-6">
+              <PanelContainer className="bg-white/[0.02] p-8" contentClassName="space-y-7">
                 <div className="flex flex-wrap items-start justify-between gap-6">
                   <div className="space-y-3">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-slate-400">
-                      <Gauge className="h-3 w-3 text-indigo-300" />
-                      Mission control
+                    <span className={cn(CHIP_MUTED, "border-white/15 bg-white/[0.06] text-white/65")}> 
+                      <Gauge className="h-3 w-3" /> Mission control
                     </span>
                     <h2 className="text-2xl font-semibold text-white">Observe your swarm at a glance</h2>
-                    <p className="max-w-xl text-sm text-slate-400">
+                    <p className="max-w-xl text-sm text-white/60">
                       Track compilation health, deployment status, and recent activity in one streamlined console.
                     </p>
                   </div>
@@ -1063,27 +1186,27 @@ export default function BuilderPage() {
                     type="button"
                     onClick={handleDeploy}
                     disabled={isDeploying}
-                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#6f6cff] via-[#5c57ff] to-[#423aff] px-5 py-2 text-sm font-semibold text-white transition hover:shadow-[0_18px_45px_-20px_rgba(95,90,255,0.75)] disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7c4dff] via-[#6741ff] to-[#4b31ff] px-5 py-2 text-sm font-semibold text-white shadow-[0_18px_45px_-25px_rgba(90,64,255,0.7)] transition hover:shadow-[0_22px_55px_-25px_rgba(90,64,255,0.85)] disabled:opacity-60"
                   >
                     {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
                     {isDeploying ? "Deploying" : "Launch update"}
                   </button>
                 </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {overviewStats.map((stat) => (
-                    <div key={stat.label} className="rounded-2xl border border-white/5 bg-white/2 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">{stat.label}</p>
-                      <p className="mt-3 text-base font-semibold text-slate-100">{stat.value}</p>
+                    <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                      <p className="text-[11px] uppercase tracking-[0.3em] text-white/50">{stat.label}</p>
+                      <p className="mt-3 text-base font-semibold text-white/90">{stat.value}</p>
                     </div>
                   ))}
                 </div>
               </PanelContainer>
 
-              <div className={cn("p-8", PANEL_CLASS)}>
+              <PanelContainer className="p-8">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-200">Highlights feed</h3>
-                  <span className="text-[11px] uppercase tracking-[0.35em] text-slate-500">Insights</span>
+                  <h3 className="text-sm font-semibold text-white/80">Highlights feed</h3>
+                  <span className="text-[11px] uppercase tracking-[0.35em] text-white/40">Insights</span>
                 </div>
                 <div className="mt-5 space-y-3">
                   {FEED_CARDS.map((card, index) => {
@@ -1091,102 +1214,102 @@ export default function BuilderPage() {
                     return (
                       <div
                         key={card.id}
-                        className="flex items-start gap-4 rounded-2xl border border-white/5 bg-[#10121d] px-5 py-4"
+                        className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4"
                       >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#181c2c] text-indigo-300">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70">
                           <Icon className="h-4 w-4" />
                         </div>
                         <div className="space-y-1">
-                          <p className="text-sm font-semibold text-slate-100">{card.title}</p>
-                          <p className="text-xs text-slate-400">{card.description}</p>
+                          <p className="text-sm font-semibold text-white/90">{card.title}</p>
+                          <p className="text-xs text-white/60">{card.description}</p>
                         </div>
-                        <span className="ml-auto text-xs text-slate-600">{String(index + 1).padStart(2, "0")}</span>
+                        <span className="ml-auto text-xs text-white/40">{String(index + 1).padStart(2, "0")}</span>
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              </PanelContainer>
 
-              <div className={cn("p-8", PANEL_CLASS)}>
-                <div className="flex items-center justify-between text-sm text-slate-300">
+              <PanelContainer className="p-8">
+                <div className="flex items-center justify-between text-sm text-white/70">
                   <span>Timeline</span>
-                  <span className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Versions</span>
+                  <span className="text-[11px] uppercase tracking-[0.3em] text-white/40">Versions</span>
                 </div>
                 <div className="mt-5 max-h-[260px] overflow-y-auto pr-1">
                   <VersionTimeline items={versionHistory} />
                 </div>
-              </div>
+              </PanelContainer>
             </div>
 
             <div className="space-y-6">
-              <div className={cn("space-y-5 p-6", PANEL_CLASS)}>
-                <div className="flex items-center justify-between text-sm text-slate-200">
+              <PanelContainer className="space-y-5 p-6">
+                <div className="flex items-center justify-between text-sm text-white/80">
                   <span>Command palette</span>
-                  <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-slate-500">
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/45">
                     ⌘K
                   </span>
                 </div>
                 <div className="relative">
-                  <MessageCircle className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
+                  <MessageCircle className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
                   <input
                     type="text"
                     placeholder="Search actions or jump to a surface"
-                    className="w-full rounded-2xl border border-white/5 bg-[#10131f] py-3 pl-12 pr-4 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-400/40 focus:outline-none"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3 pl-12 pr-4 text-sm text-white/85 placeholder:text-white/35 focus:border-[#7c4dff]/50 focus:outline-none"
                   />
                 </div>
                 <div className="space-y-2">
                   {QUICK_COMMANDS.map((command) => (
-                    <div key={command.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-[#0e111c] px-4 py-3 text-sm text-slate-200">
+                    <div key={command.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/80">
                       <span>{command.label}</span>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-slate-500">
+                      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-white/50">
                         {command.shortcut}
                       </span>
                     </div>
                   ))}
                 </div>
-              </div>
+              </PanelContainer>
 
-              <div className={cn("space-y-4 p-6", PANEL_CLASS)}>
-                <div className="flex items-center justify-between text-sm text-slate-300">
+              <PanelContainer className="space-y-4 p-6">
+                <div className="flex items-center justify-between text-sm text-white/70">
                   <span>HiveLang example · SupportGuide</span>
-                  <button className="inline-flex items-center gap-2 text-xs font-medium text-indigo-300 transition hover:text-indigo-200">
+                  <button className="inline-flex items-center gap-2 text-xs font-medium text-white/70 transition hover:text-white">
                     <ClipboardCheck className="h-4 w-4" />
                     Copy
                   </button>
                 </div>
-                <pre className="max-h-[240px] overflow-auto rounded-2xl border border-white/5 bg-[#0c101c] p-4 text-xs leading-relaxed text-slate-200">
+                <pre className="max-h-[240px] overflow-auto rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-xs leading-relaxed text-white/80">
                   <code>{CODE_SNIPPET}</code>
                 </pre>
-              </div>
+              </PanelContainer>
 
-              <div className={cn("space-y-4 p-6", PANEL_CLASS)}>
-                <h4 className="text-sm font-semibold text-slate-200">Scenario digest</h4>
-                <div className="rounded-2xl border border-white/5 bg-[#0e111c] px-4 py-3 text-sm text-slate-200">
+              <PanelContainer className="space-y-4 p-6">
+                <h4 className="text-sm font-semibold text-white/80">Scenario digest</h4>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/70">
                   {runOutput ? runOutput : "Run a curated scenario to populate outcome summaries."}
                 </div>
-              </div>
+              </PanelContainer>
 
-              <div className={cn("space-y-4 p-6", PANEL_CLASS)}>
-                <h4 className="text-sm font-semibold text-slate-200">Recent chat excerpts</h4>
+              <PanelContainer className="space-y-4 p-6">
+                <h4 className="text-sm font-semibold text-white/80">Recent chat excerpts</h4>
                 <div className="space-y-3">
                   {chatMessages.length > 0 ? (
                     chatMessages
                       .slice(-4)
                       .reverse()
                       .map((message) => (
-                        <div key={message.id} className="rounded-2xl border border-white/5 bg-[#0e111c] px-4 py-3 text-xs text-slate-200">
-                          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-slate-500">
+                        <div key={message.id} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-xs text-white/75">
+                          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-white/45">
                             <span>{message.role}</span>
                             <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
                           </div>
-                          <p className="mt-2 text-slate-300">{message.content}</p>
+                          <p className="mt-2 text-white/80">{message.content}</p>
                         </div>
                       ))
                   ) : (
-                    <p className="text-xs text-slate-500">Start a conversation to populate this feed.</p>
+                    <p className="text-xs text-white/45">Start a conversation to populate this feed.</p>
                   )}
                 </div>
-              </div>
+              </PanelContainer>
             </div>
           </div>
         );
@@ -1194,71 +1317,82 @@ export default function BuilderPage() {
       case "build":
         return (
           <div className="grid gap-8 xl:grid-cols-[minmax(0,0.66fr)_minmax(0,0.34fr)]">
-            <div className={cn("space-y-6 p-8", PANEL_CLASS)}>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Field label="Bot name">
-                  <input
-                    value={botName}
-                    onChange={(event) => setBotName(event.target.value)}
-                    placeholder="WelcomeAgent"
-                    className={INPUT_CLASS}
+            <PanelContainer className="min-w-0 space-y-6 p-6 md:p-8">
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <Field label="Bot name" hint="Public-facing">
+                    <input
+                      value={botName}
+                      onChange={(event) => setBotName(event.target.value)}
+                      placeholder="Nebula Concierge"
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="Marketplace price" hint="USD">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-white/40">$</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={price}
+                        onChange={(event) => setPrice(Number(event.target.value))}
+                        className={cn(INPUT_CLASS, "pl-7")}
+                      />
+                    </div>
+                  </Field>
+                  <Field label="Model" hint="Provider">
+                    <div className="relative">
+                      <select value={model} onChange={(event) => setModel(event.target.value)} className={cn(SELECT_CLASS, "pr-10") }>
+                        {MODEL_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value} className="bg-[#0b101b] text-slate-100">
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/40">⌄</span>
+                    </div>
+                  </Field>
+                </div>
+
+                <Field label="Summary" hint="For marketplace">
+                  <textarea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="Summarize what your agent excels at..."
+                    className={TEXTAREA_CLASS}
+                    rows={4}
                   />
-                </Field>
-                <Field label="Marketplace price (USD)">
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={price}
-                    onChange={(event) => setPrice(Number(event.target.value))}
-                    className={INPUT_CLASS}
-                  />
-                </Field>
-                <Field label="Model">
-                  <select value={model} onChange={(event) => setModel(event.target.value)} className={SELECT_CLASS}>
-                    {MODEL_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value} className="bg-[#0b101b] text-slate-100">
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
                 </Field>
               </div>
 
-              <Field label="Description">
-                <textarea
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  placeholder="Summarize what your agent excels at..."
-                  className={TEXTAREA_CLASS}
-                  rows={4}
-                />
-              </Field>
-
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">Templates</h3>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold text-white/80">Starter templates</h3>
+                    <p className="text-xs text-white/45">Swap between curated scaffolds as you iterate.</p>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={resetEditor}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/5 bg-[#12172a] px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-indigo-400/40"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-white/25 hover:text-white"
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
-                      Load template
+                      Reset to template
                     </button>
                     <button
                       type="button"
                       onClick={() => scheduleCompilation(source)}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/5 bg-[#12172a] px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-indigo-400/40"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-gradient-to-r from-white/10 to-white/5 px-3 py-1.5 text-xs font-medium text-white/85 transition hover:border-white/25 hover:text-white"
                     >
                       <PlayCircle className="h-3.5 w-3.5" />
-                      Recompile
+                      Compile draft
                     </button>
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {BOT_TEMPLATES.map((template) => {
                     const isActive = template.id === templateId;
                     return (
@@ -1267,20 +1401,44 @@ export default function BuilderPage() {
                         type="button"
                         onClick={() => setTemplateId(template.id)}
                         className={cn(
-                          "flex flex-col gap-2 rounded-2xl border px-4 py-3 text-left transition",
+                          "group flex flex-col gap-2 rounded-2xl border px-4 py-3 text-left transition",
                           isActive
-                            ? "border-indigo-400/50 bg-[#1a1f33] text-slate-100"
-                            : "border-white/5 bg-[#10131f] text-slate-300 hover:border-indigo-400/30 hover:text-slate-100"
+                            ? "border-white/25 bg-white/12 text-white shadow-[0_25px_70px_-45px_rgba(124,77,255,0.75)]"
+                            : "border-white/12 bg-white/3 text-white/70 hover:border-white/20 hover:text-white"
                         )}
                       >
-                        <span className="text-xs font-semibold uppercase tracking-[0.28em]">{template.label}</span>
-                        <span className="text-xs text-slate-400">{template.blurb}</span>
+                        <span className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80 group-hover:text-white">
+                          {template.label}
+                        </span>
+                        <span className="text-xs text-white/55">{template.blurb}</span>
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#0b101b]">
+                <div className="overflow-hidden rounded-2xl border border-white/12 bg-[#05060f]/95 shadow-[0_60px_140px_-80px_rgba(0,0,0,0.75)]">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 bg-white/[0.02] px-5 py-3">
+                    <div className="flex items-center gap-3 text-sm text-white/80">
+                      <span className="flex items-center gap-2 rounded-full border border-white/10 bg-black/60 px-3 py-1 font-mono text-xs uppercase tracking-[0.12em] text-white/70">
+                        <Code2 className="h-3.5 w-3.5" /> hive/blueprint.hive
+                      </span>
+                      <span className="hidden items-center gap-2 text-xs text-white/45 sm:flex">
+                        <Sparkles className="h-3.5 w-3.5 text-white/50" /> Autocomplete live
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-white/55">
+                      <span className="hidden items-center gap-1 rounded-full border border-white/10 px-2 py-1 font-medium text-white/65 md:flex">
+                        <Keyboard className="h-3 w-3" /> cmd + enter
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => scheduleCompilation(source)}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/12 px-3 py-1 font-medium text-white/80 transition hover:border-white/25 hover:text-white"
+                      >
+                        <PlayCircle className="h-3.5 w-3.5" /> Run build
+                      </button>
+                    </div>
+                  </div>
                   <Editor
                     language="hive"
                     theme="vs-dark"
@@ -1296,13 +1454,82 @@ export default function BuilderPage() {
                     value={source}
                     onChange={handleEditorChange}
                   />
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 bg-black/70 px-5 py-2.5 text-xs text-white/60">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("h-2.5 w-2.5 rounded-full", editorStatus.tone)} />
+                      <span className="font-medium text-white/75">{editorStatus.label}</span>
+                      <span className="hidden text-white/45 sm:inline">{editorStatus.helper}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-white/45">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {compileDurationMs !== null ? `${compileDurationMs}ms` : "Idle"}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {chatMessages.length} chat log{chatMessages.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </PanelContainer>
 
             <div className="space-y-6">
-              <GlassCard title="Persona core" accent="from-[#28213f22] via-transparent to-transparent" icon={<Sparkles className="h-4 w-4 text-indigo-200" />}>
-                <Field label="System prompt">
+              {selectedTemplate.id === "reminder" && (
+                <GlassCard
+                  title="Tenant adapters & ops"
+                  accent="from-[#2c244622] via-transparent to-transparent"
+                  icon={<CheckCircle2 className="h-4 w-4 text-emerald-200" />}
+                >
+                  <p className="text-xs text-white/65">
+                    Provision each tenant with credentials before scheduling live WhatsApp reminders. Keep adapters scoped to the tenant to avoid cross-workspace data leaks.
+                  </p>
+                  <div className="space-y-3">
+                    {TENANT_SETUP_STEPS.map((step) => {
+                      const StepIcon = step.icon;
+                      return (
+                        <div
+                          key={step.id}
+                          className="flex items-start gap-3 rounded-2xl border border-white/12 bg-white/5 p-4"
+                        >
+                          <div className="mt-1 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white/80">
+                            <StepIcon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-semibold text-white/85">{step.title}</span>
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.3em]",
+                                  TENANT_BADGE_STYLES[step.tone]
+                                )}
+                              >
+                                {step.badgeLabel}
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/60">{step.description}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Link
+                    href="/docs/hivelang"
+                    className="inline-flex items-center gap-2 text-xs font-medium text-white/70 transition hover:text-white"
+                  >
+                    Read integration guide
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </GlassCard>
+              )}
+
+              <GlassCard
+                title="Persona core"
+                accent="from-[#28213f22] via-transparent to-transparent"
+                icon={<Sparkles className="h-4 w-4 text-white/80" />}
+              >
+                <Field label="System prompt" hint="Guiding voice">
                   <textarea
                     value={systemPrompt}
                     onChange={(event) => setSystemPrompt(event.target.value)}
@@ -1312,8 +1539,8 @@ export default function BuilderPage() {
                   />
                 </Field>
 
-                <div className="grid gap-4 sm:grid-cols-[minmax(0,0.45fr)_minmax(0,0.55fr)]">
-                  <Field label="Memory strategy">
+                <div className="space-y-5">
+                  <Field label="Memory strategy" hint="Persistence">
                     <select value={memoryStrategy} onChange={(event) => setMemoryStrategy(event.target.value)} className={SELECT_CLASS}>
                       {MEMORY_STRATEGY_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value} className="bg-[#0b101b] text-slate-100">
@@ -1322,36 +1549,134 @@ export default function BuilderPage() {
                       ))}
                     </select>
                   </Field>
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">Tool manifest</p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {toolManifest.map((entry) => {
-                        const enabled = entry.enabled !== false;
-                        return (
-                          <button
-                            key={entry.tool}
-                            type="button"
-                            onClick={() => toggleManifestEntry(entry.tool)}
-                            className={cn(
-                              "flex flex-col gap-1 rounded-xl border px-3 py-3 text-left transition",
-                              enabled
-                                ? "border-indigo-400/40 bg-[#1b2032] text-slate-100"
-                                : "border-white/5 bg-[#10131f] text-slate-400 hover:border-indigo-400/30 hover:text-slate-100"
-                            )}
-                          >
-                            <span className="text-[11px] uppercase tracking-[0.28em]">{CAPABILITY_LABELS[entry.capability] ?? entry.capability}</span>
-                            <span className="text-xs text-slate-400">{entry.description ?? entry.tool}</span>
-                            <span className="text-[10px] text-slate-500">{enabled ? "Active" : "Muted"}</span>
-                          </button>
-                        );
-                      })}
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-white/70">Active capabilities</span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/50 px-3 py-1 text-[11px] font-medium text-white/55">
+                          {activeManifest.length} enabled
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        {activeManifest.length === 0 ? (
+                          <div className="rounded-2xl border border-white/12 bg-black/35 p-5 text-sm text-white/65">
+                            No tools enabled yet. Browse the catalog below to add capabilities.
+                          </div>
+                        ) : (
+                          activeManifest.map((entry) => (
+                            <div
+                              key={entry.tool}
+                              className="rounded-2xl border border-white/12 bg-black/40 p-5 text-sm text-white/80"
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0 space-y-1">
+                                  <span className="block font-mono text-sm font-semibold tracking-tight text-white">{entry.tool}</span>
+                                  <p className="text-xs text-white/55">{CAPABILITY_LABELS[entry.capability] ?? entry.capability}</p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 text-xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleTool(entry.tool, entry.capability)}
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-[11px] font-medium text-white/75 transition hover:border-white/30"
+                                  >
+                                    Disable
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTool(entry.tool)}
+                                    className="inline-flex items-center gap-2 rounded-full border border-rose-400/40 px-3 py-1 text-[11px] font-medium text-rose-200 transition hover:border-rose-400/70"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                              <label className="mt-4 flex flex-wrap items-center gap-3 text-[11px] font-medium text-white/60">
+                                <span>Capability slot</span>
+                                <select
+                                  value={entry.capability}
+                                  onChange={(event) =>
+                                    handleCapabilityChange(entry.tool, event.target.value as BotCapability)
+                                  }
+                                  className="rounded-full border border-white/20 bg-black/70 px-3 py-1 text-[11px] text-white/70"
+                                >
+                                  {selectableCapabilities.map((cap) => (
+                                    <option key={`${entry.tool}-${cap}`} value={cap}>
+                                      {cap}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {disabledManifest.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs font-medium text-white/55">
+                          <span>Sleeping tools</span>
+                          <span>{disabledManifest.length}</span>
+                        </div>
+                        <div className="space-y-2">
+                          {disabledManifest.map((entry) => (
+                            <button
+                              key={`${entry.tool}-disabled`}
+                              type="button"
+                              onClick={() => handleToggleTool(entry.tool, entry.capability)}
+                              className="flex w-full flex-col items-start gap-2 rounded-2xl border border-white/12 bg-black/35 px-4 py-3 text-left text-sm text-white/70 transition hover:border-white/25 hover:text-white"
+                            >
+                              <span className="font-mono text-sm font-semibold tracking-tight text-white">{entry.tool}</span>
+                              <span className="text-[11px] text-white/50">Capability: {entry.capability}</span>
+                              <span className="text-[11px] font-medium text-white/55">Enable</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-xs font-medium text-white/65">Tool catalog</span>
+                        <input
+                          value={toolSearch}
+                          onChange={(event) => setToolSearch(event.target.value)}
+                          placeholder="Search tools"
+                          className="h-8 rounded-full border border-white/15 bg-black/60 px-3 text-xs text-white/80 placeholder:text-white/40 focus:border-white/35 focus:outline-none"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        {filteredAvailableTools.length === 0 ? (
+                          <p className="rounded-2xl border border-white/12 bg-black/35 p-4 text-xs text-white/55">
+                            No matching tools. Adjust your search or revisit the manifest above.
+                          </p>
+                        ) : (
+                          filteredAvailableTools.map((record) => (
+                            <button
+                              key={record.tool}
+                              type="button"
+                              onClick={() => handleToggleTool(record.tool, record.capability)}
+                              className="group flex w-full flex-col items-start gap-1 rounded-2xl border border-white/12 bg-black/30 px-4 py-3 text-left text-sm text-white/70 transition hover:border-white/25 hover:bg-white/10 hover:text-white"
+                            >
+                              <span className="font-mono text-sm font-semibold tracking-tight text-white/90 group-hover:text-white">
+                                {record.label}
+                              </span>
+                              <span className="font-mono text-[11px] text-white/45 group-hover:text-white/70">
+                                {record.tool}
+                              </span>
+                              <span className="text-xs text-white/55 group-hover:text-white/80">{record.description}</span>
+                              <span className="text-[10px] font-medium text-white/50 group-hover:text-white/65">Add to manifest</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <p className="rounded-2xl border border-white/5 bg-[#111426] px-4 py-3 text-xs text-slate-400">
-                  <strong className="mr-2 font-semibold text-slate-100">Persona tip:</strong>
-                  Outline tone, safety rails, and how this bot collaborates with the swarm.
+                <p className="rounded-2xl border border-white/12 bg-white/5 px-4 py-3 text-xs text-white/65">
+                  <strong className="mr-2 font-semibold text-white/80">Persona tip:</strong>
+                  Outline tone, safety rails, and how this bot collaborates with the swarm to avoid conflicting instructions.
                 </p>
               </GlassCard>
 
@@ -1363,8 +1688,8 @@ export default function BuilderPage() {
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs",
                       activeTab === "preview"
-                        ? "border-indigo-400/60 bg-[#1b2031] text-slate-100"
-                        : "border-white/5 bg-[#10131f] text-slate-400 hover:border-indigo-400/30 hover:text-slate-100"
+                        ? "border-[#7c4dff]/60 bg-[#1b2031] text-white"
+                        : "border-white/12 bg-white/5 text-white/60 hover:border-white/20 hover:text-white"
                     )}
                   >
                     Preview
@@ -1375,15 +1700,15 @@ export default function BuilderPage() {
                     className={cn(
                       "rounded-full border px-3 py-1.5 text-xs",
                       activeTab === "diagnostics"
-                        ? "border-indigo-400/60 bg-[#1b2031] text-slate-100"
-                        : "border-white/5 bg-[#10131f] text-slate-400 hover:border-indigo-400/30 hover:text-slate-100"
+                        ? "border-[#7c4dff]/60 bg-[#1b2031] text-white"
+                        : "border-white/12 bg-white/5 text-white/60 hover:border-white/20 hover:text-white"
                     )}
                   >
                     Diagnostics
                   </button>
                 </div>
 
-                <div className="mt-4 h-[340px] overflow-hidden rounded-2xl border border-white/5 bg-[#0b101b]">
+                <div className="mt-4 h-[340px] overflow-hidden rounded-2xl border border-white/12 bg-[#05060f]/95">
                   {activeTab === "preview" ? (
                     <PreviewPane compiled={compiled} isCompiling={isCompiling} />
                   ) : (
@@ -1409,11 +1734,17 @@ export default function BuilderPage() {
                           <span
                             className={cn(
                               "text-[10px] uppercase tracking-[0.3em]",
-                              message.role === "user" ? "text-slate-300" : message.role === "assistant" ? "text-indigo-300" : "text-slate-500"
+                              message.role === "user"
+                                ? "text-slate-300"
+                                : message.role === "assistant"
+                                  ? "text-indigo-300"
+                                  : "text-slate-500"
                             )}
                           >
                             {message.role}
-                            <span className="ml-2 text-[9px] lowercase text-slate-500">{new Date(message.timestamp).toLocaleTimeString()}</span>
+                            <span className="ml-2 text-[9px] lowercase text-slate-500">
+                              {new Date(message.timestamp).toLocaleTimeString()}
+                            </span>
                           </span>
                           <p className="text-sm text-slate-100">{message.content}</p>
                         </div>
@@ -1613,6 +1944,8 @@ export default function BuilderPage() {
 
   const runCompilation = useCallback(
     async (input: string) => {
+      compileStartedAt.current = performance.now();
+      setCompileDurationMs(null);
       setIsCompiling(true);
       try {
         const result = (await compileHive(input)) as CompileResult;
@@ -1627,15 +1960,19 @@ export default function BuilderPage() {
         setCompiled("");
         setDiagnostics([
           {
-            message: err instanceof Error ? err.message : "Unknown compilation error",
-            line: 1,
-            column: 1,
             severity: "error",
+            message: err instanceof Error ? err.message : "Unknown compilation error",
+            line: 0,
+            column: 0,
           },
         ]);
         setActiveTab("diagnostics");
         triggerAlert("error", "Compilation failed", err instanceof Error ? err.message : "Unknown compilation error");
       } finally {
+        const finishedAt = performance.now();
+        if (compileStartedAt.current) {
+          setCompileDurationMs(Math.max(0, Math.round(finishedAt - compileStartedAt.current)));
+        }
         setIsCompiling(false);
       }
     },
@@ -1647,6 +1984,8 @@ export default function BuilderPage() {
       if (compileTimeout.current) {
         clearTimeout(compileTimeout.current);
       }
+      compileStartedAt.current = performance.now();
+      setCompileDurationMs(null);
       compileTimeout.current = setTimeout(() => {
         void runCompilation(input);
       }, 350);
@@ -1958,8 +2297,10 @@ export default function BuilderPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen bg-[#0b0c10] text-slate-100">
-      <AmbientBackdrop className="-z-10 opacity-80" maskClassName="[mask-image:radial-gradient(ellipse_at_center,transparent_12%,black)]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#04040a] text-slate-100">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(124,77,255,0.22),transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(6,7,18,0.85)_0%,rgba(4,4,10,0)_55%)]" />
+      <AmbientBackdrop className="-z-10 opacity-24" maskClassName="[mask-image:radial-gradient(ellipse_at_center,transparent_18%,black)]" />
 
       <ProfessionalAlert
         open={alert !== null}
@@ -1970,91 +2311,69 @@ export default function BuilderPage() {
         onClose={dismissAlert}
       />
 
-      <aside
-        className={cn(
-          "relative z-20 hidden h-full flex-col overflow-hidden border-r border-slate-900/80 bg-black/80 backdrop-blur-xl transition-all duration-300 lg:flex",
-          isSidebarCollapsed ? "w-[92px] px-4 py-6" : "w-[260px] px-6 py-8"
-        )}
-        aria-label="Sidebar navigation"
-      >
-        <AmbientBackdrop className="-z-10 opacity-40" maskClassName="[mask-image:radial-gradient(ellipse_at_center,transparent_18%,black)]" />
-        <div className="relative z-10 h-full">{renderSidebarContent(isSidebarCollapsed)}</div>
-      </aside>
-
-      {isMobileSidebarOpen && (
-        <div className="fixed inset-0 z-30 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
-            onClick={closeMobileSidebar}
-            role="presentation"
-          />
-          <div className="absolute inset-y-0 left-0 flex w-[260px] flex-col overflow-hidden border-r border-slate-900/80 bg-black/90 px-6 py-8 shadow-xl">
-            <AmbientBackdrop className="-z-10 opacity-45" maskClassName="[mask-image:radial-gradient(ellipse_at_center,transparent_18%,black)]" />
-            <div className="relative z-10 h-full">{renderSidebarContent(false, "mobile")}</div>
-          </div>
-        </div>
-      )}
-
-      <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
-        <header className="relative overflow-hidden border-b border-slate-900/80 bg-black/80 px-5 py-6 backdrop-blur-xl sm:px-8 lg:px-10">
-          <AmbientBackdrop className="-z-10 opacity-35" maskClassName="[mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
-          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={openMobileSidebar}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 text-slate-300 transition hover:border-indigo-400/40 lg:hidden"
-                  aria-label="Open sidebar"
-                >
-                  <SidebarOpen className="h-4 w-4" />
-                </button>
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-800/70 bg-[#11111b] px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-slate-500">
-                  <Sparkles className="h-3 w-3 text-indigo-300" />
-                  Builder
-                </span>
-                <button
-                  type="button"
-                  onClick={toggleSidebarCollapse}
-                  className="hidden h-9 w-9 items-center justify-center rounded-xl border border-white/10 text-slate-300 transition hover:border-indigo-400/40 lg:inline-flex"
-                  aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                >
-                  {isSidebarCollapsed ? <SidebarOpen className="h-4 w-4" /> : <SidebarClose className="h-4 w-4" />}
-                </button>
-              </div>
-              <div className="space-y-1">
-                <h1 className="text-2xl font-semibold text-slate-50">{activeCopy.title}</h1>
-                <p className="text-sm text-slate-500">{activeCopy.description}</p>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <header className="border-b border-white/10 bg-black/30 px-5 py-5 backdrop-blur-xl sm:px-8 lg:px-12">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-white/60">
+                <Sparkles className="h-3.5 w-3.5 text-white/70" /> Builder Console
+              </span>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-xl font-semibold text-white sm:text-2xl">{activeCopy.title}</h1>
+                <span className={cn("rounded-full px-3 py-1 text-xs", deploymentState.tone)}>{deploymentState.label}</span>
               </div>
             </div>
 
-            <div className="flex w-full flex-wrap items-center justify-end gap-3 text-sm sm:flex-nowrap lg:w-auto">
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-3 text-sm">
+              <nav className="flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-black/40 px-1 py-1">
+                {navItems.map(({ id, label }) => {
+                  const isActive = id === activeSection;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setActiveSection(id)}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-xs font-medium transition",
+                        isActive
+                          ? "bg-white/90 text-black shadow-[0_12px_30px_-18px_rgba(124,77,255,0.65)]"
+                          : "text-white/60 hover:text-white"
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </nav>
+
+              <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-white/60 lg:flex">
+                <Users className="h-4 w-4 text-white/50" />
+                <span className="truncate text-xs font-medium uppercase tracking-[0.16em] text-white/70">
+                  {selectedModel?.label ?? "Pick a model"}
+                </span>
+              </div>
               <ThemeToggle />
               <Link
                 href="/docs/hiveland"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-800/70 bg-[#11111b] px-4 py-2 text-slate-400 transition hover:border-slate-700 hover:text-slate-100 sm:w-auto"
+                className="hidden items-center gap-2 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/60 transition hover:text-white md:inline-flex"
               >
-                Hiveland docs
-                <ArrowUpRight className="h-3.5 w-3.5" />
+                Docs <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
-              <div className="hidden min-w-[200px] items-center gap-3 rounded-2xl border border-slate-800/70 bg-[#11111b] px-4 py-2 text-slate-400 lg:flex">
-                <Users className="h-4 w-4 text-indigo-300" />
-                <span className="truncate">{selectedModel?.label ?? "Pick a model"}</span>
-              </div>
               <button
                 type="button"
                 onClick={handleDeploy}
                 disabled={isDeploying}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#6b64ff] via-[#6056ff] to-[#5144ff] px-5 py-2 text-sm font-semibold text-white transition hover:shadow-[0_12px_32px_rgba(94,86,255,0.35)] disabled:opacity-60 sm:w-auto"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7c4dff] via-[#6d3cff] to-[#4525ff] px-5 py-2 text-sm font-semibold text-white shadow-[0_18px_45px_-20px_rgba(124,77,255,0.55)] transition hover:shadow-[0_20px_60px_-25px_rgba(102,57,255,0.55)] disabled:opacity-60"
               >
                 {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {isDeploying ? "Deploying" : "Generate release"}
+                <span className="uppercase tracking-[0.16em]">{isDeploying ? "Deploying" : "Publish"}</span>
               </button>
             </div>
           </div>
+          <p className="mt-4 text-sm text-white/55">{activeCopy.description}</p>
         </header>
 
-        <main className="relative flex-1 overflow-y-auto overflow-x-hidden px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+        <main className="relative flex-1 overflow-y-auto overflow-x-hidden px-5 py-8 sm:px-8 lg:px-12 lg:py-12">
           <AmbientBackdrop className="-z-10 opacity-30" maskClassName="[mask-image:radial-gradient(ellipse_at_center,transparent_18%,black)]" />
           <div className="relative z-10">
             {activeSection === "overview" ? (
@@ -2092,10 +2411,10 @@ export default function BuilderPage() {
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <label className="flex w-full flex-col gap-2 text-xs text-white/70">
-      <span className="flex items-center justify-between text-[11px] uppercase tracking-[0.3em] text-white/55">
+    <label className="flex w-full flex-col gap-2 text-xs text-white/75">
+      <span className={cn("flex flex-wrap items-center justify-between gap-2 text-white/60", CAPS_LABEL)}>
         {label}
-        {hint && <span className="text-[10px] text-white/35">{hint}</span>}
+        {hint && <span className="text-[10px] text-white/40">{hint}</span>}
       </span>
       {children}
     </label>
@@ -2109,7 +2428,7 @@ function PanelContainer({
   accent,
   ambientClassName,
   ambientMaskClassName,
-  withAmbient = true,
+  withAmbient = false,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -2123,12 +2442,12 @@ function PanelContainer({
     <div className={cn("relative overflow-hidden", PANEL_CLASS, className)}>
       {withAmbient && (
         <AmbientBackdrop
-          className={cn("-z-10 opacity-65", ambientClassName)}
+          className={cn("-z-10 opacity-40", ambientClassName)}
           maskClassName={ambientMaskClassName}
         />
       )}
       {accent && (
-        <div className={cn("pointer-events-none absolute inset-0 opacity-20 blur-2xl", `bg-gradient-to-br ${accent}`)} />
+        <div className={cn("pointer-events-none absolute inset-0 opacity-15 blur-2xl", `bg-gradient-to-br ${accent}`)} />
       )}
       <div className={cn("relative z-10", contentClassName)}>{children}</div>
     </div>
@@ -2137,10 +2456,17 @@ function PanelContainer({
 
 function GlassCard({ title, accent, icon, children }: { title: string; accent: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <PanelContainer withAmbient={false} accent={accent} className="px-6 py-6" contentClassName="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        {icon && <span className="rounded-full border border-slate-800 bg-slate-900/80 p-2 text-slate-300">{icon}</span>}
-        <h2 className="text-sm font-semibold uppercase tracking-[0.32em] text-slate-200">{title}</h2>
+    <PanelContainer accent={accent} className="px-5 py-5" contentClassName="flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        {icon && (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/[0.05] text-white/70">
+            {icon}
+          </span>
+        )}
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-white/85">{title}</p>
+          <div className="h-px w-10 bg-white/12" />
+        </div>
       </div>
       {children}
     </PanelContainer>
@@ -2149,12 +2475,12 @@ function GlassCard({ title, accent, icon, children }: { title: string; accent: s
 
 function StatCard({ title, value, detail }: { title: string; value: string; detail: string }) {
   return (
-    <div className="rounded-3xl border border-slate-900 bg-slate-950/80 px-5 py-5 shadow-[0_35px_80px_-60px_rgba(15,15,40,0.85)]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-500">{title}</p>
+    <div className="rounded-3xl border border-white/8 bg-white/[0.04] px-5 py-5 shadow-[0_30px_80px_-60px_rgba(0,0,0,0.65)]">
+      <p className="text-[12px] font-semibold text-white/70">{title}</p>
       <div className="mt-2 flex items-end gap-2">
-        <span className="text-2xl font-semibold text-slate-100">{value}</span>
+        <span className="text-2xl font-semibold text-white">{value}</span>
       </div>
-      <p className="mt-2 text-xs text-slate-500 line-clamp-2">{detail || ""}</p>
+      <p className="mt-3 text-xs text-white/55 line-clamp-2">{detail || ""}</p>
     </div>
   );
 }

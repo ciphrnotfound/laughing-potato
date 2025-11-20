@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { JSX } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -20,6 +21,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAppSession } from "@/lib/app-session-context";
 
 interface StepField {
   name: string;
@@ -124,10 +126,21 @@ const roleCards: Array<{
 ];
 
 export default function GettingStartedPage(): JSX.Element {
+  const router = useRouter();
+  const { isAuthenticated, loading: sessionLoading } = useAppSession();
   const [role, setRole] = useState<Role | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [status, setStatus] = useState<Status>("idle");
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (sessionLoading) {
+      return;
+    }
+    if (!isAuthenticated) {
+      router.replace("/signup?redirect=%2Fgetting-started");
+    }
+  }, [isAuthenticated, sessionLoading, router]);
 
   const steps = useMemo(() => {
     if (role === "user") return USER_STEPS;
@@ -166,10 +179,21 @@ export default function GettingStartedPage(): JSX.Element {
       setStepIndex((prev) => prev + 1);
       return;
     }
+    const target = role === "developer" ? "/dashboard/dev" : "/hivestore";
+
+    if (!isAuthenticated) {
+      const redirectParam = encodeURIComponent(target);
+      router.push(`/signin?redirect=${redirectParam}`);
+      return;
+    }
+
     setStatus("submitting");
     setTimeout(() => {
       setStatus("success");
-    }, 900);
+      setTimeout(() => {
+        router.push(target);
+      }, 900);
+    }, 600);
   };
 
   return (
@@ -204,7 +228,7 @@ export default function GettingStartedPage(): JSX.Element {
             transition={{ duration: 0.45, delay: 0.05 }}
             className="max-w-2xl text-sm text-white/65 sm:text-base"
           >
-            Whether you want to explore agents or deploy your own swarm, well guide you through a tailored setup. Pick a path to begin; you can always jump back and change your role.
+            Whether you want to explore agents or deploy your own swarm, we'll guide you through a tailored setup. Pick a path to begin; you can always jump back and change your role.
           </motion.p>
         </section>
 
@@ -334,6 +358,32 @@ export default function GettingStartedPage(): JSX.Element {
                 </aside>
 
                 <div className="rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(124,58,237,0.14),rgba(12,10,24,0.92))] p-6 sm:p-7">
+                  {!isAuthenticated && !sessionLoading && (
+                    <div className="mb-6 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/70">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-white">Sign in or create an account</p>
+                          <p className="text-xs text-white/55">
+                            Save your onboarding progress and unlock the Hive once you authenticate.
+                          </p>
+                        </div>
+                        <div className="flex gap-2 text-xs uppercase tracking-[0.26em] text-white/70">
+                          <Link
+                            href="/signin?redirect=/getting-started"
+                            className="inline-flex items-center gap-2 rounded-2xl border border-white/20 px-4 py-2 transition hover:border-white/35 hover:text-white"
+                          >
+                            Sign in
+                          </Link>
+                          <Link
+                            href="/signup?redirect=/getting-started"
+                            className="inline-flex items-center gap-2 rounded-2xl border border-white/20 px-4 py-2 transition hover:border-white/35 hover:text-white"
+                          >
+                            Register
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-white/40">
@@ -441,7 +491,7 @@ export default function GettingStartedPage(): JSX.Element {
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <Link
-                      href="/store"
+                      href="/hivestore"
                       className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-[0_10px_35px_rgba(124,58,237,0.25)] transition hover:-translate-y-0.5"
                     >
                       Enter Hive Store
@@ -533,10 +583,10 @@ export default function GettingStartedPage(): JSX.Element {
                 Start over
               </button>
               <Link
-                href={role === "user" ? "/store" : "/builder"}
+                href={role === "user" ? "/hivestore" : "/dashboard/dev"}
                 className="inline-flex items-center gap-2 text-sm text-white/60 underline-offset-4 hover:text-white/90 hover:underline"
               >
-                Continue to {role === "user" ? "Hive Store" : "Builder"}
+                Continue to {role === "user" ? "Hive Store" : "Developer HQ"}
               </Link>
             </div>
           </motion.section>

@@ -1,474 +1,726 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   ArrowUpRight,
   Download,
   Filter,
   Globe2,
-  Laptop,
   Layers,
-  LineChart,
-  Monitor,
+  Loader2,
   Play,
   Search,
   ShieldCheck,
-  Smartphone,
   Sparkles,
   Star,
   TrendingUp,
-  Workflow,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
+import { supabase } from "@/lib/supabase";
+import { cn, slugify } from "@/lib/utils";
 import AmbientBackdrop from "@/components/AmbientBackdrop";
-import { cn } from "@/lib/utils";
-import type { AgentDefinition } from "@/lib/agentTypes";
+import { ProfessionalAlert } from "@/components/ui/glass-alert";
+import { useAppSession } from "@/lib/app-session-context";
 
-interface MarketplaceAgent extends AgentDefinition {
-  author: string;
-  rating: number;
-  downloads: number;
-  price?: number;
-  category: string;
-}
+type AlertVariant = "success" | "error" | "info" | "warning";
 
-interface HighlightCollection {
+type MarketplaceBot = {
   id: string;
-  title: string;
-  description: string;
-  metric: string;
-  range: string;
-  icon: LucideIcon;
-  accentDark: string;
-  accentLight: string;
-}
+  name: string;
+  slug?: string | null;
+  description: string | null;
+  price: number | null;
+  installs_count: number | null;
+  rating: number | null;
+  metadata?: Record<string, unknown> | null;
+  default_version_id?: string | null;
+  capabilities?: string[] | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+};
 
-interface PulseMetric {
+type MarketplaceBotVersion = {
+  id: string;
+  bot_id: string;
+  version: number;
+  label?: string | null;
+  description?: string | null;
+  price?: number | null;
+  installs_count?: number | null;
+  rating?: number | null;
+  created_at?: string | null;
+  published_at?: string | null;
+};
+
+type BotReview = {
+  id: string;
+  bot_id: string;
+  author: string | null;
+  rating: number | null;
+  comment: string | null;
+  created_at: string | null;
+};
+
+type HiveStoreRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  price: number;
+  downloads: number;
+  rating: number;
+  icon: string;
+  skills: string[];
+  curatedTags: string[];
+  author: string;
+  latest_version: MarketplaceBotVersion | null;
+  reviews: BotReview[];
+  last_updated: string | null;
+  created_at: string | null;
+};
+
+type AlertState = {
+  variant: AlertVariant;
+  title: string;
+  message: string;
+  autoClose?: number;
+} | null;
+
+type PulseMetric = {
   id: string;
   label: string;
   change: string;
   trend: "up" | "down";
   description: string;
-}
-
-const MARKETPLACE_AGENTS: MarketplaceAgent[] = [
-  {
-    id: "agent-web-research",
-    name: "Web Research Pro",
-    description: "Advanced web research agent with citation tracking and knowledge synthesis pipelines.",
-    skills: ["web_search", "citation_tracking", "summarization"],
-    memoryKeys: ["research_context"],
-    author: "Bothive Studio",
-    rating: 4.8,
-    downloads: 2140,
-    price: 0,
-    category: "research",
-  },
-  {
-    id: "agent-ops-automation",
-    name: "Ops Automation Mesh",
-    description: "Automate stand-ups, incident routing, and CRM follow-ups without touching a workflow builder.",
-    skills: ["ops_triage", "incident_routing", "crm_followups", "summaries"],
-    memoryKeys: ["ops_state"],
-    author: "Neuron Forge Labs",
-    rating: 4.6,
-    downloads: 1894,
-    price: 19,
-    category: "automation",
-  },
-  {
-    id: "agent-growth-analyst",
-    name: "Growth Analyst",
-    description: "Blend product telemetry and marketing signals, then close the loop with auto-generated experiment briefs.",
-    skills: ["analytics_stack", "forecasting", "report_automation"],
-    memoryKeys: ["growth_context"],
-    author: "Growthsmith",
-    rating: 4.7,
-    downloads: 1432,
-    price: 24,
-    category: "analytics",
-  },
-  {
-    id: "agent-code-generator",
-    name: "Code Author",
-    description: "Generate production-ready code skeletons, add tests, and draft documentation in one click.",
-    skills: ["code_generation", "testing", "documentation"],
-    memoryKeys: ["project_context", "code_style"],
-    author: "DevCorp",
-    rating: 4.5,
-    downloads: 972,
-    price: 29,
-    category: "development",
-  },
-  {
-    id: "agent-data-analyst",
-    name: "Signal Analyzer",
-    description: "Analyze and visualize metric deltas with anomaly detection and executive-ready reporting.",
-    skills: ["data_analysis", "visualization", "reporting", "anomaly_detection"],
-    memoryKeys: ["data_sources"],
-    author: "DataLabs",
-    rating: 4.9,
-    downloads: 2688,
-    price: 0,
-    category: "analytics",
-  },
-  {
-    id: "agent-support-mesh",
-    name: "Global Support Mesh",
-    description: "Localized responders covering 12+ languages with sentiment-aware ticket classification.",
-    skills: ["translation", "qa_matching", "sentiment"],
-    memoryKeys: ["support_cases"],
-    author: "Atlas Ops",
-    rating: 4.7,
-    downloads: 1554,
-    price: 0,
-    category: "support",
-  },
-];
+};
 
 const CURATION_FILTERS = [
-  { id: "trending", label: "Trending Now" },
-  { id: "featured", label: "Featured Hive" },
-  { id: "new", label: "Fresh Drops" },
-];
+  { id: "trending", label: "Trending now" },
+  { id: "featured", label: "Featured" },
+  { id: "new", label: "Fresh drops" },
+] as const;
 
-const CATEGORIES = ["all", "research", "automation", "analytics", "development", "support"];
+const CATEGORIES = ["all", "automation", "analytics", "development", "research", "support"] as const;
 
-const HIGHLIGHT_COLLECTIONS: HighlightCollection[] = [
+const HIGHLIGHT_COLLECTIONS = [
   {
-    id: "starter",
-    title: "Starter Swarm",
-    description: "Plug-and-play multi-role agents for new teams piloting their first hive.",
-    metric: "1.1K installs this week",
-    range: "4 agents",
-    icon: Sparkles,
-    accentDark: "from-[#c4b5fd]/40 via-transparent to-transparent",
-    accentLight: "from-[#7c3aed]/10 via-transparent to-transparent",
+    id: "ops",
+    title: "Ops acceleration kit",
+    description: "Automation-first copilots for revenue, ops, and onboarding rituals.",
+    metric: "Avg 4.9 rating",
+    range: "3-5 bots",
+    icon: Layers,
+    accentLight: "from-indigo-100/70 via-white/40 to-transparent",
+    accentDark: "from-violet-600/25 via-transparent to-indigo-950/40",
   },
   {
-    id: "automation",
-    title: "Automation Grid",
-    description: "Ops-first bundles covering stand-ups, incident triage, and CRM hygiene.",
-    metric: "92% completion rate",
-    range: "5 agents",
-    icon: Workflow,
-    accentDark: "from-[#22d3ee]/35 via-transparent to-transparent",
-    accentLight: "from-[#0ea5e9]/15 via-transparent to-transparent",
-  },
-  {
-    id: "insights",
-    title: "Insights Lab",
-    description: "Analyst copilots with dashboards, anomaly detection, and narrative reports.",
-    metric: "Top pick for analytics",
-    range: "3 agents",
-    icon: LineChart,
-    accentDark: "from-[#f472b6]/30 via-transparent to-transparent",
-    accentLight: "from-[#ec4899]/12 via-transparent to-transparent",
-  },
-  {
-    id: "global-support",
-    title: "Global Support Mesh",
-    description: "Localized responders with compliance-ready transcripts and real-time QA.",
-    metric: "4.7★ average rating",
-    range: "6 agents",
+    id: "global",
+    title: "Global research lane",
+    description: "Multilingual researchers with citation guardrails and live news taps.",
+    metric: "+34% session depth",
+    range: "4-6 bots",
     icon: Globe2,
-    accentDark: "from-[#34d399]/30 via-transparent to-transparent",
-    accentLight: "from-[#22c55e]/12 via-transparent to-transparent",
-  },
-];
-
-const PULSE_METRICS: PulseMetric[] = [
-  {
-    id: "activation",
-    label: "Activation",
-    change: "+18%",
-    trend: "up",
-    description: "Teams launching workflows after install",
+    accentLight: "from-violet-200/60 via-white/30 to-transparent",
+    accentDark: "from-fuchsia-600/20 via-transparent to-indigo-900/50",
   },
   {
-    id: "retention",
-    label: "Retention",
-    change: "+9%",
-    trend: "up",
-    description: "Active bots after 14 days",
+    id: "trust",
+    title: "Trustworthy assistants",
+    description: "Compliant support agents with audit trails and fallback intents.",
+    metric: "SOC2-ready",
+    range: "2-3 bots",
+    icon: ShieldCheck,
+    accentLight: "from-purple-200/60 via-white/40 to-transparent",
+    accentDark: "from-purple-700/20 via-transparent to-slate-900/45",
+  },
+] as const;
+
+const CREATOR_SPOTLIGHTS = [
+  {
+    id: "neuron",
+    studio: "Neuron Forge Labs",
+    delta: "+312 installs",
+    focus: "Ops copilots with sync automations and alerting rituals.",
+    tags: ["automation", "ops"],
   },
   {
-    id: "latency",
-    label: "Turnaround",
-    change: "-22%",
-    trend: "down",
-    description: "Median task completion time",
+    id: "lumen",
+    studio: "Lumen Research Collective",
+    delta: "+188 watchlists",
+    focus: "Research copilots with citation guardrails and audit trails.",
+    tags: ["research", "analysis"],
   },
-];
+] as const;
 
-const INSIGHTS = [
-  { label: "Most installed category", value: "Research suites" },
-  { label: "Fastest growing", value: "Automation" },
-  { label: "Median install time", value: "2m 14s" },
-];
+const FALLBACK_ICON = "/logo.svg";
 
-const MOTION_CONTAINER = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
-};
+function parseStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => `${item}`.trim().toLowerCase())
+      .filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean);
+  }
+  return [];
+}
 
-const MOTION_CARD = {
-  hidden: { opacity: 0, y: 12, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 260, damping: 26 } },
-};
+function safeNumber(value: unknown, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function isoDate(value: string | null | undefined) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatInstallCount(value: number | null | undefined) {
+  const numeric = safeNumber(value, 0);
+  if (numeric >= 1_000_000) {
+    return `${(numeric / 1_000_000).toFixed(1)}M`;
+  }
+  if (numeric >= 1_000) {
+    return `${(numeric / 1_000).toFixed(1)}K`;
+  }
+  return numeric.toLocaleString();
+}
+
+function priceLabel(bot: HiveStoreRecord) {
+  const basePrice = safeNumber(bot.price, 0);
+  const versionPrice = safeNumber(bot.latest_version?.price, basePrice);
+  const effective = versionPrice || basePrice;
+  if (effective <= 0) {
+    return "Included";
+  }
+  if (effective < 5) {
+    return "$4.99";
+  }
+  return `$${effective.toFixed(2)}`;
+}
+
+async function fetchMarketplaceData(): Promise<HiveStoreRecord[]> {
+  const { data: botRows, error: botsError } = await supabase
+    .from("bots")
+    .select(
+      `
+        id,
+        name,
+        slug,
+        description,
+        price,
+        metadata,
+        default_version_id,
+        capabilities,
+        status,
+        updated_at,
+        created_at
+      `
+    )
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(120);
+
+  if (botsError) {
+    throw botsError;
+  }
+
+  const bots = botRows ?? [];
+  const botIds = bots.map((bot) => bot.id);
+
+  let versions: MarketplaceBotVersion[] = [];
+  if (botIds.length) {
+    const { data: versionRows, error: versionsError } = await supabase
+      .from("bot_versions")
+      .select("id, bot_id, version, label, description, price, installs_count, rating, created_at, published_at")
+      .in("bot_id", botIds)
+      .order("version", { ascending: false });
+
+    if (versionsError && versionsError.code !== "PGRST116") {
+      throw versionsError;
+    }
+
+    versions = versionRows ?? [];
+  }
+
+  let reviews: BotReview[] = [];
+  if (botIds.length) {
+    const { data: reviewRows, error: reviewsError } = await supabase
+      .from("bot_reviews")
+      .select("id, bot_id, author, rating, comment, created_at")
+      .in("bot_id", botIds)
+      .order("created_at", { ascending: false })
+      .limit(Math.max(12, botIds.length * 3));
+
+    if (reviewsError && reviewsError.code !== "PGRST116") {
+      throw reviewsError;
+    }
+
+    reviews = reviewRows ?? [];
+  }
+
+  const latestVersionByBot = new Map<string, MarketplaceBotVersion>();
+  for (const version of versions) {
+    if (!latestVersionByBot.has(version.bot_id)) {
+      latestVersionByBot.set(version.bot_id, version);
+    }
+  }
+
+  const reviewsByBot = new Map<string, BotReview[]>();
+  for (const review of reviews) {
+    const list = reviewsByBot.get(review.bot_id) ?? [];
+    if (list.length < 3) {
+      list.push(review);
+      reviewsByBot.set(review.bot_id, list);
+    }
+  }
+
+  return bots.map((row) => {
+    const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
+    const rawCategory =
+      (metadata.category as string | undefined) ??
+      (metadata.primary_category as string | undefined) ??
+      "general";
+    const normalizedCategory = rawCategory.toLowerCase();
+
+    const rawSkills = row.capabilities ?? (metadata.capabilities as string[] | undefined) ?? (metadata.skills as string[] | undefined);
+    const skills = parseStringList(rawSkills);
+    if (skills.length === 0) {
+      skills.push("automation", "assist");
+    }
+
+    const curatedTags = parseStringList(metadata.curated_tags);
+    const downloads = safeNumber(metadata.installs_count, 0);
+    const rating = safeNumber(metadata.rating, 0) || 4.8;
+    const price = safeNumber(row.price ?? metadata.price, 0);
+    const slug = row.slug ?? slugify(row.name) ?? row.id;
+    const icon = (metadata.icon_url as string | undefined) ?? FALLBACK_ICON;
+    const author = (metadata.author as string | undefined) ?? "Bothive Studio";
+    const description = row.description ?? (metadata.description as string | undefined) ?? "No description provided yet.";
+
+    return {
+      id: row.id,
+      name: row.name,
+      slug,
+      description,
+      category: normalizedCategory,
+      price,
+      downloads,
+      rating,
+      icon,
+      skills,
+      curatedTags,
+      author,
+      latest_version: latestVersionByBot.get(row.id) ?? null,
+      reviews: reviewsByBot.get(row.id) ?? [],
+      last_updated: row.updated_at ?? null,
+      created_at: row.created_at ?? null,
+    } satisfies HiveStoreRecord;
+  });
+}
 
 export default function HiveStorePage() {
+  const router = useRouter();
+  const { isAuthenticated, profile, loading: sessionLoading } = useAppSession();
+
+  const [bots, setBots] = useState<HiveStoreRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<AlertState>(null);
+
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<string>("all");
-  const [curation, setCuration] = useState<string>("trending");
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("all");
+  const [curation, setCuration] = useState<(typeof CURATION_FILTERS)[number]["id"]>(CURATION_FILTERS[0].id);
+  const [heroId, setHeroId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchMarketplaceData();
+        if (!active) return;
+        setBots(data);
+        setHeroId((current) => current ?? data[0]?.id ?? null);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to load Hive Store", err);
+        if (active) {
+          setError(err instanceof Error ? err.message : "Failed to load Hive Store data.");
+          setAlert({
+            variant: "error",
+            title: "Marketplace unavailable",
+            message: "We couldn’t reach Supabase. Refresh or try again later.",
+            autoClose: 6000,
+          });
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const curatedBuckets = useMemo(() => {
+    const byInstalls = [...bots].sort((a, b) => (b.downloads ?? 0) - (a.downloads ?? 0));
+    const byRating = [...bots].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    const byFreshness = [...bots].sort((a, b) => {
+      const left = isoDate(a.latest_version?.published_at ?? a.last_updated) ?? isoDate(a.created_at) ?? new Date(0);
+      const right = isoDate(b.latest_version?.published_at ?? b.last_updated) ?? isoDate(b.created_at) ?? new Date(0);
+      return right.getTime() - left.getTime();
+    });
+
+    return {
+      trending: byInstalls,
+      featured: byRating,
+      new: byFreshness,
+    } as Record<(typeof CURATION_FILTERS)[number]["id"], HiveStoreRecord[]>;
+  }, [bots]);
+
+  const curatedList = useMemo(() => curatedBuckets[curation] ?? bots, [curatedBuckets, curation, bots]);
 
   const filteredAgents = useMemo(() => {
-    const base = MARKETPLACE_AGENTS.filter((agent) => {
-      const matchesSearch =
-        agent.name.toLowerCase().includes(search.toLowerCase()) ||
-        (agent.description?.toLowerCase() ?? "").includes(search.toLowerCase()) ||
-        agent.author.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = category === "all" || agent.category === category;
-      return matchesSearch && matchesCategory;
+    const query = search.trim().toLowerCase();
+    return curatedList.filter((bot) => {
+      const categoryMatch = category === "all" || bot.category === category;
+      if (!categoryMatch) {
+        return false;
+      }
+      if (!query) {
+        return true;
+      }
+      const haystack = [bot.name, bot.description, bot.author, bot.category, bot.skills.join(" "), bot.curatedTags.join(" ")]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
     });
+  }, [curatedList, category, search]);
 
-    const curated = base.filter((agent) => {
-      if (curation === "featured") {
-        return agent.rating >= 4.7 || (agent.price ?? 0) > 0;
-      }
-      if (curation === "new") {
-        return agent.downloads <= 1000;
-      }
-      return true;
-    });
-
-    const ordered = [...curated].sort((a, b) => {
-      if (curation === "new") {
-        return a.downloads - b.downloads;
-      }
-      if (curation === "featured") {
-        return b.rating - a.rating;
-      }
-      return b.downloads - a.downloads;
-    });
-
-    return ordered;
-  }, [search, category, curation]);
-
-  const heroDeck = useMemo(() => {
-    if (filteredAgents.length === 0) {
-      return MARKETPLACE_AGENTS.slice(0, 3);
+  useEffect(() => {
+    if (!filteredAgents.length) {
+      return;
     }
-    return filteredAgents.slice(0, 3);
+    setHeroId((current) => {
+      if (current && filteredAgents.some((bot) => bot.id === current)) {
+        return current;
+      }
+      return filteredAgents[0]?.id ?? current;
+    });
   }, [filteredAgents]);
 
-  const heroHighlight = heroDeck[0] ?? null;
-  const secondaryHighlights = heroDeck.slice(1);
-  const activeCuration = CURATION_FILTERS.find((filter) => filter.id === curation)?.label ?? "Trending Now";
+  const heroHighlight = useMemo(
+    () => filteredAgents.find((bot) => bot.id === heroId) ?? filteredAgents[0] ?? curatedList[0] ?? null,
+    [filteredAgents, heroId, curatedList]
+  );
 
-  const getPriceLabel = (agent: MarketplaceAgent) => {
-    if (agent.price == null || agent.price === 0) {
-      return agent.price === 0 ? "Included" : "Free trial";
+  const secondaryHighlights = useMemo(() => {
+    if (!heroHighlight) return filteredAgents.slice(0, 2);
+    return filteredAgents.filter((bot) => bot.id !== heroHighlight.id).slice(0, 2);
+  }, [filteredAgents, heroHighlight]);
+
+  const activeCuration = useMemo(
+    () => CURATION_FILTERS.find((filter) => filter.id === curation)?.label ?? CURATION_FILTERS[0].label,
+    [curation]
+  );
+
+  const insights = useMemo(() => {
+    if (bots.length === 0) {
+      return [
+        { label: "Active bots", value: "—" },
+        { label: "Total installs", value: "—" },
+        { label: "Avg. rating", value: "—" },
+      ];
     }
-    return `$${agent.price}`;
-  };
+    const totalInstalls = bots.reduce((total, bot) => total + safeNumber(bot.downloads, 0), 0);
+    const averageRating = bots.reduce((total, bot) => total + safeNumber(bot.rating, 0), 0) / bots.length;
+    const contributorCount = new Set(bots.map((bot) => bot.author)).size;
+    return [
+      { label: "Active bots", value: bots.length.toString() },
+      { label: "Total installs", value: formatInstallCount(totalInstalls) },
+      { label: "Studios live", value: contributorCount.toString() },
+      { label: "Avg. rating", value: averageRating.toFixed(1) },
+    ];
+  }, [bots]);
+
+  const pulseMetrics = useMemo<PulseMetric[]>(() => {
+    if (!bots.length) {
+      return [
+        { id: "adoption", label: "Adoption", change: "—", trend: "up", description: "Waiting for live data." },
+      ];
+    }
+    const topPerformer = curatedBuckets.trending[0];
+    const newest = curatedBuckets.new[0];
+    const installGrowth = topPerformer ? `${formatInstallCount(topPerformer.downloads)} installs` : "Stable";
+    return [
+      {
+        id: "install-velocity",
+        label: "Install velocity",
+        change: installGrowth,
+        trend: "up",
+        description: `${topPerformer?.name ?? "Bots"} leading this window.`,
+      },
+      {
+        id: "freshness",
+        label: "Fresh drops",
+        change: newest?.name ? newest.name : "New arrivals",
+        trend: "up",
+        description: newest?.description?.slice(0, 72) ?? "Latest launches land here first.",
+      },
+      {
+        id: "retention",
+        label: "Retention",
+        change: "94%",
+        trend: "up",
+        description: "Week-over-week teams keeping their installed bots active.",
+      },
+    ];
+  }, [bots, curatedBuckets]);
+
+  const handleInstall = useCallback(
+    (bot: HiveStoreRecord, source: "hero" | "card") => {
+      if (!isAuthenticated) {
+        setAlert({
+          variant: "warning",
+          title: "Sign in to continue",
+          message: "Install bots, manage payments, and sync workspaces after you sign in.",
+          autoClose: 5200,
+        });
+        return;
+      }
+
+      setAlert({
+        variant: "success",
+        title: `${bot.name} ready to launch`,
+        message: "Opening the detail view so you can confirm install & payment.",
+        autoClose: 3800,
+      });
+
+      const targetSlug = bot.slug ?? slugify(bot.name) ?? bot.id;
+      const target = `/hivestore/${targetSlug}`;
+
+      setTimeout(() => {
+        router.push(target);
+      }, source === "hero" ? 240 : 120);
+    },
+    [isAuthenticated, router]
+  );
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-700 text-slate-100 transition-colors duration-300 dark:bg-[#05060f] dark:text-slate-100">
-      <div className="pointer-events-none absolute inset-x-0 top-[-280px] h-[520px] rounded-full bg-[radial-gradient(circle,_rgba(124,58,237,0.16),_transparent_65%)] blur-3xl dark:bg-[radial-gradient(circle,_rgba(167,139,250,0.22),_rgba(8,6,14,0.85)_72%)]" />
+    <main className="relative min-h-screen overflow-hidden bg-[#080321] text-white">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(233,213,255,0.22),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(191,219,254,0.18),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(-120deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[length:68px_68px] opacity-25" />
+        <div className="absolute -top-32 left-1/2 h-[22rem] w-[32rem] -translate-x-1/2 rounded-[45%] bg-[radial-gradient(circle_at_center,rgba(167,139,250,0.45),transparent_70%)] blur-3xl" />
+        <div className="absolute bottom-[-16rem] left-[-12rem] h-[24rem] w-[28rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(110,231,183,0.26),transparent_68%)] blur-3xl" />
+        <div className="absolute top-1/4 right-[-14rem] h-[22rem] w-[26rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.26),transparent_70%)] blur-3xl" />
+      </div>
+      <AmbientBackdrop className="opacity-70" maskClassName="[mask-image:radial-gradient(circle_at_center,transparent_25%,black_85%)]" />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-20 pt-10 sm:px-6 lg:px-8">
-        <header className="sticky top-4 z-20 mb-10 flex items-center justify-between rounded-2xl border border-slate-200/60 bg-black/75 px-5 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-md transition dark:border-white/12 dark:bg-[#0a0e1d]/85 dark:shadow-[0_24px_65px_rgba(5,6,16,0.6)]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed]/85 to-[#4c1d95] text-white shadow-lg">
-              <Sparkles className="h-5 w-5" />
+      {alert && (
+        <ProfessionalAlert
+          variant={alert.variant}
+          title={alert.title}
+          message={alert.message}
+          open
+          autoClose={alert.autoClose}
+          onClose={() => setAlert(null)}
+        />
+      )}
+
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-20 pt-16 sm:px-8">
+        <header className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-6 text-center lg:text-left">
+            <span className="inline-flex items-center gap-2 self-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/70 lg:self-start">
+              <Sparkles className="h-3.5 w-3.5" /> Hive Store
+            </span>
+            <div className="space-y-4">
+              <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl md:text-5xl">
+                Deploy AI copilots, ready to ship.
+              </h1>
+              <p className="mx-auto max-w-2xl text-base text-white/70 lg:mx-0">
+                Discover curated bots built by the Bothive community. Install, subscribe, and compose workflows that feel
+                like a minimalist app store—all powered by live Supabase data.
+              </p>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500 dark:text-slate-300">Hive Store</p>
-              <h1 className="text-base font-semibold">Discover, launch, and publish bots</h1>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs uppercase tracking-[0.28em] text-white/65 lg:justify-start">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
+                <ArrowRight className="h-3.5 w-3.5" /> {bots.length ? `${bots.length} bots live` : "Syncing"}
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
+                <ShieldCheck className="h-3.5 w-3.5" /> Payments coming soon
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/builder"
-              className="hidden rounded-full border border-slate-200/60 px-4 py-2 text-sm font-medium text-slate-700 transition hover:-translate-y-0.5 hover:border-indigo-500/50 hover:text-indigo-600 dark:border-white/15 dark:text-slate-200 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200 sm:inline-flex"
-            >
-              Open builder
-              <ArrowUpRight className="ml-2 h-4 w-4" />
-            </Link>
-            <ThemeToggle />
+
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end lg:self-end">
+            {sessionLoading ? (
+              <div className="flex items-center justify-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70">
+                <Loader2 className="h-4 w-4 animate-spin" /> Checking session
+              </div>
+            ) : isAuthenticated && profile ? (
+              <Link
+                href="/dashboard"
+                className="group flex items-center justify-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-500 text-sm font-semibold">
+                  {profile.fullName?.slice(0, 2).toUpperCase() ?? profile.email?.slice(0, 2).toUpperCase() ?? "BH"}
+                </div>
+                <div className="flex flex-col text-left text-xs uppercase tracking-[0.28em] text-white/70">
+                  <span>{profile.fullName ?? profile.email ?? "Your account"}</span>
+                  <span className="text-white/50">Manage installs</span>
+                </div>
+                <ArrowUpRight className="h-4 w-4 text-white/60" />
+              </Link>
+            ) : (
+              <Link
+                href="/signin"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm uppercase tracking-[0.3em] text-white/70"
+              >
+                Sign in
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            )}
           </div>
         </header>
 
-        <section className="relative overflow-hidden rounded-[32px] border border-slate-200/60 bg-black/80 p-8 shadow-[0_45px_120px_rgba(15,23,42,0.12)] backdrop-blur dark:border-white/12 dark:bg-[#0d1224]/80 dark:shadow-[0_55px_145px_rgba(5,6,16,0.75)]">
-          <AmbientBackdrop className="opacity-0 dark:opacity-70" maskClassName="dark:[mask-image:radial-gradient(ellipse_at_top,transparent_18%,black)]" />
-          <div className="relative flex flex-col gap-10 lg:flex-row lg:items-start">
-            <div className="max-w-xl space-y-6">
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-black/60 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-slate-500 dark:border-white/20 dark:bg-white/10 dark:text-slate-200">
-                <Sparkles className="h-4 w-4 text-indigo-500" />
-                App-store inspired
-              </span>
-              <div className="space-y-4">
-                <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">
-                  The Hive Store is now its own destination—built for pocket discovery and desktop launches.
-                </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  New sign-ups drop here first. Scroll to explore featured installs, curated collections, and live stats. Install on mobile, then graduate to desktop or laptop when you7re ready to build, govern, or monetize.
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {[
-                  {
-                    title: "Mobile explorers",
-                    description: "Browse listings, watch demos, and add favorites right from your phone.",
-                    icon: Smartphone,
-                  },
-                  {
-                    title: "Developers",
-                    description: "Switch to a laptop to design agents, wire manifests, and ship updates.",
-                    icon: Laptop,
-                  },
-                  {
-                    title: "Business HQ",
-                    description: "Use a desktop for analytics, governance, and billing workflows.",
-                    icon: Monitor,
-                  },
-                ].map((card) => {
-                  const Icon = card.icon;
-                  return (
-                    <div
-                      key={card.title}
-                      className="rounded-2xl border border-slate-200/65 bg-black/60 p-4 text-sm text-slate-700 shadow-sm transition hover:-translate-y-1 hover:border-indigo-400/50 hover:shadow-md dark:border-white/12 dark:bg-[#111730]/80 dark:text-slate-200"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-600/20 text-indigo-600 dark:from-indigo-400/20 dark:to-indigo-500/20 dark:text-indigo-200">
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <p className="font-semibold text-slate-800 dark:text-slate-100">{card.title}</p>
-                      </div>
-                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{card.description}</p>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <Link
-                  href="#catalog"
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7c3aed] via-[#6056ff] to-[#4936ff] px-5 py-2 font-semibold text-white shadow-[0_20px_55px_rgba(93,80,255,0.35)] transition hover:-translate-y-0.5"
-                >
-                  Explore catalog
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/register"
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 px-4 py-2 font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-indigo-500/50 hover:text-indigo-600 dark:border-white/15 dark:text-slate-200 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200"
-                >
-                  Start building
-                </Link>
-              </div>
-            </div>
-
-            <div className="flex-1 space-y-4">
-              {heroHighlight ? (
-                <div className="rounded-[28px] border border-slate-200/70 bg-white/70 p-6 text-slate-700 shadow-[0_28px_85px_rgba(15,23,42,0.12)] transition hover:-translate-y-1 dark:border-white/12 dark:bg-[#101628]/85 dark:text-slate-200 dark:shadow-[0_45px_120px_rgba(5,6,16,0.55)]">
-                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">
-                    <span>Spotlight</span>
-                    <span className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-200">
-                      <TrendingUp className="h-3.5 w-3.5 text-indigo-500" />
-                      {heroHighlight.category}
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/5 p-8 text-white shadow-[0_45px_100px_rgba(76,29,149,0.35)]">
+            <div className="pointer-events-none absolute inset-0 rounded-[32px] border border-white/5" />
+            {heroHighlight ? (
+              <div className="relative flex h-full flex-col gap-6">
+                <div className="flex items-start justify-between gap-6">
+                  <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-white/70">
+                    <TrendingUp className="h-3.5 w-3.5 text-indigo-200" />
+                    <span>{heroHighlight.category}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      <Download className="h-4 w-4" /> {formatInstallCount(heroHighlight.downloads)} installs
                     </span>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    <h3 className="text-2xl font-semibold text-slate-900 dark:text-white">{heroHighlight.name}</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">{heroHighlight.description}</p>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                    {heroHighlight.skills.slice(0, 4).map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-200"
-                      >
-                        {skill.replace(/_/g, " ")}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-5 grid gap-3 text-sm text-slate-600 dark:text-slate-300 sm:grid-cols-2">
-                    <span className="inline-flex items-center gap-2">
-                      <Download className="h-4 w-4" /> {heroHighlight.downloads.toLocaleString()} installs
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                      <Star className="h-4 w-4 text-indigo-200" fill="#c4b5fd" /> {heroHighlight.rating.toFixed(1)}
                     </span>
-                    <span className="inline-flex items-center gap-2">
-                      <Star className="h-4 w-4 text-indigo-500" fill="#7c3aed" /> {heroHighlight.rating}
-                    </span>
-                  </div>
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-[0_18px_55px_rgba(51,65,85,0.35)] transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-900"
-                    >
-                      Install spotlight
-                      <ArrowUpRight className="h-4 w-4" />
-                    </button>
-                    <span className="text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">{getPriceLabel(heroHighlight)}</span>
                   </div>
                 </div>
-              ) : (
-                <div className="h-72 rounded-[28px] border border-dashed border-slate-200" />
-              )}
-
-              {secondaryHighlights.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {secondaryHighlights.map((agent) => (
-                    <div
-                      key={agent.id}
-                      className="rounded-[22px] border border-slate-200/70 bg-white/70 p-4 text-sm text-slate-600 shadow-sm transition hover:-translate-y-1 hover:border-indigo-400/50 dark:border-white/12 dark:bg-[#0f1528]/80 dark:text-slate-200"
-                    >
-                      <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-slate-500 dark:text-slate-300">
-                        <span>{agent.category}</span>
-                        <span>{agent.rating}</span>
-                      </div>
-                      <div className="mt-2 space-y-1">
-                        <h4 className="text-lg font-semibold text-slate-900 dark:text-white">{agent.name}</h4>
-                        <p className="line-clamp-2 text-slate-600 dark:text-slate-300">{agent.description}</p>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-300">
-                        <span>{getPriceLabel(agent)}</span>
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 px-3 py-1 font-semibold uppercase tracking-[0.28em] text-slate-600 transition hover:border-indigo-400/60 hover:text-indigo-600 dark:border-white/12 dark:text-slate-200"
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-3">
+                    <h2 className="text-3xl font-semibold text-white sm:text-[2.2rem]">{heroHighlight.name}</h2>
+                    <p className="max-w-xl text-sm text-white/70">{heroHighlight.description}</p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {heroHighlight.skills.slice(0, 6).map((skill) => (
+                        <span
+                          key={`${heroHighlight.id}-${skill}`}
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 uppercase tracking-[0.3em] text-white/70"
                         >
-                          Get
-                        </button>
-                      </div>
+                          {skill.replace(/_/g, " ")}
+                        </span>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                  <div className="shrink-0">
+                    <div className="relative h-24 w-24 overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-4 shadow-xl">
+                      <Image
+                        src={heroHighlight.icon || FALLBACK_ICON}
+                        alt={`${heroHighlight.name} icon`}
+                        fill
+                        className="object-contain"
+                        sizes="96px"
+                      />
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+                <div className="flex flex-wrap items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleInstall(heroHighlight, "hero")}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-[0_24px_65px_rgba(255,255,255,0.35)] transition hover:-translate-y-0.5"
+                  >
+                    Install spotlight
+                    <ArrowUpRight className="h-4 w-4" />
+                  </button>
+                  <span className="text-xs uppercase tracking-[0.3em] text-white/60">{priceLabel(heroHighlight)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-60 items-center justify-center text-white/40">
+                {loading ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Syncing spotlight
+                  </div>
+                ) : error ? (
+                  <p>{error}</p>
+                ) : (
+                  <p>No spotlight available.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {secondaryHighlights.map((bot) => (
+              <div
+                key={bot.id}
+                className="relative rounded-[26px] border border-white/10 bg-white/5 p-5 text-sm text-white/70 shadow-[0_28px_85px_rgba(15,23,42,0.28)] transition hover:-translate-y-1"
+              >
+                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-white/50">
+                  <span>{bot.category}</span>
+                  <span>{bot.rating.toFixed(1)}</span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <h3 className="text-lg font-semibold text-white">{bot.name}</h3>
+                  <p className="line-clamp-3 text-white/70">{bot.description}</p>
+                </div>
+                <div className="mt-4 flex items-center justify-between text-xs text-white/60">
+                  <span>{priceLabel(bot)}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleInstall(bot, "hero")}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 uppercase tracking-[0.3em] text-white/75 transition hover:border-white/60 hover:text-white"
+                  >
+                    Get
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
-        <section id="catalog" className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="rounded-[32px] border border-slate-200/70 bg-white/80 p-6 shadow-[0_24px_75px_rgba(15,23,42,0.1)] backdrop-blur dark:border-white/12 dark:bg-[#0c1222]/80 dark:shadow-[0_45px_120px_rgba(5,6,16,0.55)]">
+        <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]">
+          <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-[0_32px_85px_rgba(15,23,42,0.28)]">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
               <input
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search agents, studios, or workflows"
-                className="w-full rounded-2xl border border-slate-200/70 bg-white/80 px-12 py-3 text-sm text-slate-700 shadow-sm transition placeholder:text-slate-400 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40 dark:border-white/10 dark:bg-[#0f1528] dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-indigo-400"
+                placeholder="Search bots, studios, or workflows"
+                className="w-full rounded-2xl border border-white/10 bg-white/10 px-12 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
               />
             </div>
 
             <div className="mt-6 space-y-6">
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500 dark:text-slate-300">Browse curations</p>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                  <p className="text-xs uppercase tracking-[0.32em] text-white/60">Browse curations</p>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-white/60">
                     <Filter className="h-3.5 w-3.5" />
                     {activeCuration}
                   </span>
@@ -483,9 +735,7 @@ export default function HiveStorePage() {
                         onClick={() => setCuration(filter.id)}
                         className={cn(
                           "rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] transition",
-                          isActive
-                            ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900"
-                            : "border border-slate-200/70 text-slate-600 hover:border-indigo-400/60 hover:text-indigo-600 dark:border-white/15 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200"
+                          isActive ? "bg-white text-slate-900" : "border border-white/15 text-white/70 hover:border-white/40 hover:text-white"
                         )}
                       >
                         {filter.label}
@@ -496,7 +746,7 @@ export default function HiveStorePage() {
               </div>
 
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500 dark:text-slate-300">Categories</p>
+                <p className="text-xs uppercase tracking-[0.32em] text-white/60">Categories</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {CATEGORIES.map((cat) => {
                     const isActive = category === cat;
@@ -508,8 +758,8 @@ export default function HiveStorePage() {
                         className={cn(
                           "rounded-full px-4 py-1.5 text-[11px] tracking-[0.24em] transition",
                           isActive
-                            ? "bg-indigo-600 text-white shadow"
-                            : "border border-slate-200/70 text-slate-600 hover:border-indigo-400/60 hover:text-indigo-600 dark:border-white/15 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200"
+                            ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-500 text-white"
+                            : "border border-white/15 text-white/70 hover:border-white/40 hover:text-white"
                         )}
                       >
                         {cat}
@@ -520,13 +770,13 @@ export default function HiveStorePage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                {INSIGHTS.map((insight) => (
+                {insights.map((insight) => (
                   <div
                     key={insight.label}
-                    className="rounded-2xl border border-slate-200/70 bg-white/75 px-3 py-3 text-xs uppercase tracking-[0.28em] text-slate-500 shadow-sm dark:border-white/12 dark:bg-white/5 dark:text-slate-300"
+                    className="rounded-2xl border border-white/10 bg-white/10 px-3 py-3 text-xs uppercase tracking-[0.28em] text-white/60"
                   >
-                    <span className="block text-slate-400 dark:text-slate-500">{insight.label}</span>
-                    <span className="mt-1 block text-sm font-semibold text-slate-700 dark:text-slate-100">{insight.value}</span>
+                    <span className="block text-white/40">{insight.label}</span>
+                    <span className="mt-1 block text-sm font-semibold text-white/90">{insight.value}</span>
                   </div>
                 ))}
               </div>
@@ -534,64 +784,40 @@ export default function HiveStorePage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-[24px] border border-slate-200/65 bg-white/80 p-4 text-sm text-slate-600 shadow-sm dark:border-white/12 dark:bg-[#0e1529]/80 dark:text-slate-300">
-              <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">
+            <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/70 shadow-[0_24px_75px_rgba(15,23,42,0.28)]">
+              <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/60">
                 <span>Pulse monitor</span>
                 <Play className="h-4 w-4" />
               </div>
               <div className="mt-3 space-y-3">
-                {PULSE_METRICS.map((metric) => (
-                  <div
-                    key={metric.id}
-                    className="rounded-xl border border-slate-200/65 bg-white/70 px-3 py-2 text-sm text-slate-600 shadow-sm dark:border-white/12 dark:bg-white/5 dark:text-slate-300"
-                  >
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.28em] text-slate-500 dark:text-slate-300">
+                {pulseMetrics.map((metric) => (
+                  <div key={metric.id} className="rounded-xl border border-white/10 bg-white/10 px-3 py-2">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.28em] text-white/60">
                       <span>{metric.label}</span>
-                      <span className={metric.trend === "down" ? "text-rose-500" : "text-emerald-500"}>{metric.change}</span>
+                      <span className={metric.trend === "down" ? "text-rose-300" : "text-emerald-300"}>{metric.change}</span>
                     </div>
-                    <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">{metric.description}</p>
+                    <p className="mt-1 text-[13px] text-white/60">{metric.description}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-slate-200/65 bg-white/80 p-4 text-sm text-slate-600 shadow-sm dark:border-white/12 dark:bg-[#0e1529]/80 dark:text-slate-300">
-              <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500 dark:text-slate-300">
+            <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/70 shadow-[0_24px_75px_rgba(15,23,42,0.28)]">
+              <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/60">
                 <span>Creator spotlights</span>
                 <ArrowUpRight className="h-4 w-4" />
               </div>
               <div className="mt-3 space-y-3">
-                {[
-                  {
-                    id: "neuron",
-                    studio: "Neuron Forge Labs",
-                    delta: "+312 installs",
-                    focus: "Automation rituals built for ops-heavy teams scaling async.",
-                    tags: ["automation", "ops"],
-                  },
-                  {
-                    id: "lumen",
-                    studio: "Lumen Research Collective",
-                    delta: "+188 watchlists",
-                    focus: "Deep research copilots with citation guardrails and audit trails.",
-                    tags: ["research", "analysis"],
-                  },
-                ].map((spotlight) => (
-                  <div
-                    key={spotlight.id}
-                    className="rounded-xl border border-slate-200/65 bg-white/70 p-3 shadow-sm dark:border-white/12 dark:bg-white/5"
-                  >
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.28em] text-slate-500 dark:text-slate-300">
+                {CREATOR_SPOTLIGHTS.map((spotlight) => (
+                  <div key={spotlight.id} className="rounded-xl border border-white/10 bg-white/10 p-3">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.28em] text-white/60">
                       <span>{spotlight.studio}</span>
                       <span>{spotlight.delta}</span>
                     </div>
-                    <p className="mt-2 text-[13px] text-slate-600 dark:text-slate-300">{spotlight.focus}</p>
-                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.26em] text-slate-500 dark:text-slate-400">
+                    <p className="mt-2 text-[13px] text-white/60">{spotlight.focus}</p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.26em] text-white/50">
                       {spotlight.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="rounded-full border border-slate-200/70 px-2.5 py-0.5 dark:border-white/12"
-                        >
+                        <span key={tag} className="rounded-full border border-white/15 px-2.5 py-0.5">
                           {tag}
                         </span>
                       ))}
@@ -603,21 +829,21 @@ export default function HiveStorePage() {
           </aside>
         </section>
 
-        <section className="mt-12 rounded-[32px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_40px_110px_rgba(15,23,42,0.12)] backdrop-blur dark:border-white/12 dark:bg-[#0d1325]/85 dark:shadow-[0_45px_120px_rgba(5,6,16,0.6)]">
+        <section className="mt-10 rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-[0_40px_110px_rgba(15,23,42,0.32)]">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-slate-500 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-white/60">
                 Curated collections
               </span>
-              <h3 className="mt-3 text-2xl font-semibold text-slate-900 dark:text-white sm:text-[1.8rem]">
+              <h3 className="mt-3 text-2xl font-semibold text-white sm:text-[1.8rem]">
                 Launch-ready packs tuned for {activeCuration.toLowerCase()}
               </h3>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+              <p className="mt-2 max-w-2xl text-sm text-white/60">
                 Mix and match bundles engineered to drop into your hive with zero cold-start time. Each collection ships with shared memory keys, compatibility notes, and tuning recipes.
               </p>
             </div>
-            <span className="inline-flex rounded-full border border-slate-200/70 bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.28em] text-slate-500 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
-              {filteredAgents.length} agents visible
+            <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-white/60">
+              {filteredAgents.length} bots visible
             </span>
           </div>
           <div className="relative mt-6 -mx-2 flex gap-4 overflow-x-auto px-2 pb-2 sm:mt-8">
@@ -626,7 +852,7 @@ export default function HiveStorePage() {
               return (
                 <div
                   key={collection.id}
-                  className="group relative min-w-[240px] snap-start rounded-[26px] border border-slate-200/70 bg-white/75 p-5 shadow-[0_28px_85px_rgba(15,23,42,0.12)] transition duration-300 hover:-translate-y-1 dark:border-white/12 dark:bg-[#111730]/85 dark:shadow-[0_30px_95px_rgba(5,6,16,0.6)] sm:min-w-[280px]"
+                  className="group relative min-w-[240px] snap-start rounded-[26px] border border-white/10 bg-white/10 p-5 shadow-[0_28px_85px_rgba(15,23,42,0.28)] sm:min-w-[280px]"
                 >
                   <div
                     className={cn(
@@ -638,20 +864,20 @@ export default function HiveStorePage() {
                   />
                   <div className="relative flex h-full flex-col justify-between gap-5">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200/70 bg-white/80 text-indigo-600 shadow-sm dark:border-white/15 dark:bg-white/10 dark:text-indigo-200">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-white">
                         <Icon className="h-5 w-5" />
                       </div>
-                      <span className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-slate-500 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
+                      <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/60">
                         {collection.range}
                       </span>
                     </div>
-                    <div className="space-y-2 text-slate-600 dark:text-slate-300">
-                      <h4 className="text-lg font-semibold text-slate-900 dark:text-white">{collection.title}</h4>
+                    <div className="space-y-2 text-white/70">
+                      <h4 className="text-lg font-semibold text-white">{collection.title}</h4>
                       <p className="text-sm">{collection.description}</p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-300">
+                    <div className="flex items-center justify-between text-xs text-white/60">
                       <span>{collection.metric}</span>
-                      <button className="inline-flex items-center gap-1 rounded-full border border-slate-200/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-600 transition hover:border-indigo-400/60 hover:text-indigo-600 dark:border-white/12 dark:text-slate-300 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200">
+                      <button className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70">
                         Preview lineup
                         <ArrowUpRight className="h-3.5 w-3.5" />
                       </button>
@@ -663,100 +889,91 @@ export default function HiveStorePage() {
           </div>
         </section>
 
-        <motion.section
-          className="mt-12 grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3"
-          variants={MOTION_CONTAINER}
-          initial="hidden"
-          animate="show"
-        >
-          {filteredAgents.map((agent) => (
-            <motion.div
-              key={agent.id}
-              variants={MOTION_CARD}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.995 }}
-              className="group relative overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/80 p-6 text-slate-600 shadow-[0_32px_90px_rgba(15,23,42,0.12)] transition dark:border-white/12 dark:bg-[#0f1528]/85 dark:text-slate-300 dark:shadow-[0_40px_110px_rgba(5,6,16,0.55)]"
+        <section className="mt-12 grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3">
+          {filteredAgents.map((bot) => (
+            <div
+              key={bot.id}
+              className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 p-6 text-white/70 shadow-[0_32px_90px_rgba(15,23,42,0.32)]"
             >
               <div className="relative flex h-full flex-col gap-5">
-                <span className="text-[10px] uppercase tracking-[0.35em] text-slate-500 dark:text-slate-300">{activeCuration}</span>
+                <span className="text-[10px] uppercase tracking-[0.35em] text-white/50">{activeCuration}</span>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-slate-500 dark:border-white/12 dark:bg-white/5 dark:text-slate-300">
-                      {agent.category}
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-white/60">
+                      {bot.category}
                     </div>
-                    <h4 className="text-xl font-semibold text-slate-900 dark:text-white">{agent.name}</h4>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{agent.author}</p>
+                    <h4 className="text-xl font-semibold text-white">{bot.name}</h4>
+                    <p className="mt-1 text-sm text-white/60">{bot.author}</p>
                   </div>
-                  <div className="flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/75 px-2.5 py-1 text-sm text-slate-600 shadow-sm dark:border-white/12 dark:bg-white/5 dark:text-slate-200">
-                    <Star className="h-4 w-4 text-indigo-500" fill="#7c3aed" />
-                    {agent.rating}
+                  <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-sm text-white/70">
+                    <Star className="h-4 w-4 text-indigo-200" fill="#c4b5fd" />
+                    {bot.rating.toFixed(1)}
                   </div>
                 </div>
 
-                <p className="line-clamp-3 text-sm text-slate-600 dark:text-slate-300">{agent.description}</p>
+                <p className="line-clamp-3 text-sm text-white/60">{bot.description}</p>
 
                 <div className="flex flex-wrap gap-2 text-xs">
-                  {agent.skills.slice(0, 4).map((skill, index) => (
+                  {bot.skills.slice(0, 4).map((skill, index) => (
                     <span
-                      key={`${agent.id}-skill-${index}`}
-                      className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-200"
+                      key={`${bot.id}-skill-${index}`}
+                      className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-white/60"
                     >
                       {skill.replace(/_/g, " ")}
                     </span>
                   ))}
-                  {agent.skills.length > 4 && (
-                    <span className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-slate-600 dark:border-white/12 dark:bg-white/5 dark:text-slate-200">
-                      +{agent.skills.length - 4}
+                  {bot.skills.length > 4 && (
+                    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-white/60">
+                      +{bot.skills.length - 4}
                     </span>
                   )}
                 </div>
 
-                <div className="mt-auto flex items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white/70 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-white/12 dark:bg-white/5 dark:text-slate-200">
+                <div className="mt-auto flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white/70">
                   <span className="inline-flex items-center gap-2">
                     <Download className="h-4 w-4" />
-                    {agent.downloads.toLocaleString()}
+                    {formatInstallCount(bot.downloads)}
                   </span>
-                  <span className={agent.price === 0 || agent.price == null ? "text-indigo-600 dark:text-indigo-200" : "text-slate-700 dark:text-slate-200"}>
-                    {getPriceLabel(agent)}
-                  </span>
+                  <span className={priceLabel(bot) === "Included" ? "text-indigo-200" : "text-white"}>{priceLabel(bot)}</span>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200/70 bg-slate-900 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.28em] text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/20 dark:bg-white dark:text-slate-900"
+                    onClick={() => handleInstall(bot, "card")}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.28em] text-slate-900"
                   >
                     Install
                     <ArrowUpRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
-        </motion.section>
+        </section>
 
-        {filteredAgents.length === 0 && (
-          <div className="mt-10 rounded-[32px] border border-slate-200/70 bg-white/85 py-16 text-center text-slate-500 shadow-sm dark:border-white/12 dark:bg-[#0f1528]/80 dark:text-slate-300">
-            <p>No agents match your filters yet. Adjust your search or check back tomorrow for fresh drops.</p>
+        {!loading && filteredAgents.length === 0 && (
+          <div className="mt-10 rounded-[32px] border border-white/10 bg-white/10 py-16 text-center text-white/60">
+            <p>No bots match your filters yet. Adjust your search or check back tomorrow for fresh drops.</p>
           </div>
         )}
 
-        <footer className="mt-16 rounded-[28px] border border-slate-200/70 bg-white/85 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.1)] backdrop-blur dark:border-white/12 dark:bg-[#0d1325]/85 dark:shadow-[0_40px_110px_rgba(5,6,16,0.55)]">
-          <div className="flex flex-col gap-5 text-sm text-slate-600 dark:text-slate-300 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="mt-16 rounded-[28px] border border-white/10 bg-white/10 p-6 text-white/70 shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
+          <div className="flex flex-col gap-5 text-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Ready to launch your own listing?</h4>
-              <p className="mt-1 max-w-xl text-slate-600 dark:text-slate-300">
-                Complete the listing checklist inside the builder, submit for review, and go live in under 24 hours. We 92ll keep your analytics front and center here in the Hive Store.
+              <h4 className="text-lg font-semibold text-white">Ready to launch your own listing?</h4>
+              <p className="mt-1 max-w-xl text-white/60">
+                Complete the listing checklist inside the builder, submit for review, and go live in under 24 hours. We’ll keep your analytics front and center here in the Hive Store.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/builder?section=store"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 px-4 py-2 font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-indigo-400/60 hover:text-indigo-600 dark:border-white/12 dark:text-slate-200 dark:hover:border-indigo-400/60 dark:hover:text-indigo-200"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 font-semibold text-white/80 transition hover:-translate-y-0.5 hover:border-white/40 hover:text-white"
               >
                 Open listing toolkit
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/docs/hivelang"
-                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 font-semibold text-white shadow hover:-translate-y-0.5 dark:bg-white dark:text-slate-900"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 font-semibold text-slate-900 shadow hover:-translate-y-0.5"
               >
                 Review docs
               </Link>
@@ -767,3 +984,5 @@ export default function HiveStorePage() {
     </main>
   );
 }
+
+

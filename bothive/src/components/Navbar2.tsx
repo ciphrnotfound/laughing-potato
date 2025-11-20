@@ -5,26 +5,28 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { HoverBorderGradient } from "./ui/hover-border-gradient";
+import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import { useTheme } from "@/lib/theme-context";
+import { cn } from "@/lib/utils";
 
 type NavItem = { name: string; href: string };
 
 const NAV_ITEMS: NavItem[] = [
   { name: "Features", href: "/features" },
-  { name: "Developers", href: "/blog" },     // <- keep /blog (root app route)
-  { name: "Company", href: "/pricing" },
-  { name: "Blog", href: "/verify" },  // <- use /pricing (not /app/pricing)
+  { name: "Developers", href: "/developers" },
+  { name: "Pricing", href: "/pricing" },
+  { name: "Blog", href: "/blog" },
   { name: "Changelog", href: "/about" },
   { name: "Contact", href: "/contact" },
 ];
 
-const THEME = "#5900E2";
-
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [active, setActive] = useState<string | null>(null);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -35,152 +37,107 @@ export default function Navbar() {
 
   const onLinkClick = () => setOpen(false);
 
+  const headerClass = cn(
+    "fixed inset-x-0 top-0 z-50 border-b backdrop-blur-md",
+    isDark ? "border-white/10 bg-[#080A14]/92" : "border-[#D5DCFF]/80 bg-white/90"
+  );
+
+  const navItemClass = (href: string) =>
+    cn(
+      "inline-flex items-center px-1 text-sm font-medium",
+      isDark ? "text-white/65" : "text-[#1F2758]/75",
+      pathname === href ? (isDark ? "text-white" : "text-[#0C1024]") : undefined
+    );
+
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-50 transition-shadow duration-200 ${
-        scrolled ? "shadow-md" : ""
-      } bg-transparent backdrop-blur-md border-b border-transparent `}
-    >
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <div className="flex items-center h-16">
-          {/* LEFT: logo */}
-          <div className="flex items-center flex-1 gap-3">
+    <header className={headerClass}>
+      <div className="mx-auto px-4 sm:px-6">
+        <div className="flex h-16 items-center">
+          <div className="flex flex-1 items-center gap-3">
             <Link
               href="/"
-              className="group inline-flex items-center gap-3 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(62,64,149,0.45)]"
-            >
-              <span className="relative grid overflow-hidden rounded-lg h-9 w-9 place-items-center">
-                <span className="absolute inset-0 rounded-lg bg-linear-to-br from-[#3E4095]/20 to-[#5a57d9]/25 blur-sm" />
+              className="group inline-flex items-center gap-3 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6D5BFF]/60"
+              >
+              <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl">
+                <span
+                  className={cn(
+                    "absolute inset-0 rounded-xl blur-md",
+                    isDark
+                      ? "bg-[radial-gradient(circle_at_center,rgba(140,89,255,0.45),transparent_70%)]"
+                      : "bg-[radial-gradient(circle_at_center,rgba(129,118,255,0.26),transparent_72%)]"
+                  )}
+                />
                 <Image
                   src="/colored-logo (2).png"
-                  alt="BlockCred"
+                  alt="Bothive"
                   width={36}
                   height={36}
-                  className="relative z-1 rounded object-cover"
+                  className="relative z-[1] h-7 w-7"
                   priority
                 />
               </span>
-              <span className="hidden text-sm font-extrabold tracking-widest text-white sm:inline-block">
-                BOTHIVE
+              <span
+                className={cn(
+                  "hidden text-sm font-semibold tracking-[0.28em] uppercase sm:inline-block",
+                  isDark ? "text-white/75" : "text-[#1F2758]/75"
+                )}
+              >
+                Bothive
               </span>
-              
             </Link>
           </div>
 
-          {/* CENTER: nav */}
-          <nav className="hidden md:flex md:flex-1 md:justify-center" aria-label="Primary">
-            <ul className="flex items-center gap-8">
-              {NAV_ITEMS.map((item) => {
-                const isActive = active === item.name;
-                return (
-                  <li key={item.name}>
-                    {item.href.startsWith("/") ? (
-                      <a
-                        href={item.href}
-                        onMouseEnter={() => setActive(item.name)}
-                        onMouseLeave={() => setActive(null)}
-                        onClick={onLinkClick}
-                        className="relative inline-block text-sm font-medium text-slate-300 group"
-                      >
-                        <span
-                          className="relative z-[1] inline-block px-1 transition-colors duration-200 group-hover:text-[#3E4095]"
-                        //   style={{ textShadow: isActive ? "0 0 20px rgba(62,64,149,0.12)" : "none" }}
-                        >
-                          {item.name}
-                        </span>
-
-                        {/* magnetic hover bg pill */}
-                        <span
-                          aria-hidden="true"
-                          className="absolute transition duration-300 rounded-lg opacity-0 -inset-x-2 -inset-y-2 group-hover:opacity-100"
-                          style={{
-                            background: "radial-gradient(120px 40px at center, rgba(62,64,149,0.10), transparent 60%)",
-                          }}
-                        />
-
-                        <span
-                          aria-hidden="true"
-                          className={`absolute left-1/2 top-[calc(100%+6px)] h-[2px] w-0 -translate-x-1/2 rounded bg-[#3E4095] transition-[width] duration-300 group-hover:w-8`}
-                        />
-
-                        <span
-                          aria-hidden="true"
-                          className={`absolute left-1/2 top-[calc(100%+6px)] h-[6px] w-[6px] -translate-x-1/2 translate-y-[6px] rounded-full bg-[#3E4095] opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100`}
-                        />
-                      </a>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        onMouseEnter={() => setActive(item.name)}
-                        onMouseLeave={() => setActive(null)}
-                        onClick={onLinkClick}
-                        className="relative inline-block text-sm font-medium text-gray-700 dark:text-slate-300 group"
-                      >
-                        <span
-                          className="relative z-[1] inline-block px-1 transition-colors duration-200 group-hover:text-[#3E4095]"
-                          style={{ textShadow: isActive ? "0 0 20px rgba(62,64,149,0.12)" : "none" }}
-                        >
-                          {item.name}
-                        </span>
-
-                        {/* magnetic hover bg pill */}
-                        <span
-                          aria-hidden="true"
-                          className="absolute transition duration-300 rounded-lg opacity-0 -inset-x-2 -inset-y-2 group-hover:opacity-100"
-                          style={{
-                            background: "radial-gradient(120px 40px at center, rgba(62,64,149,0.10), transparent 60%)",
-                          }}
-                        />
-
-                        <span
-                          aria-hidden="true"
-                          className={`absolute left-1/2 top-[calc(100%+6px)] h-[2px] w-0 -translate-x-1/2 rounded bg-[#3E4095] transition-[width] duration-300 group-hover:w-8`}
-                        />
-
-                        <span
-                          aria-hidden="true"
-                          className={`absolute left-1/2 top-[calc(100%+6px)] h-[6px] w-[6px] -translate-x-1/2 translate-y-[6px] rounded-full bg-[#3E4095] opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100`}
-                        />
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
+          <nav className="hidden flex-1 justify-center md:flex" aria-label="Primary">
+            <ul className="flex items-center gap-6">
+              {NAV_ITEMS.map((item) => (
+                <li key={item.name}>
+                  <Link href={item.href} onClick={onLinkClick} className={navItemClass(item.href)}>
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </nav>
 
-          {/* RIGHT: actions */}
-          <div className="flex items-center justify-end flex-1 gap-3">
+          <div className="flex flex-1 items-center justify-end gap-3">
             <ThemeToggle />
-         
-            <Link
-              href="/signin"
-              className="relative items-center hidden px-4 py-2 overflow-hidden text-sm font-medium text-white rounded-md shadow-sm sm:inline-flex"
-              onClick={onLinkClick}
-            >
-              <span
-                className="absolute inset-0"
-                style={{
-                  background: `linear-gradient(135deg, ${THEME} 0%, #5a57d9 100%)`,
-                }}
-              />
-              <span
-                className="absolute inset-0 transition-opacity duration-300 opacity-0 hover:opacity-20"
-                style={{ background: "radial-gradient(120px 50px at center, #fff, transparent 60%)" }}
-              />
-              <span className="relative z-[1]">Join waitlist</span>
-            </Link>
-                             
-
-            {/* Mobile toggle */}
+            <div className="hidden items-center gap-2 sm:flex">
+              <Link
+                href="/signup"
+                onClick={onLinkClick}
+                className={cn(
+                  "inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium",
+                  isDark
+                    ? "border border-white/12 text-white/70"
+                    : "border border-[#C5CEFF]/60 text-[#1F2758]/70"
+                )}
+              >
+                Sign up
+              </Link>
+              <Link
+                href="/signin"
+                onClick={onLinkClick}
+                className={cn(
+                  "inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold",
+                  isDark ? "bg-[#6D5BFF] text-white" : "bg-[#5D6BFF] text-white"
+                )}
+              >
+                Log in
+              </Link>
+            </div>
             <button
               onClick={() => setOpen((s) => !s)}
               aria-expanded={open ? "true" : "false"}
               aria-label={open ? "Close menu" : "Open menu"}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-300 transition hover:bg-gray-100 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3E4095]/40 md:hidden"
+              className={cn(
+                "inline-flex h-10 w-10 items-center justify-center rounded-md transition md:hidden",
+                isDark
+                  ? "text-white/65 hover:bg-white/10"
+                  : "text-[#1F2758]/70 hover:bg-[#E8ECFF]"
+              )}
             >
               <svg
-                className={`h-6 w-6 transform transition-transform duration-300 ${open ? "rotate-90" : "rotate-0"}`}
+                className={cn("h-6 w-6 transform transition-transform duration-300", open ? "rotate-90" : "rotate-0")}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -197,77 +154,57 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* MOBILE MENU */}
       <div
-        className={`md:hidden overflow-hidden transition-[max-height] duration-500 ${open ? "max-h-[520px]" : "max-h-0"}`}
-        aria-hidden={!open ? "true" : "false"}
+        className={cn(
+          "overflow-hidden transition-[max-height] duration-400 md:hidden",
+          open ? "max-h-[460px]" : "max-h-0"
+        )}
+        aria-hidden={!open}
       >
-        <div className="relative">
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-slate-950/80 dark:to-slate-950" />
-          <div className="relative px-4 pt-2 pb-6">
-            <ul className="flex flex-col gap-1">
-              {NAV_ITEMS.map((item, idx) => (
-                <li
-                  key={item.name}
-                  style={{ transitionDelay: `${open ? idx * 40 : 0}ms` }}
-                  className={`transform transition-all duration-300 ${open ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}
-                >
-                  {item.href.startsWith('#') ? (
-                    <a
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className="group block rounded-lg px-3 py-3 text-base font-medium text-slate-200 transition hover:bg-gray-50 dark:hover:bg-slate-800 active:scale-[0.99]"
-                    >
-                      <span className="relative">
-                        {item.name}
-                        <span aria-hidden="true" className="absolute -bottom-1 left-0 h-[2px] w-0 rounded bg-[#3E4095] transition-[width] duration-300 group-hover:w-10" />
-                      </span>
-                    </a>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className="group block rounded-lg px-3 py-3 text-base font-medium text-center text-slate-200 transition hover:bg-gray-50 dark:hover:bg-slate-800 active:scale-[0.99]"
-                    >
-                      <span className="relative">
-                        {item.name}
-                        <span aria-hidden="true" className="absolute -bottom-1 left-0 h-[2px] w-0 rounded bg-[#3E4095] transition-[width] duration-300 group-hover:w-10" />
-                      </span>
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-
-            <div className="w-full h-px my-3 bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
-
-            <div
-              style={{
-                background: "linear-gradient(135deg, rgba(62,64,149,0.07), rgba(90,87,217,0.07))",
-              }}
-              className="relative p-4 overflow-hidden border border-gray-100 rounded-xl"
-            >
-              <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-[#3E4095]/10 blur-2xl" />
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">Continue where you left off</p>
-                  <p className="text-xs text-gray-600">Sign in to access your credentials</p>
-                </div>
+        <div className="px-4 pb-6 pt-2">
+          <ul className="flex flex-col gap-1">
+            {NAV_ITEMS.map((item, idx) => (
+              <li
+                key={item.name}
+                className="border-b border-white/5 last:border-none dark:border-white/10"
+              >
                 <Link
-                  href="/login"
+                  href={item.href}
                   onClick={() => setOpen(false)}
-                  className="relative inline-flex items-center px-4 py-2 overflow-hidden text-sm font-medium text-white rounded-full shadow"
+                  className={cn(
+                    "block px-2 py-3 text-sm font-medium",
+                    isDark
+                      ? "text-white/80"
+                      : "text-[#1F2758]/80"
+                  )}
                 >
-                  <span
-                    className="absolute inset-0"
-                    style={{
-                      background: `linear-gradient(135deg, ${THEME} 0%, #5a57d9 100%)`,
-                    }}
-                  />
-                  <span className="relative z-[1]">Log In</span>
+                  {item.name}
                 </Link>
-              </div>
-            </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <Link
+              href="/signup"
+              onClick={() => setOpen(false)}
+              className={cn(
+                "rounded-lg px-4 py-3 text-center text-sm font-medium",
+                isDark ? "border border-white/12 text-white/70" : "border border-[#C5CEFF]/60 text-[#1F2758]/70"
+              )}
+            >
+              Sign up
+            </Link>
+            <Link
+              href="/signin"
+              onClick={() => setOpen(false)}
+              className={cn(
+                "rounded-lg px-4 py-3 text-center text-sm font-semibold",
+                isDark ? "bg-[#6D5BFF] text-white" : "bg-[#5D6BFF] text-white"
+              )}
+            >
+              Log in
+            </Link>
           </div>
         </div>
       </div>

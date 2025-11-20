@@ -24,7 +24,37 @@ export type BotCapability =
   | "coding.generate"
   | "coding.review"
   | "study.tutor"
-  | "study.quiz";
+  | "study.quiz"
+  | "integrations.firebase.read"
+  | "integrations.firebase.write"
+  | "integrations.whatsapp.send"
+  | "social.publish";
+
+export type TenantFirebaseAdapter = {
+  getCollection?: (collectionPath: string, options?: Record<string, unknown>) => Promise<unknown>;
+  getDocument?: (documentPath: string, options?: Record<string, unknown>) => Promise<unknown>;
+  setDocument?: (documentPath: string, data: unknown, options?: Record<string, unknown>) => Promise<void>;
+  runQuery?: (query: Record<string, unknown>) => Promise<unknown>;
+};
+
+export type TenantWhatsAppAdapter = {
+  sendMessage?: (payload: {
+    to: string;
+    body: string;
+    mediaUrl?: string;
+    template?: string;
+    variables?: Record<string, string>;
+  }) => Promise<Record<string, unknown>>;
+};
+
+export type TenantContext = {
+  id?: string;
+  name?: string;
+  timezone?: string | null;
+  firebase?: TenantFirebaseAdapter;
+  whatsapp?: TenantWhatsAppAdapter;
+  integrations?: Record<string, unknown>;
+};
 
 export type SharedMemory = {
   get: (key: string) => Promise<unknown>;
@@ -44,6 +74,7 @@ export type ToolContext = {
     memoryStrategy?: string;
   };
   sharedMemory: SharedMemory;
+  tenant?: TenantContext;
 };
 
 export type ToolResult = {
