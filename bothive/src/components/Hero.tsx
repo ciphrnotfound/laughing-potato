@@ -286,7 +286,7 @@ const Hero = () => {
         <section
             role="banner"
             aria-label="Hero"
-            className="relative w-full min-h-[640px] sm:min-h-screen overflow-hidden dark:bg-black bg-white pb-10 pt-16 sm:pb-16 sm:pt-24"
+            className="relative w-full  sm:min-h-screen overflow-hidden dark:bg-black bg-white pb-6 pt-16 sm:pb-16 sm:pt-24"
         >
             {/* Ambient spotlights: layered, soft, and dynamic */}
             <div aria-hidden="true">
@@ -317,13 +317,13 @@ const Hero = () => {
             {/*                    "conic-gradient(from 180deg at 50% 50%, rgba(124,58,237,0.16), rgba(106,0,255,0.12), rgba(99,102,241,0.14), rgba(124,58,237,0.16))",*/}
             {/*            }}*/}
             {/*        />*/}
-            {/*    </div>*/}
+            {/*    </div>*/} min-h-[560px]
             {/*</div>*/}
             <AmbientBackdrop/>
 
             {/* Foreground content - single column, tight spacing */}
             <div className="relative z-10">
-                <div className="mx-auto flex min-h-[520px] sm:min-h-[calc(100vh-7rem)] w-full max-w-[92rem] mt-6 sm:mt-10 md:items-center px-6 sm:px-10">
+                <div className="mx-auto flex md:items-center justify-center min-h-[480px]  w-full max-w-[92rem] mt-4 sm:mt-10 md:items-center px-6 sm:px-10">
                     <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
                         {/* Compact badge */}
                         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 dark:bg-black/40 bg-white/40  px-3 py-1 backdrop-blur-md">
@@ -385,7 +385,7 @@ const Hero = () => {
                         {/*<div>*/}
                         {/*    <Image src="/App.png" alt="Hero Image" className="" width={2100} height={1080} />*/}
                         {/*</div>*/}
-                        <div className={`md:mt-10 text-[15px] text-white/60`}>
+                        <div className={`mt-10 text-[15px] text-white/60`}>
                             <p>Trusted By the world's most innovative teams</p>
                         </div>
                        

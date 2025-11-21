@@ -62,8 +62,10 @@ const MODEL_OPTIONS = [
   { label: "Anthropic Claude 3.5", value: "claude-3.5" },
 ];
 
+type BotTemplateId = "custom" | "general" | "coding" | "study" | "reminder" | "publisher";
+
 type BotTemplate = {
-  id: "general" | "coding" | "study" | "reminder" | "publisher";
+  id: BotTemplateId;
   label: string;
   blurb: string;
   capabilities: BotCapability[];
@@ -75,7 +77,11 @@ type BotTemplate = {
 const DEFAULT_SYSTEM_PROMPT =
   "You are a Bothive autonomous agent. Collaborate with specialist bots via shared memory and tool calls. Always explain your reasoning briefly before acting.";
 
-const TEMPLATE_SYSTEM_PROMPTS: Record<BotTemplate["id"], string> = {
+const DEFAULT_TEMPLATE_ID: BotTemplateId = "custom";
+
+const TEMPLATE_SYSTEM_PROMPTS: Partial<Record<BotTemplate["id"], string>> = {
+  custom:
+    "You are a Bothive architect. Ask clarifying questions, define your own tool manifest, and explain the automation strategy before executing actions.",
   general:
     "You are the Bothive Concierge, a proactive generalist who understands the swarm's goals. Summarize, plan, and delegate. When collaborating, note which specialist should handle follow-up tasks and record decisions in shared memory.",
   coding:
@@ -84,17 +90,34 @@ const TEMPLATE_SYSTEM_PROMPTS: Record<BotTemplate["id"], string> = {
     "You are the Bothive Mentor, an adaptive tutor. Break concepts into digestible modules, generate spaced-repetition prompts, and track student progress via shared memory keys.",
   reminder:
     "You are the RemindMe Orchestrator. Gather tenant context, confirm reminder slots with users, and schedule WhatsApp sends backed by the tenant's data store. Always log state updates to Firebase before dispatching a message.",
+  communication:
+    "You are a Communication Assistant, an expert at managing emails, messages, and notifications across multiple platforms. Monitor inboxes, draft professional responses, handle follow-ups, and maintain communication workflows. Always be context-aware and maintain appropriate tone for each platform.",
   publisher:
     "You are the Hive Broadcaster, a social campaign specialist. Craft concise posts, confirm platform tone, and publish updates using the connected Twitter/X account. If credentials or context are missing, ask the user to connect or supply details before posting.",
 };
 
 const TEMPLATE_TOOL_MANIFEST: Record<BotTemplate["id"], ToolManifestEntry[]> = {
+  custom: [
+    { capability: "general.respond", tool: "general.respond", enabled: true, description: "Conversational Grok-powered helper" },
+  ],
   general: [
     { capability: "general.respond", tool: "general.respond", enabled: true, description: "Conversational Grok-powered helper" },
   ],
   coding: [
-    { capability: "coding.generate", tool: "coding.generateSnippet", enabled: true, description: "Generate typed code snippets" },
-    { capability: "coding.review", tool: "coding.reviewSnippet", enabled: true, description: "Review code and flag issues" },
+    { capability: "coding.generate", tool: "coding.generate", enabled: true, description: "Generate complete code solutions" },
+    { capability: "coding.review", tool: "coding.review", enabled: true, description: "Review code for bugs and best practices" },
+    { capability: "coding.debug", tool: "coding.debug", enabled: true, description: "Debug code issues and provide fixes" },
+    { capability: "coding.refactor", tool: "coding.refactor", enabled: true, description: "Refactor code for better structure" },
+  ],
+  communication: [
+    { capability: "email.send", tool: "email.send", enabled: true, description: "Send emails to recipients" },
+    { capability: "email.reply", tool: "email.reply", enabled: true, description: "Reply to existing emails" },
+    { capability: "email.check", tool: "email.check", enabled: true, description: "Check for new emails" },
+    { capability: "sms.send", tool: "sms.send", enabled: true, description: "Send SMS messages" },
+    { capability: "slack.send", tool: "slack.send", enabled: true, description: "Send Slack messages" },
+    { capability: "slack.check", tool: "slack.check", enabled: true, description: "Check Slack messages" },
+    { capability: "discord.send", tool: "discord.send", enabled: true, description: "Send Discord messages" },
+    { capability: "message.process", tool: "message.process", enabled: true, description: "Process incoming messages" },
   ],
   study: [
     { capability: "study.tutor", tool: "study.explain", enabled: true, description: "Explain topics with structure" },
@@ -135,6 +158,18 @@ const TEMPLATE_TOOL_MANIFEST: Record<BotTemplate["id"], ToolManifestEntry[]> = {
     },
     {
       capability: "general.respond",
+      tool: "social.trends",
+      enabled: true,
+      description: "Scan industry trends and surface JSON topic ideas",
+    },
+    {
+      capability: "general.respond",
+      tool: "social.draftFromTrend",
+      enabled: true,
+      description: "Turn a selected trend into multiple copy variants",
+    },
+    {
+      capability: "general.respond",
       tool: "general.respond",
       enabled: true,
       description: "Hold planning conversations before posting",
@@ -143,6 +178,14 @@ const TEMPLATE_TOOL_MANIFEST: Record<BotTemplate["id"], ToolManifestEntry[]> = {
 };
 
 const TEMPLATE_SOURCES: Record<BotTemplate["id"], string> = {
+  custom: `bot CustomAgent
+  description "Define your own agent persona and tools"
+
+  on input
+    say ""
+  end
+end
+`,
   general: `bot NebulaConcierge
   description "Greets users and offers guidance inside the Hive"
 
@@ -208,37 +251,59 @@ end
   end
 
   on input
-    if input.text?
-      remember input.text as tweet
-    else
-      say "Drafting fresh copy for X…"
-      call general.respond with {
-        prompt: "Write a concise Twitter/X update announcing Bothive progress. Include one emoji and a short CTA. Keep it under 240 characters."
-      } as draft
-      remember draft.output as tweet
-    end
+    set $industry to input.industry ?? "tech lifestyle"
+    set $audience to input.audience ?? "builders and indie hackers"
+    set $region to input.region ?? "global"
+    set $tone to input.tone ?? "futuristic, confident, and friendly"
 
-    if tweet.blank?
-      say "I need a topic or draft before I can post."
-      stop
-    end
+    call social.trends with {
+      industry: $industry,
+      audience: $audience,
+      region: $region
+    } as trendScan
 
-    set $publishAt to input.publishAt ?? format("%sT09:00:00Z", today())
-    call social.schedule with {
+    call general.respond with {
+      prompt: "From this JSON array of trends, reply with ONLY the strongest topic string that fits a premium tech lifestyle niche: " + trendScan.output
+    } as chosenTrend
+
+    call social.draftFromTrend with {
+      trend: input.trend ?? chosenTrend.output,
       platform: "twitter",
-      content: tweet,
-      scheduledFor: $publishAt,
-      source: "trend_bot"
-    } as record
+      tone: $tone,
+      maxLength: 240
+    } as draftBatch
+
+    call general.respond with {
+      prompt: "Pick the best draft from this JSON and rewrite it with one CTA, one emoji max, and a confident tone. Respond with final copy only. JSON: " + draftBatch.output
+    } as finalCopy
+
+    set $publishMode to input.publishMode ?? "post"
+    set $publishAt to input.publishAt ?? format("%sT09:00:00Z", today())
+
+    if $publishMode == "schedule"
+      call social.schedule with {
+        platform: input.platform ?? "twitter",
+        content: finalCopy.output,
+        scheduledFor: $publishAt,
+        source: "trend_bot"
+      } as publishRecord
+    else
+      call social.publish with {
+        platform: input.platform ?? "twitter",
+        content: finalCopy.output
+      } as publishRecord
+    end
 
     call shared.scheduled.append with {
       createdAt: now(),
-      tweet,
+      trendTopic: chosenTrend.output,
+      draft: finalCopy.output,
+      mode: $publishMode,
       scheduledFor: $publishAt,
-      postId: record.data.id
+      confirmation: publishRecord.output
     }
 
-    say "Queued an X update for {$publishAt}."
+    say "Launched a tech lifestyle update about {" + chosenTrend.output + "}!"
   end
 end
 `,
@@ -343,6 +408,18 @@ const AVAILABLE_TOOL_CATALOG: Array<{
     label: "Schedule Twitter/X post",
     description: "Create a scheduled or draft post in the social queue using social.schedule.",
   },
+  {
+    tool: "social.trends",
+    capability: "general.respond",
+    label: "Fetch social trends",
+    description: "Return JSON summaries of live topics for a specific industry, audience, and region.",
+  },
+  {
+    tool: "social.draftFromTrend",
+    capability: "general.respond",
+    label: "Draft from trend",
+    description: "Generate multiple post drafts directly from a supplied trend hook and tone.",
+  },
 ];
 
 function isNoRowError(error: unknown): boolean {
@@ -353,6 +430,7 @@ function isNoRowError(error: unknown): boolean {
 }
 
 const TEMPLATE_MEMORY_STRATEGY: Record<BotTemplate["id"], string> = {
+  custom: "ephemeral",
   general: "ephemeral",
   coding: "ephemeral",
   study: "ephemeral",
@@ -422,6 +500,15 @@ const TENANT_SETUP_STEPS: Array<{
 
 const BOT_TEMPLATES: BotTemplate[] = [
   {
+    id: "custom",
+    label: "Create from scratch",
+    blurb: "Start from a blank slate and configure every capability yourself.",
+    capabilities: [],
+    systemPrompt: TEMPLATE_SYSTEM_PROMPTS.custom ?? DEFAULT_SYSTEM_PROMPT,
+    toolManifest: TEMPLATE_TOOL_MANIFEST.custom,
+    memoryStrategy: TEMPLATE_MEMORY_STRATEGY.custom,
+  },
+  {
     id: "reminder",
     label: "RemindMe orchestrator",
     blurb: "Tenant-scoped reminder flow using Firebase data and WhatsApp delivery.",
@@ -441,12 +528,21 @@ const BOT_TEMPLATES: BotTemplate[] = [
   },
   {
     id: "coding",
-    label: "Coding buddy",
-    blurb: "Generates and reviews snippets with developer-focused prompts.",
-    capabilities: ["coding.generate", "coding.review"],
+    label: "Coding assistant",
+    blurb: "Generate, review, debug, and refactor code with AI-powered development tools.",
+    capabilities: ["coding.generate", "coding.review", "coding.debug", "coding.refactor"],
     systemPrompt: TEMPLATE_SYSTEM_PROMPTS.coding,
     toolManifest: TEMPLATE_TOOL_MANIFEST.coding,
     memoryStrategy: TEMPLATE_MEMORY_STRATEGY.coding,
+  },
+  {
+    id: "communication",
+    label: "Communication assistant",
+    blurb: "Handle emails, messages, and notifications across multiple platforms automatically.",
+    capabilities: ["email.send", "email.reply", "email.check", "sms.send", "slack.send", "slack.check", "discord.send", "message.process"],
+    systemPrompt: TEMPLATE_SYSTEM_PROMPTS.communication,
+    toolManifest: TEMPLATE_TOOL_MANIFEST.communication,
+    memoryStrategy: TEMPLATE_MEMORY_STRATEGY.communication,
   },
   {
     id: "study",
@@ -477,6 +573,44 @@ type TestScenario = {
 };
 
 const TEST_SCENARIOS: Record<BotTemplate["id"], TestScenario[]> = {
+  custom: [
+    {
+      id: "custom-whatsapp-greeting",
+      title: "WhatsApp Greeting Message",
+      description: "Test WhatsApp bot with a customer greeting",
+      capability: "general.respond",
+      payload: {
+        prompt: "Hello! I'm interested in your services",
+      },
+    },
+    {
+      id: "custom-whatsapp-question",
+      title: "WhatsApp Price Question",
+      description: "Test WhatsApp bot with pricing inquiry",
+      capability: "general.respond",
+      payload: {
+        prompt: "What are your prices?",
+      },
+    },
+    {
+      id: "custom-whatsapp-urgent",
+      title: "WhatsApp Urgent Issue",
+      description: "Test WhatsApp bot with urgent complaint",
+      capability: "general.respond",
+      payload: {
+        prompt: "URGENT! My order didn't arrive",
+      },
+    },
+    {
+      id: "custom-whatsapp-appointment",
+      title: "WhatsApp Appointment Request",
+      description: "Test WhatsApp bot with appointment scheduling",
+      capability: "general.respond",
+      payload: {
+        prompt: "I need to schedule an appointment",
+      },
+    },
+  ],
   general: [
     {
       id: "general-plan-day",

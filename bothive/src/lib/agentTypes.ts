@@ -28,7 +28,8 @@ export type BotCapability =
   | "integrations.firebase.read"
   | "integrations.firebase.write"
   | "integrations.whatsapp.send"
-  | "social.publish";
+  | "social.publish"
+  | (string & {});
 
 export type TenantFirebaseAdapter = {
   getCollection?: (collectionPath: string, options?: Record<string, unknown>) => Promise<unknown>;

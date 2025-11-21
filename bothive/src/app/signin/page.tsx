@@ -54,7 +54,7 @@ export default function SignIn() {
       });
 
       setTimeout(() => {
-        router.push("/dashboard/home");
+        router.push("/hivestore");
       }, 900);
     } catch (error) {
       setShowAlert({
@@ -74,7 +74,7 @@ export default function SignIn() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/hivestore`,
         },
       });
 

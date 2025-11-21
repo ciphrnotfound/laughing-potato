@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "publish-scheduled": "node scripts/run-scheduled-posts.js",
+    "auto-cron": "node scripts/auto-cron.js",
+    "smart-cron": "node scripts/smart-cron.js",
+    "whatsapp-reminder": "node scripts/whatsapp-reminder-cron.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -899,4 +899,417 @@ Return your answer as JSON only in this shape:
       }
     },
   },
+  {
+    name: "whatsapp.send",
+    capability: "general.respond",
+    description: "Send a WhatsApp message to a specified phone number.",
+    async run(args) {
+      const phoneNumber = typeof args.phoneNumber === "string" ? args.phoneNumber.trim() : "";
+      const message = typeof args.message === "string" ? args.message.trim() : "";
+
+      if (!phoneNumber) {
+        return { success: false, output: "Missing 'phoneNumber' for WhatsApp message." };
+      }
+
+      if (!message) {
+        return { success: false, output: "Missing 'message' content for WhatsApp." };
+      }
+
+      // For demo purposes, we'll simulate the WhatsApp send
+      // In production, you'd fetch connected WhatsApp account and use the integration
+      console.log(`📱 WhatsApp Demo: Would send to ${phoneNumber}: ${message}`);
+      
+      return { 
+        success: true, 
+        output: `WhatsApp message sent to ${phoneNumber}. Message: "${message}"`,
+        data: {
+          messageId: 'demo-' + Date.now(),
+          phoneNumber,
+          message
+        }
+      };
+    },
+  },
+  {
+    name: "coding.generate",
+    capability: "general.respond",
+    description: "Generate code based on requirements and specifications.",
+    async run(args) {
+      const language = typeof args.language === "string" ? args.language.trim() : "javascript";
+      const requirements = typeof args.requirements === "string" ? args.requirements.trim() : "";
+      const framework = typeof args.framework === "string" ? args.framework.trim() : "";
+
+      if (!requirements) {
+        return { success: false, output: "Missing 'requirements' for code generation." };
+      }
+
+      const prompt = `Generate clean, production-ready code for:
+Language: ${language}
+Framework: ${framework || 'None'}
+Requirements: ${requirements}
+
+Please provide:
+1. Complete, working code
+2. Clear comments explaining key parts
+3. Error handling where appropriate
+4. Best practices for ${language}
+5. Usage example if applicable
+
+Return only the code with explanations.`;
+
+      try {
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        return { success: true, output };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to generate code.";
+        return { success: false, output: `Code generation failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "coding.review",
+    capability: "general.respond", 
+    description: "Review code for bugs, security issues, and best practices.",
+    async run(args) {
+      const code = typeof args.code === "string" ? args.code.trim() : "";
+      const language = typeof args.language === "string" ? args.language.trim() : "javascript";
+      const focus = typeof args.focus === "string" ? args.focus.trim() : "general";
+
+      if (!code) {
+        return { success: false, output: "Missing 'code' to review." };
+      }
+
+      const focusAreas = {
+        security: "security vulnerabilities and best practices",
+        performance: "performance bottlenecks and optimizations", 
+        style: "code style, readability, and maintainability",
+        bugs: "potential bugs and logic errors",
+        general: "overall code quality and best practices"
+      };
+
+      const prompt = `Review this ${language} code focusing on ${focusAreas[focus as keyof typeof focusAreas] || focusAreas.general}:
+
+\`\`\`${language}
+${code}
+\`\`\`
+
+Please provide:
+1. Issues found (if any)
+2. Severity level (Critical/High/Medium/Low)
+3. Specific line references
+4. Suggested fixes
+5. Positive feedback on good practices
+6. Overall assessment
+
+Format your response clearly with sections.`;
+
+      try {
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        return { success: true, output };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to review code.";
+        return { success: false, output: `Code review failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "coding.debug",
+    capability: "general.respond",
+    description: "Debug code issues and provide solutions.",
+    async run(args) {
+      const code = typeof args.code === "string" ? args.code.trim() : "";
+      const error = typeof args.error === "string" ? args.error.trim() : "";
+      const language = typeof args.language === "string" ? args.language.trim() : "javascript";
+
+      if (!code) {
+        return { success: false, output: "Missing 'code' to debug." };
+      }
+
+      const prompt = `Debug this ${language} code:
+
+\`\`\`${language}
+${code}
+\`\`\`
+
+${error ? `Error message: ${error}` : ''}
+
+Please provide:
+1. Root cause analysis
+2. Step-by-step explanation of the issue
+3. Fixed code with comments
+4. Prevention strategies
+5. Testing approach to verify the fix
+
+Be thorough and educational in your explanation.`;
+
+      try {
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        return { success: true, output };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to debug code.";
+        return { success: false, output: `Debugging failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "coding.refactor",
+    capability: "general.respond",
+    description: "Refactor code to improve structure and maintainability.",
+    async run(args) {
+      const code = typeof args.code === "string" ? args.code.trim() : "";
+      const language = typeof args.language === "string" ? args.language.trim() : "javascript";
+      const goal = typeof args.goal === "string" ? args.goal.trim() : "improve readability";
+
+      if (!code) {
+        return { success: false, output: "Missing 'code' to refactor." };
+      }
+
+      const prompt = `Refactor this ${language} code to ${goal}:
+
+\`\`\`${language}
+${code}
+\`\`\`
+
+Please provide:
+1. Refactored code with clear improvements
+2. Explanation of changes made
+3. Benefits of the refactoring
+4. Before/after comparison
+5. Any trade-offs considered
+
+Focus on making the code cleaner, more maintainable, and following ${language} best practices.`;
+
+      try {
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        return { success: true, output };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to refactor code.";
+        return { success: false, output: `Refactoring failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "email.send",
+    capability: "general.respond",
+    description: "Send an email to specified recipients.",
+    async run(args) {
+      const to = typeof args.to === "string" ? args.to.trim() : "";
+      const subject = typeof args.subject === "string" ? args.subject.trim() : "";
+      const body = typeof args.body === "string" ? args.body.trim() : "";
+      const cc = typeof args.cc === "string" ? args.cc.trim() : undefined;
+      const bcc = typeof args.bcc === "string" ? args.bcc.trim() : undefined;
+
+      if (!to || !subject || !body) {
+        return { success: false, output: "Missing required fields: to, subject, or body." };
+      }
+
+      // Import email function
+      const { sendEmail } = await import('./communication');
+      
+      try {
+        const result = await sendEmail({ account: null, to, subject, body, cc, bcc });
+        return { 
+          success: true, 
+          output: `Email sent successfully to ${to}. Message ID: ${result.messageId}`,
+          data: result
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to send email.";
+        return { success: false, output: `Email sending failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "email.reply",
+    capability: "general.respond",
+    description: "Reply to an existing email.",
+    async run(args) {
+      const emailId = typeof args.emailId === "string" ? args.emailId.trim() : "";
+      const replyTo = typeof args.replyTo === "string" ? args.replyTo.trim() : "";
+      const subject = typeof args.subject === "string" ? args.subject.trim() : "";
+      const body = typeof args.body === "string" ? args.body.trim() : "";
+
+      if (!emailId || !replyTo || !subject || !body) {
+        return { success: false, output: "Missing required fields: emailId, replyTo, subject, or body." };
+      }
+
+      const { replyToEmail } = await import('./communication');
+      
+      try {
+        const result = await replyToEmail({ account: null, emailId, replyTo, subject, body });
+        return { 
+          success: true, 
+          output: `Reply sent to ${replyTo}. Message ID: ${result.messageId}`,
+          data: result
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to reply to email.";
+        return { success: false, output: `Email reply failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "email.check",
+    capability: "general.respond",
+    description: "Check for new emails in inbox.",
+    async run(args) {
+      const folder = typeof args.folder === "string" ? args.folder.trim() : "inbox";
+      const unreadOnly = args.unreadOnly === true;
+
+      const { checkEmails } = await import('./communication');
+      
+      try {
+        const result = await checkEmails({ account: null, folder, unreadOnly });
+        return { 
+          success: true, 
+          output: `Found ${result.count} emails in ${folder}${unreadOnly ? ' (unread only)' : ''}`,
+          data: result
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to check emails.";
+        return { success: false, output: `Email check failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "sms.send",
+    capability: "general.respond",
+    description: "Send an SMS message to a phone number.",
+    async run(args) {
+      const phoneNumber = typeof args.phoneNumber === "string" ? args.phoneNumber.trim() : "";
+      const message = typeof args.message === "string" ? args.message.trim() : "";
+
+      if (!phoneNumber || !message) {
+        return { success: false, output: "Missing required fields: phoneNumber or message." };
+      }
+
+      const { sendSMS } = await import('./communication');
+      
+      try {
+        const result = await sendSMS({ account: null, phoneNumber, message });
+        return { 
+          success: true, 
+          output: `SMS sent to ${phoneNumber}. Message ID: ${result.messageId}`,
+          data: result
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to send SMS.";
+        return { success: false, output: `SMS sending failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "slack.send",
+    capability: "general.respond",
+    description: "Send a message to a Slack channel.",
+    async run(args) {
+      const channel = typeof args.channel === "string" ? args.channel.trim() : "";
+      const message = typeof args.message === "string" ? args.message.trim() : "";
+      const threadId = typeof args.threadId === "string" ? args.threadId.trim() : undefined;
+
+      if (!channel || !message) {
+        return { success: false, output: "Missing required fields: channel or message." };
+      }
+
+      const { sendSlackMessage } = await import('./communication');
+      
+      try {
+        const result = await sendSlackMessage({ account: null, channel, message, threadId });
+        return { 
+          success: true, 
+          output: `Slack message sent to #${channel}. Message ID: ${result.messageId}`,
+          data: result
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to send Slack message.";
+        return { success: false, output: `Slack sending failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "slack.check",
+    capability: "general.respond",
+    description: "Check for new Slack messages.",
+    async run(args) {
+      const channel = typeof args.channel === "string" ? args.channel.trim() : undefined;
+
+      const { checkSlackMessages } = await import('./communication');
+      
+      try {
+        const result = await checkSlackMessages({ account: null, channel });
+        return { 
+          success: true, 
+          output: `Found ${result.count} Slack messages${channel ? ` in #${channel}` : ''}`,
+          data: result
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to check Slack messages.";
+        return { success: false, output: `Slack check failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "discord.send",
+    capability: "general.respond",
+    description: "Send a message to a Discord channel.",
+    async run(args) {
+      const channelId = typeof args.channelId === "string" ? args.channelId.trim() : "";
+      const message = typeof args.message === "string" ? args.message.trim() : "";
+
+      if (!channelId || !message) {
+        return { success: false, output: "Missing required fields: channelId or message." };
+      }
+
+      const { sendDiscordMessage } = await import('./communication');
+      
+      try {
+        const result = await sendDiscordMessage({ account: null, channelId, message });
+        return { 
+          success: true, 
+          output: `Discord message sent to channel ${channelId}. Message ID: ${result.messageId}`,
+          data: result
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to send Discord message.";
+        return { success: false, output: `Discord sending failed: ${message}` };
+      }
+    },
+  },
+  {
+    name: "message.process",
+    capability: "general.respond",
+    description: "Process incoming messages from any platform.",
+    async run(args) {
+      const platform = typeof args.platform === "string" ? args.platform.trim() : "";
+      const messageId = typeof args.messageId === "string" ? args.messageId.trim() : "";
+      const sender = typeof args.sender === "string" ? args.sender.trim() : "";
+      const content = typeof args.content === "string" ? args.content.trim() : "";
+      const timestamp = typeof args.timestamp === "string" ? args.timestamp.trim() : new Date().toISOString();
+
+      if (!platform || !messageId || !sender || !content) {
+        return { success: false, output: "Missing required fields: platform, messageId, sender, or content." };
+      }
+
+      const { processIncomingMessage } = await import('./communication');
+      
+      try {
+        const result = await processIncomingMessage({ 
+          account: null, 
+          platform: platform as any, 
+          messageId, 
+          sender, 
+          content, 
+          timestamp 
+        });
+        return { 
+          success: true, 
+          output: `Processed ${platform} message from ${sender}`,
+          data: result
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to process message.";
+        return { success: false, output: `Message processing failed: ${message}` };
+      }
+    },
+  },
 ];

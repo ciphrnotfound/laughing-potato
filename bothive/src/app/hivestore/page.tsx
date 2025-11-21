@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -18,6 +20,7 @@ import {
   Sparkles,
   Star,
   TrendingUp,
+  Eye,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cn, slugify } from "@/lib/utils";
@@ -157,6 +160,34 @@ const CREATOR_SPOTLIGHTS = [
 ] as const;
 
 const FALLBACK_ICON = "/logo.svg";
+
+const STAGGER_CONTAINER: Variants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+const CARD_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: 22 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+const SECTION_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+  },
+};
 
 function parseStringList(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -494,6 +525,21 @@ export default function HiveStorePage() {
     ];
   }, [bots, curatedBuckets]);
 
+  const liveIndicators = useMemo(() => {
+    if (!bots.length) {
+      return {
+        watchers: "—",
+        trending: "curation warming",
+      };
+    }
+    const watchersBaseline = Math.max(bots.length * 42, 220);
+    const trendingLane = curatedBuckets.trending[0]?.category ?? "automation";
+    return {
+      watchers: `${formatInstallCount(watchersBaseline)} observers`,
+      trending: trendingLane,
+    };
+  }, [bots, curatedBuckets]);
+
   const handleInstall = useCallback(
     (bot: HiveStoreRecord, source: "hero" | "card") => {
       if (!isAuthenticated) {
@@ -524,13 +570,13 @@ export default function HiveStorePage() {
   );
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#080321] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#05060F] via-[#0B1021] to-[#05040F] text-white">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(233,213,255,0.22),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(191,219,254,0.18),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(-120deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[length:68px_68px] opacity-25" />
-        <div className="absolute -top-32 left-1/2 h-[22rem] w-[32rem] -translate-x-1/2 rounded-[45%] bg-[radial-gradient(circle_at_center,rgba(167,139,250,0.45),transparent_70%)] blur-3xl" />
-        <div className="absolute bottom-[-16rem] left-[-12rem] h-[24rem] w-[28rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(110,231,183,0.26),transparent_68%)] blur-3xl" />
-        <div className="absolute top-1/4 right-[-14rem] h-[22rem] w-[26rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.26),transparent_70%)] blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(114,92,255,0.22),transparent_60%),radial-gradient(circle_at_bottom,rgba(76,55,189,0.18),transparent_62%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(-120deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[length:64px_64px] opacity-25" />
+        <div className="absolute -top-32 left-1/2 h-[24rem] w-[34rem] -translate-x-1/2 rounded-[45%] bg-[radial-gradient(circle_at_center,rgba(130,116,255,0.32),transparent_70%)] blur-3xl" />
+        <div className="absolute bottom-[-16rem] left-[-12rem] h-[24rem] w-[28rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(142,128,255,0.22),transparent_68%)] blur-3xl" />
+        <div className="absolute top-1/4 right-[-14rem] h-[22rem] w-[26rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(116,112,255,0.24),transparent_70%)] blur-3xl" />
       </div>
       <AmbientBackdrop className="opacity-70" maskClassName="[mask-image:radial-gradient(circle_at_center,transparent_25%,black_85%)]" />
 
@@ -545,8 +591,16 @@ export default function HiveStorePage() {
         />
       )}
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-20 pt-16 sm:px-8">
-        <header className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+      <motion.div
+        className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-20 pt-16 sm:px-8"
+        initial="hidden"
+        animate="show"
+        variants={SECTION_VARIANTS}
+      >
+        <motion.header
+          className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between"
+          variants={SECTION_VARIANTS}
+        >
           <div className="space-y-6 text-center lg:text-left">
             <span className="inline-flex items-center gap-2 self-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/70 lg:self-start">
               <Sparkles className="h-3.5 w-3.5" /> Hive Store
@@ -566,6 +620,12 @@ export default function HiveStorePage() {
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
                 <ShieldCheck className="h-3.5 w-3.5" /> Payments coming soon
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
+                <Eye className="h-3.5 w-3.5" /> {liveIndicators.watchers}
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
+                <TrendingUp className="h-3.5 w-3.5" /> {liveIndicators.trending}
               </div>
             </div>
           </div>
@@ -599,10 +659,18 @@ export default function HiveStorePage() {
               </Link>
             )}
           </div>
-        </header>
+        </motion.header>
 
-        <section className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/5 p-8 text-white shadow-[0_45px_100px_rgba(76,29,149,0.35)]">
+        <motion.section
+          className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.div
+            className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/5 p-8 text-white shadow-[0_45px_100px_rgba(76,29,149,0.35)]"
+            variants={CARD_VARIANTS}
+          >
             <div className="pointer-events-none absolute inset-0 rounded-[32px] border border-white/5" />
             {heroHighlight ? (
               <div className="relative flex h-full flex-col gap-6">
@@ -651,7 +719,7 @@ export default function HiveStorePage() {
                   <button
                     type="button"
                     onClick={() => handleInstall(heroHighlight, "hero")}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-[0_24px_65px_rgba(255,255,255,0.35)] transition hover:-translate-y-0.5"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] px-5 py-3 text-sm font-semibold text-white shadow-[0_24px_65px_rgba(108,67,255,0.4)] transition hover:brightness-110 hover:-translate-y-0.5"
                   >
                     Install spotlight
                     <ArrowUpRight className="h-4 w-4" />
@@ -672,13 +740,14 @@ export default function HiveStorePage() {
                 )}
               </div>
             )}
-          </div>
+          </motion.div>
 
-          <div className="flex flex-col gap-4">
+          <motion.div className="flex flex-col gap-4" variants={STAGGER_CONTAINER} initial="hidden" animate="show">
             {secondaryHighlights.map((bot) => (
-              <div
+              <motion.div
                 key={bot.id}
                 className="relative rounded-[26px] border border-white/10 bg-white/5 p-5 text-sm text-white/70 shadow-[0_28px_85px_rgba(15,23,42,0.28)] transition hover:-translate-y-1"
+                variants={CARD_VARIANTS}
               >
                 <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-white/50">
                   <span>{bot.category}</span>
@@ -698,13 +767,19 @@ export default function HiveStorePage() {
                     Get
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]">
-          <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-[0_32px_85px_rgba(15,23,42,0.28)]">
+          <motion.div
+            className="rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-xl p-6 shadow-[0_32px_85px_rgba(15,23,42,0.28)]"
+            variants={CARD_VARIANTS}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
+          >
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
               <input
@@ -712,7 +787,7 @@ export default function HiveStorePage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search bots, studios, or workflows"
-                className="w-full rounded-2xl border border-white/10 bg-white/10 px-12 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+                className="w-full rounded-2xl border border-white/12 bg-white/10 px-12 py-3 text-sm text-white placeholder:text-white/40 backdrop-blur focus:border-[#6C43FF]/50 focus:outline-none focus:ring-2 focus:ring-[#6C43FF1f]"
               />
             </div>
 
@@ -735,7 +810,9 @@ export default function HiveStorePage() {
                         onClick={() => setCuration(filter.id)}
                         className={cn(
                           "rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] transition",
-                          isActive ? "bg-white text-slate-900" : "border border-white/15 text-white/70 hover:border-white/40 hover:text-white"
+                          isActive
+                            ? "bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] text-white shadow-[0_12px_35px_rgba(108,67,255,0.35)]"
+                            : "border border-white/15 text-white/70 hover:border-white/40 hover:text-white"
                         )}
                       >
                         {filter.label}
@@ -758,7 +835,7 @@ export default function HiveStorePage() {
                         className={cn(
                           "rounded-full px-4 py-1.5 text-[11px] tracking-[0.24em] transition",
                           isActive
-                            ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-500 text-white"
+                            ? "bg-gradient-to-r from-[#6C43FF] via-[#7A54FF] to-[#8A63FF] text-white shadow-[0_12px_30px_rgba(108,67,255,0.28)]"
                             : "border border-white/15 text-white/70 hover:border-white/40 hover:text-white"
                         )}
                       >
@@ -781,10 +858,15 @@ export default function HiveStorePage() {
                 ))}
               </div>
             </div>
-          </div>
-
-          <aside className="space-y-4">
-            <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/70 shadow-[0_24px_75px_rgba(15,23,42,0.28)]">
+          </motion.div>
+          <motion.aside
+            className="space-y-4"
+            variants={STAGGER_CONTAINER}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            <motion.div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/70 shadow-[0_24px_75px_rgba(15,23,42,0.28)]" variants={CARD_VARIANTS}>
               <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/60">
                 <span>Pulse monitor</span>
                 <Play className="h-4 w-4" />
@@ -800,9 +882,9 @@ export default function HiveStorePage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/70 shadow-[0_24px_75px_rgba(15,23,42,0.28)]">
+            <motion.div className="rounded-[26px] border border-white/10 bg-white/5 p-4 text-sm text-white/70 shadow-[0_24px_75px_rgba(15,23,42,0.28)]" variants={CARD_VARIANTS}>
               <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/60">
                 <span>Creator spotlights</span>
                 <ArrowUpRight className="h-4 w-4" />
@@ -825,75 +907,22 @@ export default function HiveStorePage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </aside>
+            </motion.div>
+          </motion.aside>
         </section>
 
-        <section className="mt-10 rounded-[32px] border border-white/10 bg-white/5 p-6 shadow-[0_40px_110px_rgba(15,23,42,0.32)]">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-white/60">
-                Curated collections
-              </span>
-              <h3 className="mt-3 text-2xl font-semibold text-white sm:text-[1.8rem]">
-                Launch-ready packs tuned for {activeCuration.toLowerCase()}
-              </h3>
-              <p className="mt-2 max-w-2xl text-sm text-white/60">
-                Mix and match bundles engineered to drop into your hive with zero cold-start time. Each collection ships with shared memory keys, compatibility notes, and tuning recipes.
-              </p>
-            </div>
-            <span className="inline-flex rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-white/60">
-              {filteredAgents.length} bots visible
-            </span>
-          </div>
-          <div className="relative mt-6 -mx-2 flex gap-4 overflow-x-auto px-2 pb-2 sm:mt-8">
-            {HIGHLIGHT_COLLECTIONS.map((collection) => {
-              const Icon = collection.icon;
-              return (
-                <div
-                  key={collection.id}
-                  className="group relative min-w-[240px] snap-start rounded-[26px] border border-white/10 bg-white/10 p-5 shadow-[0_28px_85px_rgba(15,23,42,0.28)] sm:min-w-[280px]"
-                >
-                  <div
-                    className={cn(
-                      "pointer-events-none absolute inset-0 rounded-[26px] opacity-0 transition duration-300 group-hover:opacity-100",
-                      "bg-gradient-to-br",
-                      collection.accentLight,
-                      "dark:" + collection.accentDark
-                    )}
-                  />
-                  <div className="relative flex h-full flex-col justify-between gap-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-white">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/60">
-                        {collection.range}
-                      </span>
-                    </div>
-                    <div className="space-y-2 text-white/70">
-                      <h4 className="text-lg font-semibold text-white">{collection.title}</h4>
-                      <p className="text-sm">{collection.description}</p>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-white/60">
-                      <span>{collection.metric}</span>
-                      <button className="inline-flex items-center gap-1 rounded-full border border-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70">
-                        Preview lineup
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="mt-12 grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3">
+        <motion.section
+          className="mt-12 grid grid-cols-1 gap-7 md:grid-cols-2 xl:grid-cols-3"
+          variants={STAGGER_CONTAINER}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.2 }}
+        >
           {filteredAgents.map((bot) => (
-            <div
+            <motion.div
               key={bot.id}
               className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 p-6 text-white/70 shadow-[0_32px_90px_rgba(15,23,42,0.32)]"
+              variants={CARD_VARIANTS}
             >
               <div className="relative flex h-full flex-col gap-5">
                 <span className="text-[10px] uppercase tracking-[0.35em] text-white/50">{activeCuration}</span>
@@ -929,7 +958,7 @@ export default function HiveStorePage() {
                   )}
                 </div>
 
-                <div className="mt-auto flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white/70">
+                <div className="mt-auto flex items-center justify-between gap-4 rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-sm text-white/70 backdrop-blur">
                   <span className="inline-flex items-center gap-2">
                     <Download className="h-4 w-4" />
                     {formatInstallCount(bot.downloads)}
@@ -938,16 +967,16 @@ export default function HiveStorePage() {
                   <button
                     type="button"
                     onClick={() => handleInstall(bot, "card")}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.28em] text-slate-900"
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.28em] text-white shadow-[0_12px_30px_rgba(108,67,255,0.35)] hover:brightness-110"
                   >
                     Install
                     <ArrowUpRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </section>
+        </motion.section>
 
         {!loading && filteredAgents.length === 0 && (
           <div className="mt-10 rounded-[32px] border border-white/10 bg-white/10 py-16 text-center text-white/60">
@@ -980,9 +1009,7 @@ export default function HiveStorePage() {
             </div>
           </div>
         </footer>
-      </div>
+      </motion.div>
     </main>
   );
 }
-
-

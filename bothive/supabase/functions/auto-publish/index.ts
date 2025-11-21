@@ -14,6 +14,7 @@ interface SocialPostRow {
   scheduled_for: string | null;
 }
 
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const BOT_RUN_URL = Deno.env.get("BOTHIVE_RUN_ENDPOINT");

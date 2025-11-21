@@ -18,6 +18,21 @@ export interface SocialPostRecord {
   updated_at: string;
 }
 
+export async function getAllScheduledPosts(): Promise<SocialPostRecord[]> {
+  const { data, error } = await supabase
+    .from("social_posts")
+    .select("*")
+    .eq("status", "scheduled")
+    .order("scheduled_for", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error loading all scheduled posts", error.message);
+    return [];
+  }
+  return (data ?? []) as SocialPostRecord[];
+}
+
 export async function listSocialPosts(userId: string): Promise<SocialPostRecord[]> {
   const { data, error } = await supabase
     .from("social_posts")

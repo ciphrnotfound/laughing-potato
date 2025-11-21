@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
 interface SessionProfile {
@@ -26,6 +27,31 @@ interface AppSessionProviderProps {
 export function AppSessionProvider({ children }: AppSessionProviderProps) {
   const [profile, setProfile] = useState<SessionProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastLinkedToken = useRef<string | null>(null);
+
+  const syncBackendSession = useCallback(async (session: Session | null) => {
+    const accessToken = session?.access_token ?? null;
+
+    if (!accessToken || lastLinkedToken.current === accessToken) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/link-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken }),
+      });
+
+      if (response.ok) {
+        lastLinkedToken.current = accessToken;
+      } else {
+        console.warn("Failed to sync backend session", await response.json().catch(() => ({})));
+      }
+    } catch (error) {
+      console.error("Backend session sync error", error);
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -47,8 +73,10 @@ export function AppSessionProvider({ children }: AppSessionProviderProps) {
           fullName: user.user_metadata?.full_name ?? undefined,
           avatarUrl: user.user_metadata?.avatar_url ?? undefined,
         });
+        await syncBackendSession(session);
       } else {
         setProfile(null);
+        lastLinkedToken.current = null;
       }
 
       setLoading(false);
@@ -69,8 +97,10 @@ export function AppSessionProvider({ children }: AppSessionProviderProps) {
           fullName: user.user_metadata?.full_name ?? undefined,
           avatarUrl: user.user_metadata?.avatar_url ?? undefined,
         });
+        void syncBackendSession(newSession);
       } else {
         setProfile(null);
+        lastLinkedToken.current = null;
       }
       setLoading(false);
     });
@@ -79,7 +109,7 @@ export function AppSessionProvider({ children }: AppSessionProviderProps) {
       isMounted = false;
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [syncBackendSession]);
 
   const value = useMemo<SessionState>(
     () => ({

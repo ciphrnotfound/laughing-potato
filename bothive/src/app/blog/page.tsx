@@ -139,13 +139,13 @@ export default function BlogPage() {
   };
 
   return (
-    <main className="relative min-h-screen bg-[#070910] text-white">
+    <main className="relative min-h-screen bg-gradient-to-br from-[#05060F] via-[#0B1021] to-[#05040F] text-white">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(42,49,80,0.55),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:56px_56px] opacity-40" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(116,112,255,0.26),transparent_58%),radial-gradient(circle_at_bottom,rgba(76,55,189,0.22),transparent_65%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(-120deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[length:64px_64px] opacity-30" />
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 pb-20 pt-24 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 pb-24 pt-24 sm:px-6 lg:px-10">
         <header className="space-y-6 text-center">
           <p className="text-sm font-medium text-white/55">Our blog</p>
           <div className="space-y-4">
@@ -154,7 +154,7 @@ export default function BlogPage() {
               The latest industry news, interviews, technologies, and resources.
             </p>
           </div>
-          <div className="mx-auto flex w-full max-w-md items-center gap-3 rounded-lg border border-white/10 bg-black/45 px-4 py-2.5">
+          <div className="mx-auto flex w-full max-w-md items-center gap-3 rounded-xl border border-white/12 bg-white/10 px-4 py-2.5 backdrop-blur">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/50">
               <path
                 d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm6-2 4 4"
@@ -173,8 +173,8 @@ export default function BlogPage() {
                 type="button"
                 className={`${
                   idx === 0
-                    ? "rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white"
-                    : "rounded-full border border-white/10 px-5 py-2 text-sm text-white/60 hover:border-white/20 hover:text-white"
+                    ? "rounded-full bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] px-5 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(108,67,255,0.3)]"
+                    : "rounded-full border border-white/12 px-5 py-2 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
                 }`}
               >
                 {category}
@@ -182,7 +182,7 @@ export default function BlogPage() {
             ))}
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/60 hover:border-white/20 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-full border border-white/12 px-4 py-2 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
             >
               Most recent
               <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -198,7 +198,7 @@ export default function BlogPage() {
               return (
                 <div
                   key="newsletter"
-                  className="flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-gradient-to-br from-[#111729] to-[#0C1220] p-6 text-left shadow-[0_20px_50px_rgba(5,6,15,0.45)]"
+                  className="flex h-full flex-col justify-between gap-5 rounded-2xl border border-white/12 bg-white/10 p-6 text-left shadow-[0_24px_55px_rgba(8,10,25,0.45)] backdrop-blur"
                 >
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-white">Weekly newsletter</p>
@@ -211,13 +211,13 @@ export default function BlogPage() {
                     <input
                       type="email"
                       placeholder="Enter your email"
-                      className="w-full rounded-lg border border-white/12 bg-black/40 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:border-[#6C43FF] focus:outline-none focus:ring-2 focus:ring-[#6C43FF1f]"
+                      className="w-full rounded-lg border border-white/12 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-white/45 focus:border-[#6C43FF] focus:outline-none focus:ring-2 focus:ring-[#6C43FF1f]"
                       value={newsletterEmail}
                       onChange={(event) => setNewsletterEmail(event.target.value)}
                     />
                     <button
                       type="submit"
-                      className="w-full rounded-lg bg-[#6C43FF] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                      className="w-full rounded-lg bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(108,67,255,0.35)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? "Linking..." : "Subscribe"}
@@ -231,7 +231,7 @@ export default function BlogPage() {
             return (
               <article
                 key={card.post.id}
-                className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F19] shadow-[0_18px_40px_rgba(3,4,10,0.28)]"
+                className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/12 bg-white/10 shadow-[0_22px_48px_rgba(8,10,25,0.35)] backdrop-blur"
               >
                 <div className="relative h-40 w-full overflow-hidden bg-black">
                   <Image src={card.post.image} alt={card.post.title} fill className="object-cover" priority={index < 3} />
@@ -252,8 +252,8 @@ export default function BlogPage() {
           })}
         </div>
 
-        <nav className="flex items-center justify-center gap-2 text-sm text-white/50">
-          <button type="button" className="rounded-md px-3 py-2 hover:bg-white/5 hover:text-white">
+        <nav className="flex flex-wrap items-center justify-center gap-2 text-sm text-white/50">
+          <button type="button" className="rounded-md px-3 py-2 transition hover:bg-white/10 hover:text-white">
             Previous
           </button>
           <div className="flex items-center gap-1">
@@ -261,13 +261,13 @@ export default function BlogPage() {
               <button
                 key={index}
                 type="button"
-                className={`flex h-9 w-9 items-center justify-center rounded-md ${index === 0 ? "bg-white text-black" : "hover:bg-white/5"}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-md transition ${index === 0 ? "bg-white text-black" : "hover:bg-white/10"}`}
               >
                 {index + 1}
               </button>
             ))}
           </div>
-          <button type="button" className="rounded-md px-3 py-2 hover:bg-white/5 hover:text-white">
+          <button type="button" className="rounded-md px-3 py-2 transition hover:bg-white/10 hover:text-white">
             Next
           </button>
         </nav>

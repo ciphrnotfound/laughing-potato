@@ -1,0 +1,89 @@
+# Smart Email Assistant - Bothive Builder Workflow
+# Copy and paste this into the builder workflow section
+
+steps:
+  # Step 1: Check for new emails
+  - tool: email.check
+    input:
+      folder: "inbox"
+      unreadOnly: true
+    id: check_new_emails
+  
+  # Step 2: Process each email found
+  - agent: general.respond
+    input:
+      prompt: |
+        You are an email assistant. For each email found, analyze and categorize:
+        
+        Emails found: {{check_new_emails.data.emails}}
+        
+        For each email, provide:
+        1. Category (customer_inquiry, internal_team, urgent_request, or general)
+        2. Urgency level (high, medium, low)
+        3. Suggested response tone
+        4. Draft response
+        
+        Focus on professional, helpful responses. For urgent emails, flag for immediate attention.
+    id: process_emails
+  
+  # Step 3: Handle urgent emails with Slack notification
+  - tool: slack.send
+    input:
+      channel: "#urgent-emails"
+      message: |
+        🚨 URGENT EMAIL ALERT:
+        From: {{check_new_emails.data.emails.0.from}}
+        Subject: {{check_new_emails.data.emails.0.subject}}
+        
+        AI Response: {{process_emails.output}}
+        
+        Please review and approve sending.
+    id: notify_urgent
+    condition: "{{check_new_emails.data.emails.0.subject}}" includes "urgent" OR "{{check_new_emails.data.emails.0.subject}}" includes "asap"
+  
+  # Step 4: Draft responses for non-urgent emails
+  - agent: general.respond
+    input:
+      prompt: |
+        Create professional email responses for these emails:
+        
+        {{check_new_emails.data.emails}}
+        
+        Guidelines:
+        - Start with appropriate greeting
+        - Address the main points clearly
+        - Offer helpful next steps
+        - Use professional but friendly tone
+        - Keep responses concise but complete
+        
+        Format each response with:
+        TO: [email address]
+        SUBJECT: Re: [original subject]
+        BODY: [full response]
+    id: draft_responses
+    condition: "{{check_new_emails.data.count}}" > 0
+  
+  # Step 5: Store responses for review (or auto-send if high confidence)
+  - agent: general.respond
+    input:
+      prompt: |
+        Review these drafted responses and determine if they should be sent automatically or require human review:
+        
+        {{draft_responses.output}}
+        
+        For each response, indicate:
+        - SEND_NOW: If confident and appropriate
+        - REVIEW_NEEDED: If requires human approval
+        
+        Be conservative - when in doubt, flag for review.
+    id: review_responses
+  
+  # Step 6: Send approved responses automatically
+  - tool: email.reply
+    input:
+      emailId: "{{check_new_emails.data.emails.0.id}}"
+      replyTo: "{{check_new_emails.data.emails.0.from}}"
+      subject: "Re: {{check_new_emails.data.emails.0.subject}}"
+      body: "{{draft_responses.output}}"
+    id: send_auto_reply
+    condition: "{{review_responses.output}}" includes "SEND_NOW"
