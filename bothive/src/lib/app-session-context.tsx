@@ -10,6 +10,8 @@ interface SessionProfile {
   email?: string;
   fullName?: string;
   avatarUrl?: string;
+  role?: string;
+  onboardingCompleted?: boolean;
 }
 
 interface SessionState {
@@ -67,11 +69,37 @@ export function AppSessionProvider({ children }: AppSessionProviderProps) {
 
       if (session?.user) {
         const { user } = session;
+        
+        // Skip profile fetching for now - table doesn't exist yet
+        // TODO: Enable this when user_profiles table is created
+        /*
+        let profileData = null;
+        try {
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('role, onboarding_completed')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (!error) {
+            profileData = data;
+          } else {
+            // Table doesn't exist or other error, use defaults
+            console.log('user_profiles table not found, using defaults');
+          }
+        } catch (error) {
+          // Unexpected error, use defaults
+          console.log('Unexpected error fetching profile, using defaults');
+        }
+        */
+        
         setProfile({
           id: user.id,
           email: user.email ?? undefined,
           fullName: user.user_metadata?.full_name ?? undefined,
           avatarUrl: user.user_metadata?.avatar_url ?? undefined,
+          role: undefined, // TODO: Get from user_profiles when table exists
+          onboardingCompleted: false, // TODO: Get from user_profiles when table exists
         });
         await syncBackendSession(session);
       } else {
@@ -84,18 +112,44 @@ export function AppSessionProvider({ children }: AppSessionProviderProps) {
 
     void resolveSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (!isMounted) {
         return;
       }
 
       if (newSession?.user) {
         const { user } = newSession;
+        
+        // Skip profile fetching for now - table doesn't exist yet
+        // TODO: Enable this when user_profiles table is created
+        /*
+        let profileData = null;
+        try {
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('role, onboarding_completed')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (!error) {
+            profileData = data;
+          } else {
+            // Table doesn't exist or other error, use defaults
+            console.log('user_profiles table not found, using defaults');
+          }
+        } catch (error) {
+          // Unexpected error, use defaults
+          console.log('Unexpected error fetching profile, using defaults');
+        }
+        */
+        
         setProfile({
           id: user.id,
           email: user.email ?? undefined,
           fullName: user.user_metadata?.full_name ?? undefined,
           avatarUrl: user.user_metadata?.avatar_url ?? undefined,
+          role: undefined, // TODO: Get from user_profiles when table exists
+          onboardingCompleted: false, // TODO: Get from user_profiles when table exists
         });
         void syncBackendSession(newSession);
       } else {

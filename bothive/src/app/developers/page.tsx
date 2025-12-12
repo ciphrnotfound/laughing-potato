@@ -1,215 +1,178 @@
 "use client";
 
-import Link from "next/link";
-import { motion } from "framer-motion";
+import React from "react";
 import Navbar2 from "@/components/Navbar2";
+import Footer from "@/components/Footer";
+import { motion } from "framer-motion";
+import { ArrowRight, MapPin, Briefcase, Zap, Code, Users } from "lucide-react";
+import { HiveLangLogo } from "@/components/HiveLangLogo";
 
-const resources = [
+const OPEN_ROLES = [
   {
-    title: "Bothive API",
-    description: "Low-latency endpoints for orchestrating missions, managing bot state, and streaming conversation traces.",
-    cta: "Read API reference",
-    href: "#",
+    title: "Senior AI Engineer (RAG & Vector)",
+    team: "Core Infrastructure",
+    location: "San Francisco / Remote",
+    type: "Full-time",
+    description: "Scale our distributed Pinecone/Milvus clusters and optimize the context retrieval pipeline for million-token contexts."
   },
   {
-    title: "SDKs & starters",
-    description: "TypeScript, Python, and Swift kits with typed agents, mission builders, and testing harnesses.",
-    cta: "Browse SDKs",
-    href: "#",
+    title: "Founding Frontend Engineer",
+    team: "Product Experience",
+    location: "Remote",
+    type: "Full-time",
+    description: "Own the visual builder. Expertise in ReactFlow, Canvas API, and conflict-free replicated data types (CRDTs) for multiplayer syncing."
   },
   {
-    title: "CLI & workflows",
-    description: "Provision sandboxes, trigger deployments, and lint agent blueprints straight from your terminal.",
-    cta: "Install the CLI",
-    href: "#",
-  },
-];
-
-const panels = [
-  {
-    heading: "Ship faster with mission blueprints",
-    body: "Pull verified templates for support triage, outreach pods, and research copilots. Tailor them, then push live with integrated approvals.",
+    title: "Developer Advocate",
+    team: "Growth",
+    location: "New York / Remote",
+    type: "Full-time",
+    description: "Be the face of BotHive. Write technical deep-dives on HiveLang, speak at conferences, and nurture our Discord community."
   },
   {
-    heading: "Deep observability",
-    body: "Tap structured traces, latency heatmaps, and pheromone logs so you can tune behaviours before production escalations do it for you.",
-  },
-  {
-    heading: "Secure by default",
-    body: "Granular secrets, signed actions, and environment isolation keep each hive partition compliant across teams.",
-  },
-];
-
-const launchChecklist = [
-  "Define mission objectives and guardrails",
-  "Configure data sources, actions, and webhooks",
-  "Run sandbox load tests with synthetic traffic",
-  "Capture telemetry benchmarks and review QA traces",
-  "Promote blueprint to production and monitor pheromone scores",
-];
-
-const ecosystemHighlights = [
-  {
-    label: "CLI accelerators",
-    description: "Spin new missions, inspect logs, and diff blueprints straight from your terminal workflows.",
-  },
-  {
-    label: "Observability hooks",
-    description: "Export structured telemetry into Datadog, Honeycomb, or OpenTelemetry pipelines.",
-  },
-  {
-    label: "Partner marketplace",
-    description: "Discover prebuilt actions, connectors, and compliance packs curated by the Bothive partner network.",
-  },
+    title: "Compiler Engineer (Rust/WASM)",
+    team: "HiveLang",
+    location: "Remote",
+    type: "Full-time",
+    description: "Help us port the HiveLang compiler to WASM for client-side execution and optimize the AST walker."
+  }
 ];
 
 export default function DevelopersPage() {
   return (
-    <main className="relative min-h-screen bg-[#06070a] text-white">
+    <div className="min-h-screen bg-[#fafafa] dark:bg-[#030014] text-[#0a0a0f] dark:text-white selection:bg-violet-500/30">
       <Navbar2 />
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(110,31,255,0.3),transparent_55%),radial-gradient(circle_at_82%_12%,rgba(147,85,255,0.28),transparent_58%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(8,5,16,0.55),rgba(6,7,10,0.95))]" />
-        <div className="absolute inset-0 opacity-[0.18] [background-size:48px_48px] [background-image:linear-gradient(to_right,rgba(123,67,255,0.22)_1px,transparent_1px),linear-gradient(to_bottom,rgba(123,67,255,0.14)_1px,transparent_1px)]" />
-      </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 pb-24 pt-28">
-        <header className="space-y-6 text-center sm:text-left">
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#7b3dff3d] bg-[#6a00ff1a] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/75">
-            Developer central
-          </p>
-          <div className="space-y-4">
-            <h1 className="text-3xl font-semibold sm:text-4xl md:text-[2.7rem] md:leading-tight">
-              Build, orchestrate, and deploy Bothive agents with precision
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 px-6 relative overflow-hidden">
+        {/* Background Blurs (Matching Founder Page) */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
+        </div>
+
+        <div className="max-w-4xl mx-auto relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 text-xs font-medium text-violet-600 dark:text-violet-400 mb-6">
+              <Users className="w-3 h-3" />
+              Careers at BotHive
+            </span>
+
+            <h1 className="text-5xl md:text-7xl font-semibold tracking-tight mb-8">
+              Build the <span className="text-violet-600 dark:text-violet-500">Operating System</span> <br />
+              for the Agentic Era.
             </h1>
-            <p className="max-w-3xl text-sm text-white/70">
-              Tooling, docs, and starter kits that accelerate everything from prototyping micro-missions to operating enterprise-scale hives.
+
+            <p className="text-xl text-black/60 dark:text-white/60 max-w-2xl mx-auto leading-relaxed mb-10">
+              We are a small, high-density team solving hard problems in distributed systems and AI.
+              If you obsess over quality and want to ship tools that define the next decade of software, join us.
+            </p>
+
+            <div className="flex items-center justify-center gap-4">
+              <a href="#roles" className="px-8 py-4 bg-[#0a0a0f] dark:bg-white text-white dark:text-black font-medium rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                View Open Roles
+              </a>
+              <a href="https://github.com/bothive" target="_blank" className="px-8 py-4 bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 font-medium rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center gap-2">
+                <Code className="w-4 h-4" />
+                Our Stack
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Culture / Values */}
+      <section className="py-20 px-6 bg-white dark:bg-white/[0.02] border-y border-black/5 dark:border-white/5">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-12">
+          <div className="text-center md:text-left">
+            <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center mb-6 mx-auto md:mx-0">
+              <Zap className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3">Ship relentlessly.</h3>
+            <p className="text-black/60 dark:text-white/60 leading-relaxed">
+              We don't do multi-month specs. We build prototypes, dogfood them, and ship to users. Speed is our leverage.
             </p>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="#"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#6a00ff] via-[#854dff] to-[#b18dff] px-5 py-3 text-sm font-semibold text-white transition hover:shadow-[0_12px_32px_rgba(110,31,255,0.35)]"
-            >
-              View quickstart guide
-            </Link>
-            <Link
-              href="#"
-              className="inline-flex items-center gap-2 rounded-xl border border-[#7b3dff33] bg-[#140b26] px-5 py-3 text-sm font-semibold text-white/75 transition hover:border-[#9f6bff66] hover:text-white"
-            >
-              Join the developer Slack
-            </Link>
+          <div className="text-center md:text-left">
+            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-6 mx-auto md:mx-0">
+              <HiveLangLogo className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3">Toolsmiths at heart.</h3>
+            <p className="text-black/60 dark:text-white/60 leading-relaxed">
+              We build tools for builders. We care deeply about developer experience, API design, and clean documentation.
+            </p>
           </div>
-        </header>
+          <div className="text-center md:text-left">
+            <div className="w-12 h-12 rounded-xl bg-fuchsia-100 dark:bg-fuchsia-900/30 flex items-center justify-center mb-6 mx-auto md:mx-0">
+              <Users className="w-6 h-6 text-fuchsia-600 dark:text-fuchsia-400" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3">Zero ego.</h3>
+            <p className="text-black/60 dark:text-white/60 leading-relaxed">
+              Best idea wins, regardless of title. We debate vigorously but commit fully once a decision is made.
+            </p>
+          </div>
+        </div>
+      </section>
 
-        <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {resources.map((resource, index) => (
-            <motion.article
-              key={resource.title}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.4, delay: index * 0.08 }}
-              className="group flex h-full flex-col gap-4 rounded-2xl border border-[#6a00ff24] bg-gradient-to-br from-[#150a29] via-[#0c0618] to-[#08040f] p-6 transition hover:border-[#9f6bff55] hover:shadow-[0_18px_45px_rgba(110,31,255,0.28)]"
-            >
-              <div className="flex flex-1 flex-col gap-4">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-white/65">Resource</p>
-                <h2 className="text-lg font-semibold text-white">{resource.title}</h2>
-                <p className="text-sm text-white/65">{resource.description}</p>
-                <div className="mt-auto pt-4 text-sm text-[#c9b1ff]">
-                  <span className="inline-flex items-center gap-1">
-                    {resource.cta}
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#c9b1ff]" />
-                  </span>
-                </div>
-              </div>
-            </motion.article>
-          ))}
-        </section>
+      {/* Jobs List */}
+      <section id="roles" className="py-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-end justify-between mb-12">
+            <h2 className="text-3xl font-semibold">Open Roles</h2>
+            <span className="text-sm text-black/40 dark:text-white/40">{OPEN_ROLES.length} positions available</span>
+          </div>
 
-        <section className="grid gap-6 lg:grid-cols-3">
-          {panels.map((panel, index) => (
-            <motion.div
-              key={panel.heading}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.4, delay: 0.1 + index * 0.08 }}
-              className="flex flex-col gap-3 rounded-2xl border border-[#6a00ff24] bg-gradient-to-br from-[#130a27] via-[#0b0516] to-[#08040f] p-6"
-            >
-              <p className="text-[11px] uppercase tracking-[0.28em] text-white/60">Why developers choose Bothive</p>
-              <h3 className="text-lg font-semibold text-white">{panel.heading}</h3>
-              <p className="text-sm text-white/65">{panel.body}</p>
-            </motion.div>
-          ))}
-        </section>
-
-        <section className="grid gap-6 rounded-2xl border border-[#6a00ff1f] bg-gradient-to-br from-[#140a28] via-[#0c0617] to-[#08040f] p-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <div className="space-y-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Launch checklist</p>
-            <h2 className="text-xl font-semibold text-white">Operational guardrails before you go live</h2>
-            <ul className="space-y-3 text-sm text-white/70">
-              {launchChecklist.map((item) => (
-                <li key={item} className="flex items-start gap-3 rounded-xl border border-[#6a00ff24] bg-[#0f071f] p-4">
-                  <span className="mt-1 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-[#c9b1ff]" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="space-y-4 rounded-2xl border border-[#6a00ff24] bg-gradient-to-br from-[#15092b] via-[#0c0618] to-[#08040f] p-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/60">SDK deep dives</p>
-            <p className="text-sm text-white/65">
-              Explore advanced recipes for multi-agent handoffs, deterministic evaluations, and mission failover patterns. Each notebook
-              ships with runnable examples and guardrail best practices.
-            </p>
-            <Link
-              href="#"
-              className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-[#6a00ff] via-[#854dff] to-[#b18dff] px-4 py-2 text-sm font-semibold text-white transition hover:shadow-[0_12px_32px_rgba(110,31,255,0.38)]"
-            >
-              Open the notebook library
-            </Link>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-6 rounded-2xl border border-[#6a00ff24] bg-gradient-to-br from-[#170a2f] via-[#0e0619] to-[#08050f] p-6 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">Launch your first hive</p>
-            <h2 className="text-2xl font-semibold text-white">Get started with the Bothive developer sandbox</h2>
-            <p className="text-sm text-white/65">
-              Spin up a private workspace, connect your data sources, and deploy agents with simulated traffic before you go live.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="#"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#6a00ff] via-[#7f3dff] to-[#b18dff] px-5 py-3 text-sm font-semibold text-white transition hover:shadow-[0_12px_32px_rgba(110,31,255,0.4)]"
-            >
-              Launch sandbox
-            </Link>
-            <Link
-              href="#"
-              className="inline-flex items-center gap-2 rounded-xl border border-[#7b3dff33] bg-[#140b26] px-5 py-3 text-sm font-semibold text-white/75 transition hover:border-[#9f6bff66] hover:text-white"
-            >
-              View roadmap
-            </Link>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-[#6a00ff1f] bg-gradient-to-br from-[#140a29] via-[#0b0516] to-[#08040f] p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/60">Ecosystem</p>
-          <div className="mt-4 grid gap-5 md:grid-cols-3">
-            {ecosystemHighlights.map((highlight) => (
-              <div key={highlight.label} className="flex flex-col gap-2 rounded-xl border border-[#6a00ff24] bg-[#0f071f] p-5">
-                <h3 className="text-base font-semibold text-white">{highlight.label}</h3>
-                <p className="text-sm text-white/65">{highlight.description}</p>
-              </div>
+            {OPEN_ROLES.map((role, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-violet-500/30 dark:hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/5 transition-all cursor-pointer"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">{role.title}</h3>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-black/50 dark:text-white/50 font-medium">
+                      <span className="flex items-center gap-1"><Briefcase className="w-3 h-3" /> {role.team}</span>
+                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {role.location}</span>
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <span className="inline-flex px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-xs font-medium">
+                      {role.type}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-black/60 dark:text-white/60 leading-relaxed text-sm mb-4">
+                  {role.description}
+                </p>
+                <div className="flex items-center text-sm font-medium text-violet-600 dark:text-violet-400 group-hover:translate-x-1 transition-transform">
+                  Apply for this role <ArrowRight className="w-4 h-4 ml-1" />
+                </div>
+              </motion.div>
             ))}
           </div>
-        </section>
-      </div>
-    </main>
+
+          <div className="mt-16 p-8 rounded-3xl bg-violet-500/5 border border-violet-500/10 text-center">
+            <h3 className="text-xl font-semibold mb-2">Don't see your role?</h3>
+            <p className="text-black/60 dark:text-white/60 mb-6">
+              We are always looking for exceptional generalists.
+            </p>
+            <a href="mailto:careers@bothive.io" className="text-violet-600 dark:text-violet-400 font-medium hover:underline">
+              Email us directly &rarr;
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
   );
 }

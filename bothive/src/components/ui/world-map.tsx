@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import DottedMap from "dotted-map";
 
@@ -22,19 +22,19 @@ export function WorldMap({
 
     const { theme } = useTheme();
     const isDark = theme === "dark";
-    const [svgMap, setSvgMap] = useState<string | null>(null);
-
-    const map = useMemo(() => new DottedMap({ height: 100, grid: "diagonal" }), []);
-
-    useEffect(() => {
-        const generated = map.getSVG({
+    const [svgMap, setSvgMap] = useState<string | null>(() => {
+        if (typeof window === "undefined") return null;
+        const map = new DottedMap({ height: 100, grid: "diagonal" });
+        const isDark = document.documentElement.classList.contains("dark");
+        return map.getSVG({
             radius: 0.22,
             color: isDark ? "#FFFFFF40" : "#00000040",
             shape: "circle",
             backgroundColor: isDark ? "black" : "white",
         });
-        setSvgMap(generated);
-    }, [map, isDark]);
+    });
+
+    const map = useMemo(() => new DottedMap({ height: 100, grid: "diagonal" }), []);
 
     const projectPoint = (lat: number, lng: number) => {
         const x = (lng + 180) * (800 / 360);

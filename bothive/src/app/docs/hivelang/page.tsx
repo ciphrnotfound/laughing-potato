@@ -1,151 +1,104 @@
 "use client";
 
+import React from "react";
+import { ArrowLeft, Code2, Terminal, Cpu, Share2, Globe } from "lucide-react";
 import Link from "next/link";
-import { ArrowLeft, TerminalSquare, PlayCircle, Share2 } from "lucide-react";
 
-const HIVE_EXAMPLE = `bot SupportGuide
-  description "Answers onboarding questions for new Hive members"
+export default function HiveLangDocsPage() {
+    return (
+        <div className="min-h-screen bg-[#04010b] text-white p-8">
+            <div className="max-w-4xl mx-auto space-y-8">
+                <Link href="/builder" className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Builder
+                </Link>
 
-  memory shared
-    notes store key "faq"
+                <header className="space-y-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-medium uppercase tracking-wider">
+                        <Code2 className="w-3.5 h-3.5" />
+                        HiveLang 1.0
+                    </div>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+                        The Language of Agents
+                    </h1>
+                    <p className="text-lg text-white/60 max-w-2xl">
+                        HiveLang is a domain-specific language designed for orchestrating autonomous agents.
+                        It focuses on delegation, tool usage, and collaboration rather than low-level computation.
+                    </p>
+                </header>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                    <div className="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4">
+                            <Terminal className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">Declarative Syntax</h3>
+                        <p className="text-sm text-white/60">
+                            Define "what" you want to happen, not "how". HiveLang handles the complexity of LLM context management and tool execution.
+                        </p>
+                    </div>
+
+                    <div className="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4">
+                            <Share2 className="w-5 h-5 text-purple-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">Native Collaboration</h3>
+                        <p className="text-sm text-white/60">
+                            Built-in primitives for broadcasting messages, listening for events, and sharing memory between agents.
+                        </p>
+                    </div>
+
+                    <div className="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                        <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center mb-4">
+                            <Globe className="w-5 h-5 text-green-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">Universal Integration</h3>
+                        <p className="text-sm text-white/60">
+                            Connect to any API via HTTP requests or webhooks. HiveLang treats the entire internet as a tool library.
+                        </p>
+                    </div>
+
+                    <div className="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center mb-4">
+                            <Cpu className="w-5 h-5 text-orange-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2">Sandboxed Execution</h3>
+                        <p className="text-sm text-white/60">
+                            Safe by default. Agents run in isolated environments with strict permission controls defined in the manifest.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="p-8 rounded-3xl border border-white/10 bg-black/40">
+                    <h2 className="text-2xl font-bold mb-6">Example: Multi-Agent Orchestration</h2>
+                    <pre className="font-mono text-sm bg-black/60 p-6 rounded-xl overflow-x-auto border border-white/5 text-blue-300">
+                        {`bot Orchestrator
+  description "Coordinates a research and reporting workflow"
+
+  on input
+    say "Starting research on {input.topic}..."
+    
+    // Broadcast a task to the research swarm
+    call agent.broadcast with {
+      type: "research_request",
+      payload: { topic: input.topic }
+    }
+
+    // Wait for results
+    say "Waiting for researchers to report back..."
+    call agent.listen as reports
+
+    // Synthesize the findings
+    call agent.analyze with {
+      data: reports
+    } as summary
+
+    say "Here is the consolidated report: {summary}"
   end
-
-  on input when input.question?
-    say "Here’s what I found about {input.topic}:"
-    recall notes as faq
-    if faq.blank?
-      say "No entry yet — logging this so another agent can fill it in."
-      notes.append key "faq" value "{input.topic}: pending research"
-    else
-      say faq
-    end
-  end
-
-  on input when not input.question?
-    say "Ask me anything about Hiveland policies, pricing, or integrations."
-  end
-end`;
-
-const LANGUAGE_SECTIONS = [
-  {
-    title: "01 · Structure",
-    points: [
-      "Every HiveLang file defines one or more bots with the `bot Name` declaration.",
-      "Each bot can describe memory blocks, event handlers, and helper routines.",
-      "Indentation is semantic: two spaces is the recommended style for nested blocks.",
-    ],
-  },
-  {
-    title: "02 · Capabilities",
-    points: [
-      "Attach capabilities by referencing tool manifests in the Builder, or declare inline scaffolds.",
-      "Use `on input when condition?` to branch on structured inputs (questions, intents, scenario payloads).",
-      "Combine `say` for responses, `call` for tool invocations, and `emit` for events between agents.",
-    ],
-  },
-  {
-    title: "03 · Memory",
-    points: [
-      "`memory shared` blocks declare durable context across runs; use keys to organize records.",
-      "In short-lived agents, prefer `memory ephemeral` to keep transcripts lean.",
-      "Helpers like `recall`, `notes.append`, and `notes.remove` let you mutate state predictably.",
-    ],
-  },
-];
-
-export default function HivelangDocsPage() {
-  return (
-    <div className="min-h-screen bg-[#05030c] text-slate-100">
-      <div className="relative mx-auto max-w-5xl px-6 py-16">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top,rgba(99,92,255,0.28),transparent_70%)]" />
-
-        <header className="relative space-y-6">
-          <Link
-            href="/docs"
-            className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.32em] text-slate-500 hover:text-slate-200"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to docs
-          </Link>
-          <div className="space-y-3">
-            <h1 className="text-4xl font-semibold text-slate-50">HiveLang reference</h1>
-            <p className="max-w-2xl text-sm text-slate-400">
-              HiveLang is the DSL that powers Bothive agents. It combines declarative flows, shared memory, and
-              capability orchestration so your swarm stays predictable.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.32em] text-slate-400">
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-800/70 bg-[#11111b]/80 px-3 py-1">
-                <TerminalSquare className="h-4 w-4 text-indigo-300" />
-                Version 0.9
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-800/70 bg-[#11111b]/80 px-3 py-1">
-                <PlayCircle className="h-4 w-4 text-indigo-300" />
-                Run inside builder
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-800/70 bg-[#11111b]/80 px-3 py-1">
-                <Share2 className="h-4 w-4 text-indigo-300" />
-                Swarm ready
-              </span>
+end`}
+                    </pre>
+                </div>
             </div>
-          </div>
-        </header>
-
-        <section className="relative mt-12 grid gap-6 lg:grid-cols-[minmax(0,0.6fr)_minmax(0,0.4fr)]">
-          <article className="rounded-3xl border border-slate-900/80 bg-[#0b0a18]/90 p-6 shadow-[0_30px_80px_-50px_rgba(22,16,60,0.8)]">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-400">Example bot</h2>
-            <p className="mt-2 text-sm text-slate-400">
-              The snippet below mirrors the example highlighted in the builder. Paste it into the Hive editor to explore
-              memory lookups, conversational branching, and system messaging.
-            </p>
-            <pre className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-slate-900/70 bg-[#080716] p-5 text-sm leading-relaxed text-slate-100">
-{HIVE_EXAMPLE}
-            </pre>
-          </article>
-
-          <aside className="space-y-4">
-            {LANGUAGE_SECTIONS.map((section) => (
-              <div key={section.title} className="rounded-3xl border border-slate-900/80 bg-[#0c0b1a]/85 p-5">
-                <h3 className="text-sm font-semibold text-slate-200">{section.title}</h3>
-                <ul className="mt-3 space-y-2 text-xs text-slate-400">
-                  {section.points.map((point) => (
-                    <li key={point} className="leading-relaxed">{point}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </aside>
-        </section>
-
-        <section className="relative mt-12 grid gap-6 rounded-3xl border border-slate-900/80 bg-[#090817]/80 p-6 text-sm text-slate-300 lg:grid-cols-2">
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.32em] text-slate-400">Runtime tips</h3>
-            <ul className="space-y-2">
-              <li>Use `compile` in the builder to validate before every deployment.</li>
-              <li>Surface feature flags or experiments via shared memory to coordinate agent handoffs.</li>
-              <li>Call `emit` to notify other bots in workflows—especially orchestration or auditing agents.</li>
-            </ul>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.32em] text-slate-400">Learn more</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/docs" className="text-indigo-200 hover:text-indigo-100">
-                  Documentation home ↗
-                </Link>
-              </li>
-              <li>
-                <Link href="/builder" className="text-indigo-200 hover:text-indigo-100">
-                  Open builder ↗
-                </Link>
-              </li>
-              <li>
-                <Link href="/docs/hivelang/changelog" className="text-indigo-200 hover:text-indigo-100">
-                  HiveLang changelog ↗
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }

@@ -1,75 +1,137 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Bell, Search, Menu, User, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Menu, X, Bell, Search, User, Settings, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardHeaderProps {
-  onMenuClick: () => void;
+  title?: string;
+  subtitle?: string;
+  onMenuToggle?: () => void;
+  isSidebarOpen?: boolean;
 }
 
-export default function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    // Fetch user session
-    fetch("/api/auth/session")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.authenticated) {
-          setUser(data.user);
-        }
-      })
-      .catch(console.error);
-  }, []);
+export default function DashboardHeader({ 
+  title = "Dashboard", 
+  subtitle,
+  onMenuToggle,
+  isSidebarOpen = false 
+}: DashboardHeaderProps) {
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <header className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-white/10">
-      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
-        {/* Left: Menu + Search */}
-        <div className="flex items-center gap-4 flex-1">
-          <button
-            onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition"
+    <motion.header 
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl"
+    >
+      <div className="flex h-16 items-center justify-between px-4 lg:px-8">
+        {/* Left Section */}
+        <div className="flex items-center gap-4">
+          {/* Mobile Menu Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuToggle}
+            className="lg:hidden"
           >
-            <Menu className="w-5 h-5 text-white" />
-          </button>
+            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
 
-          {/* Search */}
-          <div className="hidden md:flex items-center gap-3 flex-1 max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-              <input
-                type="text"
-                placeholder="Search agents, workflows..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition"
-              />
-            </div>
+          {/* Title Section */}
+          <div>
+            <h1 className="text-xl font-semibold text-white">{title}</h1>
+            {subtitle && (
+              <p className="text-sm text-gray-400">{subtitle}</p>
+            )}
           </div>
         </div>
 
-        {/* Right: Notifications + User */}
-        <div className="flex items-center gap-3">
+        {/* Center Section - Search */}
+        <div className="hidden md:flex flex-1 max-w-lg mx-8">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search bots, integrations, settings..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:border-violet-500 focus:ring-violet-500"
+            />
+          </div>
+        </div>
+
+        {/* Right Section */}
+        <div className="flex items-center gap-4">
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg hover:bg-white/10 transition">
-            <Bell className="w-5 h-5 text-white/70" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
-          </button>
+          <Button variant="ghost" size="sm" className="relative">
+            <Bell className="w-5 h-5 text-gray-400" />
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-violet-500 text-white text-xs">
+              3
+            </Badge>
+          </Button>
 
           {/* User Menu */}
-          <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-            <div className="hidden sm:flex flex-col items-end">
-              <span className="text-sm font-medium text-white">
-                {user?.name || "User"}
-              </span>
-              <span className="text-xs text-white/50">{user?.email || ""}</span>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center">
-              <User className="w-4 h-4 text-white" />
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="/avatars/01.png" alt="User" />
+                  <AvatarFallback>JD</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">John Doe</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    john.doe@example.com
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
-    </header>
+
+      {/* Mobile Search */}
+      <div className="px-4 pb-3 md:hidden">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-gray-400 focus:border-violet-500 focus:ring-violet-500"
+          />
+        </div>
+      </div>
+    </motion.header>
   );
 }
-

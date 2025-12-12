@@ -1,292 +1,164 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { Check, Loader2, ShieldCheck, Zap, ArrowRight, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import Link from "next/link";
 
-const plans = [
-  {
-    id: "basic",
-    title: "Pricing",
-    price: "$29/mo",
-    features: ["Collaboration basics", "Automated summaries", "Activity monitoring", "Monthly reports"],
-    cta: "Join waitlist",
-  },
-  {
-    id: "pro",
-    title: "Pro",
-    price: "$79/mo",
-    features: ["All Basic features", "Content suggestions", "Link & workflow optimization", "Priority integrations"],
-    cta: "Join waitlist",
-    featured: true,
-  },
-  {
-    id: "business",
-    title: "Business",
-    price: "$149/mo",
-    features: ["All Pro features", "Multi-user access", "API integration", "Dedicated support"],
-    cta: "Join waitlist",
-  },
+const PLANS = [
+    {
+        name: 'Starter',
+        price: 0,
+        description: 'For hobbyists and explorers.',
+        features: ['1 Workspace', '3 Active Bots', 'Basic Analytics', 'Community Support'],
+        popular: false,
+        cta: "Get Started Free"
+    },
+    {
+        name: 'Pro',
+        price: 9900, // Converted approx from 9900 Naira or just kept as standard SaaS pricing for landing page
+        currency: "₦",
+        description: 'For power users and creators.',
+        features: ['Unlimited Workspaces', 'Unlimited Bots', '1 Free Premium Bot / mo', '15% Store Discount', 'Full HiveMind Access', 'Priority Support'],
+        popular: true,
+        cta: "Start Pro Trial"
+    },
+    {
+        name: 'Business',
+        price: 24900,
+        currency: "₦",
+        description: 'For teams scaling up.',
+        features: ['Everything in Pro', '1 Free Super Business Bot', '30% Store Discount', 'Request Special Bot', 'Dedicated Success Manager', 'SLA Guarantee'],
+        popular: false,
+        cta: "Contact Sales"
+    },
 ];
 
 export default function Pricing() {
-  return (
-    <section className="relative overflow-hidden py-20">
-      <div className="relative mx-auto max-w-6xl px-6">
-        <h2 className="text-center text-4xl md:text-6xl font-extrabold text-white">Pricing</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-zinc-300">
-          Choose the right plan to meet your Bothive collaboration needs and start collaborating today.
-        </p>
+    const containerRef = useRef(null);
+    const isInView = useInView(containerRef, { once: true, margin: "-100px" });
 
-        <div className="mx-auto mt-8 flex items-center justify-center">
-          <div className="flex items-center gap-3">
-            <div className="h-6 w-11 rounded-full bg-white/10 p-1">
-              <div className="h-4 w-4 rounded-full bg-purple-400 ml-0.5" />
+    return (
+        <section
+            id="pricing"
+            className="relative py-32 px-6 bg-[#fafafa] dark:bg-[#030014] overflow-hidden"
+        >
+            {/* Background Effects */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet-500/5 rounded-full blur-[120px]" />
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px]" />
             </div>
-            <span className="text-sm text-zinc-400">team</span>
-          </div>
-        </div>
 
-        {/* Cards: centered row; cards constrained to 320px so they are less wide */}
-        <div className="mt-10 flex flex-col items-center gap-6 sm:flex-row sm:justify-center">
-          {plans.map((p) => (
-            <div
-              key={p.id}
-              className={`relative w-full max-w-[320px] overflow-hidden rounded-3xl border border-white/20 p-6 shadow-lg transition-all backdrop-blur-xl group hover:border-white/40 dark:hover:border-white/20 ${
-                p.featured ? "scale-105 -translate-y-1 bg-white/15 dark:bg-white/10" : "bg-white/10 dark:bg-white/5"
-              }`}
-            >
-              {/* left/right purple vignette */}
-              {p.id === "basic" && (
-                <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(400px_200px_at_15%_50%,rgba(124,58,237,0.12),transparent_40%)]" />
-              )}
-              {p.id === "business" && (
-                <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(400px_200px_at_85%_50%,rgba(124,58,237,0.12),transparent_40%)]" />
-              )}
+            <div ref={containerRef} className="relative max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="text-center mb-16 max-w-3xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={isInView ? { opacity: 1, y: 0 } : {}}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 mb-6">
+                            <Sparkles className="w-3 h-3" />
+                            Simple Pricing
+                        </span>
+                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-black to-black/60 dark:from-white dark:to-white/60">
+                            Choose your workforce
+                        </h2>
+                        <p className="text-lg text-black/50 dark:text-white/50 mb-10">
+                            Start for free, upgrade when you 're ready. Join the ecosystem where AI agents work for you.
+                        </p>
+                    </motion.div>
+                </div>
 
-              {/* featured card glow + background image */}
-              {p.featured && (
-                <>
-                  <div className="pointer-events-none absolute inset-0 rounded-2xl -z-10 blur-3xl bg-[radial-gradient(300px_120px_at_50%_30%,rgba(168,85,247,0.32),rgba(109,40,217,0.22),transparent_60%)] opacity-80" />
-                  <div className="absolute inset-0 rounded-2xl  bg-cover bg-center opacity-40 mix-blend-overlay" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-20">
+                    {PLANS.map((plan, index) => (
+                        <motion.div
+                            key={plan.name}
+                            initial={{ opacity: 0, y: 40 }}
+                            animate={isInView ? { opacity: 1, y: 0 } : {}}
+                            transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
+                            whileHover={{ y: -5 }}
+                            className={cn(
+                                "relative rounded-3xl p-8 flex flex-col justify-between border transition-all duration-300",
+                                plan.popular
+                                    ? "bg-[#0a0a0f] dark:bg-white text-white dark:text-black shadow-2xl scale-105 z-10 border-transparent relative"
+                                    : "bg-white dark:bg-white/[0.02] border-black/5 dark:border-white/5 text-black dark:text-white hover:border-black/10 dark:hover:border-white/10 hover:shadow-xl dark:hover:shadow-black/20"
+                            )}
+                        >
+                            {plan.popular && (
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
+                                    Most Popular
+                                </div>
+                            )}
 
-                  {/* grid overlay for featured card */}
-                 <GridLines/>
-                </>
-              )}
+                            <div>
+                                <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                                <p className={cn("text-sm mb-6", plan.popular ? "text-white/70 dark:text-black/70" : "text-black/50 dark:text-white/50")}>
+                                    {plan.description}
+                                </p>
+                                <div className="flex items-baseline gap-1 mb-8">
+                                    <span className="text-4xl font-bold">
+                                        {plan.price === 0 ? "Free" : `${plan.currency}${plan.price}`}
+                                    </span>
+                                    {plan.price > 0 && <span className="text-sm opacity-60">/month</span>}
+                                </div>
 
-              {/* card inner ring */}
-              <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/8" />
+                                <ul className="space-y-4 mb-8">
+                                    {plan.features.map((feature) => (
+                                        <li key={feature} className="flex items-center gap-3 text-sm">
+                                            <div className={cn(
+                                                "w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0",
+                                                plan.popular ? "bg-white/20 text-white dark:bg-black/10 dark:text-black" : "bg-black/5 dark:bg-white/10 text-black dark:text-white"
+                                            )}>
+                                                <Check className="w-3 h-3" />
+                                            </div>
+                                            <span className={plan.popular ? "text-white/90 dark:text-black/90" : "text-black/70 dark:text-white/70"}>
+                                                {feature}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
 
-              <div className="relative z-10 flex h-full flex-col justify-between">
-                <div>
-                  <h3 className="text-2xl font-semibold text-white">{p.title}</h3>
-                  <p className="mt-2 text-sm text-zinc-300">{p.price}</p>
+                            <Link href={plan.price === 0 ? "/signup" : "/dashboard/billing"} className="w-full">
+                                <button
+                                    className={cn(
+                                        "w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
+                                        plan.popular
+                                            ? "bg-white text-black hover:bg-white/90 dark:bg-black dark:text-white dark:hover:bg-black/90 shadow-lg"
+                                            : "bg-[#0a0a0f] dark:bg-white text-white dark:text-black hover:opacity-90 shadow-md"
+                                    )}
+                                >
+                                    {plan.cta} <Zap className="w-4 h-4" />
+                                </button>
+                            </Link>
 
-                  <hr className="my-6 border-t border-white/10" />
-
-                  <ul className="space-y-3 text-sm text-zinc-300">
-                    {p.features.map((f) => (
-                      <li key={f} className="flex items-start gap-3">
-                        <svg className="mt-1 h-4 w-4 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>{f}</span>
-                      </li>
+                            {plan.popular && (
+                                <div className="mt-4 flex items-center justify-center gap-2 text-xs opacity-60">
+                                    <ShieldCheck className="w-3 h-3" />
+                                    Secure payment via Paystack
+                                </div>
+                            )}
+                        </motion.div>
                     ))}
-                  </ul>
                 </div>
 
-                <div className="mt-6">
-                  {p.featured ? (
-                    <div className="relative flex justify-center">
-                      <div className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 h-5 w-56 rounded-full bg-purple-600 opacity-30 blur-3xl" />
-                      <button className="mx-auto w-56 relative inline-block rounded-[12px] py-3 text-sm font-semibold text-white bg-linear-to-b from-[#7c3aed] to-[#5b21b6] shadow-[0_12px_40px_rgba(124,58,237,0.36)] border border-white/10 overflow-hidden">
-                        <span className="absolute inset-0 rounded-[12px] bg-white/5 opacity-6 mix-blend-overlay" />
-                        <span className="relative z-10">{p.cta}</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <button className="w-full rounded-md py-3 text-sm font-medium bg-transparent ring-1 ring-white/10 text-white/90">{p.cta}</button>
-                  )}
-                </div>
-              </div>
+                {/* FAQ Link */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={isInView ? { opacity: 1 } : {}}
+                    transition={{ delay: 0.6 }}
+                    className="text-center"
+                >
+                    <p className="text-black/40 dark:text-white/40 text-sm">
+                        Have more questions?{" "}
+                        <a href="#faq" className="text-violet-600 dark:text-violet-400 font-medium hover:underline">
+                            Check our FAQ
+                        </a>
+                    </p>
+                </motion.div>
             </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+        </section>
+    );
 }
-function GridLines() {
-  return (
-    <svg
-      aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full opacity-70"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <pattern id="grid" width="220" height="160" patternUnits="userSpaceOnUse">
-          <path d="M 220 0 L 0 0 0 160" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="1" />
-        </pattern>
-        <linearGradient id="fade" x1="0" x2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0.15)" />
-        </linearGradient>
-      </defs>
-      {/* Outer grid */}
-      <rect width="100%" height="100%" fill="url(#grid)" />
-      {/* Horizontal accent line */}
-      <line x1="0" y1="50%" x2="100%" y2="50%" stroke="url(#fade)" strokeWidth="1" />
-    </svg>
-  );
-}
-// "use client"
-//
-// import React from "react";
-//
-// export default function Pricing() {
-// 	const plans = [
-// 		{
-// 			id: "basic",
-// 			title: "Pricing",
-// 			price: "$29/mo",
-// 			features: [
-// 				"Collaboration basics",
-// 				"Automated summaries",
-// 				"Activity monitoring",
-// 				"Monthly reports",
-// 			],
-// 			cta: "Join waitlist",
-// 		},
-// 		{
-// 			id: "pro",
-// 			title: "Pro",
-// 			price: "$79/mo",
-// 			features: [
-// 				"All Basic features",
-// 				"Content suggestions",
-// 				"Link & workflow optimization",
-// 				"Priority integrations",
-// 			],
-// 			cta: "Join waitlist",
-// 			featured: true,
-// 		},
-// 		{
-// 			id: "business",
-// 			title: "Business",
-// 			price: "$149/mo",
-// 			features: [
-// 				"All Pro features",
-// 				"Multi-user access",
-// 				"API integration",
-// 				"Dedicated support",
-// 			],
-// 			cta: "Join waitlist",
-// 		},
-// 	];
-//
-// 	return (
-// 		<section className="relative overflow-hidden py-20">
-// 			{/* radial ambient glow behind cards */}
-// 				<div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
-// 					<div
-// 						className="h-[480px] w-[1200px] rounded-[40px] opacity-90 blur-[56px] bg-[radial-gradient(40%_40%_at_50%_50%,rgba(168,85,247,0.28)_0%,rgba(109,40,217,0.38)_30%,rgba(76,29,149,0.25)_60%,rgba(0,0,0,0)_78%)] shadow-[0_0_220px_60px_rgba(168,85,247,0.12)]"
-// 					/>
-// 				</div>
-//
-// 			<div className="relative mx-auto max-w-3xl px-4">
-// 				<h2 className="text-center text-4xl md:text-6xl font-extrabold text-white">Pricing</h2>
-// 				<p className="mx-auto mt-3 max-w-2xl text-center text-sm text-zinc-300">
-// 					Choose the right plan to meet your Bothive collaboration needs and start collaborating today.
-// 				</p>
-//
-// 				<div className="mx-auto mt-8 flex items-center justify-center">
-// 					{/* small toggle placeholder visually matching design */}
-// 					<div className="flex items-center gap-3">
-// 						<div className="h-6 w-11 rounded-full bg-white/10 p-1">
-// 							<div className="h-4 w-4 rounded-full bg-purple-400 ml-[2px]" />
-// 						</div>
-// 						<span className="text-sm text-zinc-400">team</span>
-// 					</div>
-// 				</div>
-//                    
-// 				{/* Cards */}
-// 				<div className="mt-10 flex flex-col items-center gap-6 sm:flex-row sm:justify-center">
-// 					{plans.map((p, idx) => (
-// 							<div
-// 							key={p.id}
-// 								className={`relative overflow-hidden rounded-2xl border border-white/10 p-6 shadow-lg transition-transform ${
-// 									p.featured
-// 										? "scale-105 -translate-y-1 bg-[/Pricing Card.png] "
-// 										: "bg-black/60"
-// 								}`}
-// 						>
-// 								{/* left/right purple vignette overlays to match design vibe */}
-// 								{p.id === "basic" && (
-// 									<div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(400px_200px_at_15%_50%,rgba(124,58,237,0.12),transparent_40%)]" />
-// 								)}
-// 								{p.id === "business" && (
-// 									<div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(400px_200px_at_85%_50%,rgba(124,58,237,0.12),transparent_40%)]" />
-// 								)}
-//
-// 								{/* background image for featured (center) card */}
-// 								{p.featured && (
-// 									<div className="absolute inset-0 rounded-2xl bg-[url('/PricingCard.png')] bg-cover bg-center opacity-50 mix-blend-overlay" />
-// 								)}
-//
-// 								{/* inner faint grid and edge ring */}
-// 								<div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/8" />
-//
-// 								{/* subtle internal grid on featured (center) card */}
-// 								{p.featured && (
-// 									<svg
-// 										aria-hidden
-// 										className="pointer-events-none absolute inset-0 h-full w-full opacity-50 mix-blend-overlay"
-// 										xmlns="http://www.w3.org/2000/svg"
-// 									>
-// 										<defs>
-// 											<pattern id={`grid-${p.id}`} width="32" height="32" patternUnits="userSpaceOnUse">
-// 												<path d="M0 0 H32 M0 0 V32" fill="none" stroke="rgba(168,85,247,0.12)" strokeWidth="1" strokeDasharray="3 5" />
-// 											</pattern>
-// 										</defs>
-// 										<rect width="100%" height="100%" fill={`url(#grid-${p.id})`} />
-// 									</svg>
-// 								)}
-// 							<div className="relative z-10 max-w-md flex h-full flex-col justify-between">
-// 								<div>
-// 									<h3 className="text-2xl font-semibold text-white">{p.title}</h3>
-// 									<p className="mt-2 text-sm text-zinc-300">{p.price}</p>
-//
-// 									<hr className="my-6 border-t border-white/10" />
-//
-// 									<ul className="space-y-3 text-sm text-zinc-300">
-// 										{p.features.map((f) => (
-// 											<li key={f} className="flex items-start gap-3">
-// 												<svg className="mt-1 h-4 w-4 flex-shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-// 													<path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-// 												</svg>
-// 												<span>{f}</span>
-// 											</li>
-// 										))}
-// 									</ul>
-// 								<div
-//
-// 									className={`relative w-full max-w-[320px] overflow-hidden rounded-2xl border border-white/10 p-6 shadow-lg transition-transform ${
-// 									<button
-// 										className={`w-full rounded-md py-3 text-sm font-medium transition ${
-// 											p.featured
-// 												? "bg-purple-500 ring-white  text-white shadow-[0_8px_30px_rgba(124,58,237,0.25)]"
-// 												: "bg-transparent ring-1 ring-white/10 text-white/90"
-// 										}`}
-// 									>
-// 										{p.cta}
-// 									</button>
-// 								</div>
-// 							</div>
-// 						</div>
-// 					))}
-// 				</div>
-// 			</div>
-// 		</section>
-// 	);
-// }
-

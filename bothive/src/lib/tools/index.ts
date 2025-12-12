@@ -2,7 +2,6 @@ import { ToolDescriptor } from "@/lib/agentTypes";
 import { calendarTools } from "./calendar";
 import { tasksStorage, AutomationTask } from "@/lib/storage";
 import { randomUUID } from "crypto";
-import OpenAI from "openai";
 import { getConnectedAccount } from "@/lib/connected-accounts";
 import { createSocialPost, updateSocialPostStatus } from "@/lib/social-posts";
 import { publishTweet } from "@/lib/integrations/twitter";
@@ -10,63 +9,28 @@ import { publishLinkedInPost } from "@/lib/integrations/linkedin";
 import { sendSlackMessage } from "@/lib/integrations/slack";
 import { createIssue } from "@/lib/integrations/github";
 import { createNotionPage } from "@/lib/integrations/notion";
+import { calendarTools as newCalendarTools } from "./calendar-tools";
+import { zoomTools } from "./zoom-tools";
+import { notionTools } from "./notion-tools";
+import { emailTools } from "./email-tools";
+import { botCompositionTools } from "./bot-composition-tools";
+import { generateText as runGrokCommand } from "@/lib/ai-client";
+import { aiTools as importedAiTools } from "./ai-tools";
+import { analyticsTools as importedAnalyticsTools } from "./analytics-tools";
+import { agentOrchestrationTools as importedAgentOrchestrationTools } from "./agent-orchestration";
+import { contentTools as importedContentTools } from "./content-tools";
+import { visionTools as importedVisionTools } from "./vision-tools";
+import { analysisTools as importedAnalysisTools } from "./analysis-tools";
+import { googleDocsTools as importedGoogleDocsTools } from "./google-docs-tools";
+import { knowledgeTools as importedKnowledgeTools } from "./knowledge-tools";
 
-const groqClient =
-  process.env.GROQ_API_KEY
-    ? new OpenAI({
-        apiKey: process.env.GROQ_API_KEY,
-        baseURL: process.env.GROQ_API_URL ?? "https://api.groq.com/openai/v1",
-      })
-    : null;
 
-const GROQ_MODEL_CANDIDATES = ["openai/gpt-oss-20b"];
 
-async function runGrokCommand(prompt: string, models: string | string[] = GROQ_MODEL_CANDIDATES) {
-  if (!groqClient) {
-    throw new Error("Missing GROQ_API_KEY environment variable. Add it to .env.local to enable Groq tools.");
-  }
 
-  const modelCandidates = Array.isArray(models) ? models : [models];
-  let lastError: unknown = null;
+// Re-export agent tools
+export { agentTools } from "./agent-tools";
 
-  for (const candidate of modelCandidates) {
-    try {
-      const response = await groqClient.responses.create({
-        model: candidate,
-        input: prompt,
-      });
-
-      const text =
-        (response as { output_text?: string }).output_text ??
-        response.output
-          ?.map((item) =>
-            "content" in item
-              ? item.content
-                  ?.map((contentItem) => ("text" in contentItem && contentItem.text ? contentItem.text : ""))
-                  .join("\n") ?? ""
-              : ""
-          )
-          .join("\n") ?? "";
-
-      if (text.trim()) {
-        return text.trim();
-      }
-    } catch (error) {
-      lastError = error;
-      const message = error instanceof Error ? error.message : String(error);
-      const isPermission = message.includes("401") || message.includes("403") || message.toLowerCase().includes("permission");
-      const isNotFound = message.includes("404") || message.toLowerCase().includes("not found");
-      const isLimit = message.includes("429");
-      if (isPermission || isNotFound || isLimit) {
-        continue;
-      }
-    }
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("Grok models unavailable. Verify key access or adjust model list.");
-}
+const GROQ_MODEL_CANDIDATES = ["openai/gpt-oss-20b"]; // kept for signature compatibility, though generateText handles defaults
 
 export const integrationTools: ToolDescriptor[] = [
   {
@@ -212,14 +176,12 @@ export const integrationTools: ToolDescriptor[] = [
         };
       }
 
-      const record = await createSocialPost({
+      const record = await createSocialPost(
         userId,
-        platform,
+        platform as any,
         content,
-        scheduledFor,
-        status: scheduledFor ? "scheduled" : "draft",
-        source,
-      });
+        scheduledFor ? scheduledFor : undefined
+      );
 
       if (!record) {
         return { success: false, output: "Failed to schedule the social post." };
@@ -234,6 +196,10 @@ export const integrationTools: ToolDescriptor[] = [
       };
     },
   },
+  ...newCalendarTools,
+  ...zoomTools,
+  ...notionTools,
+  ...emailTools,
 ];
 
 export const generalTools: ToolDescriptor[] = [
@@ -278,26 +244,30 @@ export const generalTools: ToolDescriptor[] = [
     name: "general.recordTask",
     capability: "general.respond",
     description: "Capture a lightweight task in the shared automation list.",
-    async run(args) {
+    async run(args, ctx) {
+      const userId = ctx?.metadata?.userId;
+      if (!userId) return { success: false, output: "User ID required" };
+
       const title = typeof args.title === "string" && args.title.trim() ? args.title.trim() : "Untitled task";
       const due = typeof args.due === "string" ? args.due : null;
-      const task: AutomationTask = {
-        id: randomUUID(),
+
+      const { getSupabaseClient } = await import("@/lib/supabase");
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase.from("automation_tasks").insert({
+        user_id: userId,
         title,
         status: "open",
-        createdAt: new Date().toISOString(),
-        dueDate: due,
-        metadata: { createdBy: "general.recordTask", originalArgs: args },
-      };
+        due_date: due,
+        metadata: { createdBy: "general.recordTask", originalArgs: args }
+      }).select().single();
 
-      const tasks = await tasksStorage.read();
-      tasks.push(task);
-      await tasksStorage.write(tasks);
+      if (error) return { success: false, output: `Failed to create task: ${error.message}` };
 
       return {
         success: true,
-        output: `Added "${title}" to the automation queue${due ? ` (due ${due})` : ""}. Reference: ${task.id.slice(0, 6)}.`,
-        data: task,
+        output: `Added "${title}" to the automation queue${due ? ` (due ${due})` : ""}. Reference: ${data.id.slice(0, 6)}.`,
+        data: data,
       };
     },
   },
@@ -399,6 +369,7 @@ export const generalTools: ToolDescriptor[] = [
     },
   },
   ...calendarTools,
+  ...botCompositionTools,
 ];
 
 export const crmTools: ToolDescriptor[] = [
@@ -406,7 +377,10 @@ export const crmTools: ToolDescriptor[] = [
     name: "crm.logInteraction",
     capability: "general.respond",
     description: "Log a customer interaction and schedule a follow-up task.",
-    async run(args) {
+    async run(args, ctx) {
+      const userId = ctx?.metadata?.userId;
+      if (!userId) return { success: false, output: "User ID required" };
+
       const contact = typeof args.contact === "string" && args.contact.trim() ? args.contact.trim() : "Unnamed contact";
       const channel = typeof args.channel === "string" && args.channel.trim() ? args.channel.trim() : "email";
       const summary = typeof args.summary === "string" && args.summary.trim() ? args.summary.trim() : "General check-in";
@@ -415,27 +389,27 @@ export const crmTools: ToolDescriptor[] = [
       const due = new Date();
       due.setDate(due.getDate() + (Number.isFinite(followUpInDays) ? followUpInDays : 2));
 
-      const task: AutomationTask = {
-        id: randomUUID(),
+      const { getSupabaseClient } = await import("@/lib/supabase");
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase.from("automation_tasks").insert({
+        user_id: userId,
         title: `Follow up with ${contact}`,
         status: "open",
-        createdAt: new Date().toISOString(),
-        dueDate: due.toISOString(),
+        due_date: due.toISOString(),
         metadata: {
           createdBy: "crm.logInteraction",
           channel,
           summary,
         },
-      };
+      }).select().single();
 
-      const tasks = await tasksStorage.read();
-      tasks.push(task);
-      await tasksStorage.write(tasks);
+      if (error) return { success: false, output: `Failed to log interaction: ${error.message}` };
 
       return {
         success: true,
-        output: `Logged a ${channel} touchpoint with ${contact}. Summary: ${summary}. Scheduled a follow-up for ${due.toLocaleDateString()}. Reference ${task.id.slice(0, 6)}.`,
-        data: task,
+        output: `Logged a ${channel} touchpoint with ${contact}. Summary: ${summary}. Scheduled a follow-up for ${due.toLocaleDateString()}. Reference ${data.id.slice(0, 6)}.`,
+        data: data,
       };
     },
   },
@@ -443,32 +417,35 @@ export const crmTools: ToolDescriptor[] = [
     name: "crm.createLead",
     capability: "general.respond",
     description: "Create a lightweight lead record with scoring heuristics.",
-    async run(args) {
+    async run(args, ctx) {
+      const userId = ctx?.metadata?.userId;
+      if (!userId) return { success: false, output: "User ID required" };
+
       const company = typeof args.company === "string" && args.company.trim() ? args.company.trim() : "Unknown Co.";
       const interest = typeof args.interest === "string" && args.interest.trim() ? args.interest.trim() : "general";
       const score = Math.min(100, Math.max(10, Number(args.score ?? 65)));
 
-      const task: AutomationTask = {
-        id: randomUUID(),
+      const { getSupabaseClient } = await import("@/lib/supabase");
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase.from("automation_tasks").insert({
+        user_id: userId,
         title: `Nurture lead: ${company}`,
         status: "open",
-        createdAt: new Date().toISOString(),
         metadata: {
           createdBy: "crm.createLead",
           company,
           interest,
           score,
         },
-      };
+      }).select().single();
 
-      const tasks = await tasksStorage.read();
-      tasks.push(task);
-      await tasksStorage.write(tasks);
+      if (error) return { success: false, output: `Failed to create lead: ${error.message}` };
 
       return {
         success: true,
-        output: `Created a lead for ${company} (score ${score}). Focus area: ${interest}. Added to nurture queue (${task.id.slice(0, 6)}).`,
-        data: task,
+        output: `Created a lead for ${company} (score ${score}). Focus area: ${interest}. Added to nurture queue (${data.id.slice(0, 6)}).`,
+        data: data,
       };
     },
   },
@@ -701,47 +678,6 @@ Return JSON only:
   },
 ];
 
-export const contentTools: ToolDescriptor[] = [
-  {
-    name: "content.draftStatusUpdate",
-    capability: "general.respond",
-    description: "Draft a weekly status update using provided metrics and highlights.",
-    async run(args) {
-      const highlights = typeof args.highlights === "string" ? args.highlights : "No explicit highlights provided.";
-      const blockers = typeof args.blockers === "string" ? args.blockers : "None";
-      const goals = typeof args.goals === "string" ? args.goals : "Maintain momentum.";
-      const prompt = `Write a concise weekly status update. Highlights: ${highlights}. Blockers: ${blockers}. Next goals: ${goals}. Format with headings.`;
-
-      try {
-        const output = await runGrokCommand(prompt);
-        return { success: true, output };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Unable to reach language model.";
-        return {
-          success: false,
-          output: `Could not draft the update automatically (${message}). Draft manually starting with: Highlights - ${highlights}`,
-        };
-      }
-    },
-  },
-  {
-    name: "content.generateSocialThread",
-    capability: "general.respond",
-    description: "Generate a short social media thread describing a product feature.",
-    async run(args) {
-      const feature = typeof args.feature === "string" ? args.feature : "our latest feature";
-      const prompt = `Create a 4-post Twitter/X thread announcing ${feature}. Keep it energetic, with emojis, and end with a CTA.`;
-
-      try {
-        const output = await runGrokCommand(prompt);
-        return { success: true, output };
-      } catch (error) {
-        const fallback = `Post 1: We're excited to share ${feature}!\nPost 2: It helps teams stay organized.\nPost 3: Early users are loving the speed.\nPost 4: Try it today.`;
-        return { success: false, output: fallback };
-      };
-    },
-  },
-];
 
 export const codingTools: ToolDescriptor[] = [
   {
@@ -868,8 +804,8 @@ Only output valid JSON.`;
         typeof maxLength === "number"
           ? `Keep each draft under ${maxLength} characters.`
           : platform === "twitter"
-          ? "Keep each draft under 280 characters."
-          : "Aim for 2-3 tight sentences that still feel premium on LinkedIn.";
+            ? "Keep each draft under 280 characters."
+            : "Aim for 2-3 tight sentences that still feel premium on LinkedIn.";
 
       const prompt = `You are crafting ${platform === "twitter" ? "Twitter/X" : "LinkedIn"} copy for a futuristic, polished automation brand.
 
@@ -918,9 +854,9 @@ Return your answer as JSON only in this shape:
       // For demo purposes, we'll simulate the WhatsApp send
       // In production, you'd fetch connected WhatsApp account and use the integration
       console.log(`📱 WhatsApp Demo: Would send to ${phoneNumber}: ${message}`);
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         output: `WhatsApp message sent to ${phoneNumber}. Message: "${message}"`,
         data: {
           messageId: 'demo-' + Date.now(),
@@ -968,7 +904,7 @@ Return only the code with explanations.`;
   },
   {
     name: "coding.review",
-    capability: "general.respond", 
+    capability: "general.respond",
     description: "Review code for bugs, security issues, and best practices.",
     async run(args) {
       const code = typeof args.code === "string" ? args.code.trim() : "";
@@ -981,7 +917,7 @@ Return only the code with explanations.`;
 
       const focusAreas = {
         security: "security vulnerabilities and best practices",
-        performance: "performance bottlenecks and optimizations", 
+        performance: "performance bottlenecks and optimizations",
         style: "code style, readability, and maintainability",
         bugs: "potential bugs and logic errors",
         general: "overall code quality and best practices"
@@ -1105,11 +1041,11 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
 
       // Import email function
       const { sendEmail } = await import('./communication');
-      
+
       try {
         const result = await sendEmail({ account: null, to, subject, body, cc, bcc });
-        return { 
-          success: true, 
+        return {
+          success: true,
           output: `Email sent successfully to ${to}. Message ID: ${result.messageId}`,
           data: result
         };
@@ -1134,11 +1070,11 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
       }
 
       const { replyToEmail } = await import('./communication');
-      
+
       try {
         const result = await replyToEmail({ account: null, emailId, replyTo, subject, body });
-        return { 
-          success: true, 
+        return {
+          success: true,
           output: `Reply sent to ${replyTo}. Message ID: ${result.messageId}`,
           data: result
         };
@@ -1157,11 +1093,11 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
       const unreadOnly = args.unreadOnly === true;
 
       const { checkEmails } = await import('./communication');
-      
+
       try {
         const result = await checkEmails({ account: null, folder, unreadOnly });
-        return { 
-          success: true, 
+        return {
+          success: true,
           output: `Found ${result.count} emails in ${folder}${unreadOnly ? ' (unread only)' : ''}`,
           data: result
         };
@@ -1184,11 +1120,11 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
       }
 
       const { sendSMS } = await import('./communication');
-      
+
       try {
         const result = await sendSMS({ account: null, phoneNumber, message });
-        return { 
-          success: true, 
+        return {
+          success: true,
           output: `SMS sent to ${phoneNumber}. Message ID: ${result.messageId}`,
           data: result
         };
@@ -1212,11 +1148,11 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
       }
 
       const { sendSlackMessage } = await import('./communication');
-      
+
       try {
         const result = await sendSlackMessage({ account: null, channel, message, threadId });
-        return { 
-          success: true, 
+        return {
+          success: true,
           output: `Slack message sent to #${channel}. Message ID: ${result.messageId}`,
           data: result
         };
@@ -1234,11 +1170,11 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
       const channel = typeof args.channel === "string" ? args.channel.trim() : undefined;
 
       const { checkSlackMessages } = await import('./communication');
-      
+
       try {
         const result = await checkSlackMessages({ account: null, channel });
-        return { 
-          success: true, 
+        return {
+          success: true,
           output: `Found ${result.count} Slack messages${channel ? ` in #${channel}` : ''}`,
           data: result
         };
@@ -1261,11 +1197,11 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
       }
 
       const { sendDiscordMessage } = await import('./communication');
-      
+
       try {
         const result = await sendDiscordMessage({ account: null, channelId, message });
-        return { 
-          success: true, 
+        return {
+          success: true,
           output: `Discord message sent to channel ${channelId}. Message ID: ${result.messageId}`,
           data: result
         };
@@ -1291,18 +1227,18 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
       }
 
       const { processIncomingMessage } = await import('./communication');
-      
+
       try {
-        const result = await processIncomingMessage({ 
-          account: null, 
-          platform: platform as any, 
-          messageId, 
-          sender, 
-          content, 
-          timestamp 
+        const result = await processIncomingMessage({
+          account: null,
+          platform: platform as any,
+          messageId,
+          sender,
+          content,
+          timestamp
         });
-        return { 
-          success: true, 
+        return {
+          success: true,
           output: `Processed ${platform} message from ${sender}`,
           data: result
         };
@@ -1313,3 +1249,27 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
     },
   },
 ];
+
+// Export all tools combined
+export const allTools = [
+  ...integrationTools,
+  ...generalTools,
+  ...crmTools,
+  ...messagingTools,
+  ...importedAiTools,
+  ...importedAnalyticsTools,
+  ...importedAgentOrchestrationTools,
+  ...importedContentTools,
+  ...importedVisionTools,
+  ...importedGoogleDocsTools,
+  ...importedKnowledgeTools,
+];
+
+// Export individual tool sets
+export { importedAiTools as aiTools };
+export { importedContentTools as contentTools };
+export { importedAnalyticsTools as analyticsTools };
+export { importedAgentOrchestrationTools as agentOrchestrationTools };
+export { importedVisionTools as visionTools };
+export { importedAnalysisTools as analysisTools };
+export { importedKnowledgeTools as knowledgeTools };

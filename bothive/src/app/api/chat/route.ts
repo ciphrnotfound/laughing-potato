@@ -1,121 +1,173 @@
-import { NextRequest } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { runBotPipeline } from "@/lib/orchestrator";
-import type { RunRequest } from "@/lib/agentTypes";
+import { NextRequest, NextResponse } from "next/server";
+import { aiClient, AI_MODEL, FALLBACK_MODELS } from "@/lib/ai-client";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { TIER_CONFIG, SubscriptionTier } from "@/lib/subscription-tiers";
 
-const POSTGRES_UNDEFINED_COLUMN = "42703";
-const POSTGREST_MISSING_COLUMN = "PGRST204";
+export const runtime = "nodejs";
+export const maxDuration = 30;
 
-const isMissingColumnError = (error: unknown): error is { code?: string } =>
-  typeof error === "object" &&
-  error !== null &&
-  "code" in error &&
-  (((error as { code?: string }).code === POSTGRES_UNDEFINED_COLUMN) || (error as { code?: string }).code === POSTGREST_MISSING_COLUMN);
+interface ChatRequest {
+    message: string;
+    systemPrompt?: string;
+    botName?: string;
+    conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
+    temperature?: number;
+}
 
-export async function POST(req: NextRequest) {
-  const body = (await req.json()) as {
-    botId?: string;
-    botVersionId?: string;
-    triggeredBy?: string;
-    runId?: string;
-    context?: Record<string, unknown>;
-    steps?: RunRequest["steps"];
-    capability?: string;
-    input?: Record<string, unknown> | string;
-  };
+export async function POST(request: NextRequest) {
+    try {
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) { return cookieStore.get(name)?.value; },
+                    set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
+                    remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
+                },
+            }
+        );
 
-  if (!body.botId) {
-    return Response.json({ error: "botId is required" }, { status: 400 });
-  }
+        // Get current user (optional for public bots, but required for usage tracking)
+        const { data: { user } } = await supabase.auth.getUser();
 
-  const steps =
-    body.steps && body.steps.length > 0
-      ? body.steps
-      : body.capability && body.input
-        ? [{ agentId: body.capability, input: body.input }]
-        : null;
+        const body = (await request.json()) as ChatRequest;
+        const { message, systemPrompt, botName, conversationHistory = [], temperature = 0.8 } = body;
 
-  if (!steps) {
-    return Response.json({ error: "Provide steps or capability + input" }, { status: 400 });
-  }
-
-  let runId = body.runId ?? null;
-
-  try {
-    if (!runId) {
-      const { data: runInsert, error: runInsertError } = await supabase
-        .from("bot_runs")
-        .insert({
-          bot_id: body.botId,
-          bot_version_id: body.botVersionId ?? null,
-          triggered_by: body.triggeredBy ?? null,
-          context: body.context ?? {},
-          status: "running",
-        })
-        .select("id")
-        .single();
-
-      if (runInsertError || !runInsert?.id) {
-        if (isMissingColumnError(runInsertError)) {
-          const { data: fallbackInsert, error: fallbackError } = await supabase
-            .from("bot_runs")
-            .insert({ bot_id: body.botId })
-            .select("id")
-            .single();
-
-          if (fallbackError || !fallbackInsert?.id) {
-            throw fallbackError ?? new Error("Failed to create run record (legacy schema)");
-          }
-
-          runId = fallbackInsert.id;
-        } else {
-          throw runInsertError ?? new Error("Failed to create run record");
+        if (!message) {
+            return NextResponse.json({ error: "Message is required" }, { status: 400 });
         }
-      } else {
-        runId = runInsert.id;
-      }
+
+        // Apply usage limits if user is logged in
+        if (user) {
+            const currentMonth = new Date().toISOString().slice(0, 7);
+
+            // Admin Override
+            const ADMIN_EMAIL = "akinlorinjeremiah@gmail.com";
+            if (user.email === ADMIN_EMAIL) {
+                // Admin has unlimited access, skip checks
+            } else {
+                // Get tier
+                const { data: userData } = await supabase
+                    .from("users")
+                    .select("tier")
+                    .eq("id", user.id)
+                    .single();
+
+                const tier: SubscriptionTier = userData?.tier || 'free';
+                const limit = TIER_CONFIG[tier].aiMessagesPerMonth;
+
+                // Check usage
+                if (limit !== -1) {
+                    const { data: usageData } = await supabase
+                        .from("usage_tracking")
+                        .select("ai_messages_used")
+                        .eq("user_id", user.id)
+                        .eq("month_year", currentMonth)
+                        .single();
+
+                    const used = usageData?.ai_messages_used || 0;
+
+                    if (used >= limit) {
+                        return NextResponse.json({
+                            error: "Usage limit reached",
+                            upgradeRequired: true,
+                            tier,
+                            limit,
+                            used
+                        }, { status: 429 });
+                    }
+                }
+            }
+        }
+
+        // Build the messages array
+        const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
+
+        // Add system prompt
+        if (systemPrompt) {
+            messages.push({
+                role: "system",
+                content: systemPrompt,
+            });
+        } else {
+            messages.push({
+                role: "system",
+                content: `You are ${botName || "an AI assistant"}. Be helpful, creative, and engaging.`,
+            });
+        }
+
+        // Add conversation history
+        for (const msg of conversationHistory) {
+            messages.push({
+                role: msg.role,
+                content: msg.content,
+            });
+        }
+
+        // Add the current user message
+        messages.push({
+            role: "user",
+            content: message,
+        });
+
+        // Try models with fallback
+        const models = [AI_MODEL, ...FALLBACK_MODELS];
+        let lastError: Error | null = null;
+        let successfulResponse: any = null;
+
+        for (const model of models) {
+            try {
+                const response = await aiClient.chat.completions.create({
+                    model,
+                    messages,
+                    temperature,
+                    max_tokens: 1024,
+                });
+
+                const content = response.choices[0]?.message?.content?.trim();
+
+                if (content) {
+                    successfulResponse = {
+                        response: content,
+                        model,
+                        usage: response.usage,
+                    };
+                    break;
+                }
+            } catch (error) {
+                console.warn(`Model ${model} failed:`, error);
+                lastError = error instanceof Error ? error : new Error(String(error));
+                // Continue to next model
+            }
+        }
+
+        if (successfulResponse) {
+            // Track usage asynchronously if user is logged in
+            if (user) {
+                const currentMonth = new Date().toISOString().slice(0, 7);
+                await supabase.from("usage_tracking").upsert({
+                    user_id: user.id,
+                    month_year: currentMonth,
+                    // We use a raw SQL query typically for increment, but upsert with existing value logic in client is tricky
+                    // Simplest is to call the RPC we defined in migration
+                }).select().then(async () => {
+                    // Call RPC to increment safely
+                    await supabase.rpc('increment_ai_usage', { p_user_id: user.id });
+                });
+            }
+
+            return NextResponse.json(successfulResponse);
+        }
+
+        // All models failed
+        throw lastError || new Error("All AI models failed to respond");
+
+    } catch (error) {
+        console.error("Chat API error:", error);
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
-
-    if (!runId) {
-      throw new Error("Run record creation did not return an id");
-    }
-
-    const payload: RunRequest = {
-      steps,
-      botVersionId: body.botVersionId,
-      context: body.context,
-    };
-
-    const result = await runBotPipeline(runId, payload);
-
-    const messagesPayload = result.transcript.map((message) => ({
-      run_id: runId,
-      sender: message.role,
-      payload: message,
-    }));
-
-    if (messagesPayload.length > 0) {
-      const { error: logError } = await supabase.from("bot_run_messages").insert(messagesPayload);
-      if (logError && !isMissingColumnError(logError)) {
-        console.error("Failed to log run messages", logError);
-      }
-    }
-
-    return Response.json({ runId, ...result }, { status: 200 });
-  } catch (error) {
-    console.error("Chat run error:", error);
-    let message: string;
-    if (error instanceof Error) {
-      message = error.message;
-    } else if (typeof error === "string") {
-      message = error;
-    } else {
-      try {
-        message = `Failed to execute chat workflow: ${JSON.stringify(error)}`;
-      } catch {
-        message = "Failed to execute chat workflow";
-      }
-    }
-    return Response.json({ error: message }, { status: 500 });
-  }
 }

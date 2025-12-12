@@ -1,210 +1,231 @@
 "use client";
-
-import React, { Suspense, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
-  LayoutDashboard,
-  Zap,
-  Network,
-  Store,
-  Brain,
-  Plug,
-  Settings,
-  LogOut,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  HelpCircle,
-  Search,
-  Video,
-} from "lucide-react";
+  IconArrowLeft,
+  IconBrandTabler,
+  IconSettings,
+  IconUserBolt,
+  IconRobot,
+  IconAffiliate,
+  IconApi,
+  IconWebhook,
+  IconActivity,
+  IconCreditCard,
+  IconFiles,
+  IconChartBar,
+  IconShieldLock,
+  IconLock,
+  IconListCheck,
+  IconWorld,
+  IconUsers,
+  IconBuildingStore,
+  IconTerminal2,
+  IconBrain,
+  IconPlug,
+  IconRosetteDiscountCheckFilled,
+  IconBriefcase,
+  IconClipboardList
+} from "@tabler/icons-react";
+import Link from "next/link";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import { UserRole } from "@/lib/database.types"; // Ensure user_role is exported or just use string literal if not
+import Image from "next/image";
+
+// Map lucide icons or use tabler equivalents for consistency with demo
+// Using Tabler icons as requested by "make it this @DashboardDemo"
 
 interface SidebarItem {
   id: string;
   label: string;
-  icon: React.ReactNode;
+  icon: React.JSX.Element | React.ReactNode;
   href: string;
-  badge?: number;
 }
 
-const sidebarItems: SidebarItem[] = [
-  { id: "overview", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" />, href: "/dashboard" },
-  { id: "agents", label: "Projects", icon: <Zap className="w-5 h-5" />, href: "/dashboard?tab=agents" },
-  { id: "orchestrator", label: "Tasks", icon: <Network className="w-5 h-5" />, href: "/dashboard?tab=orchestrator" },
-  { id: "marketplace", label: "Reporting", icon: <Store className="w-5 h-5" />, href: "/dashboard?tab=marketplace" },
-  { id: "memory", label: "Users", icon: <Brain className="w-5 h-5" />, href: "/dashboard?tab=memory" },
-  { id: "integrations", label: "Automation", icon: <Plug className="w-5 h-5" />, href: "/dashboard?tab=integrations" },
+// Menu Items Configuration
+const BASE_ITEMS: SidebarItem[] = [
+  { id: "overview", label: "Overview", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard" },
+  { id: "workforce", label: "My Workforce", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/workforce" },
+  { id: "knowledge", label: "Knowledge", icon: <IconBrain className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/knowledge" },
+  { id: "agents", label: "Agents", icon: <IconUserBolt className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/agents" },
+  { id: "billing", label: "Billing", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/billing" },
+  { id: "orchestrator", label: "Orchestrator", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/orchestrator" },
 ];
 
-interface DashboardSidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCollapseChange?: (collapsed: boolean) => void;
-}
+const MARKETPLACE_ITEM: SidebarItem = { id: "marketplace", label: "Marketplace", icon: <IconBuildingStore className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/marketplace" };
+const INTEGRATIONS_ITEM: SidebarItem = { id: "integrations", label: "Integrations", icon: <IconPlug className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/integrations" };
 
-export default function DashboardSidebar({ isOpen, onClose, onCollapseChange }: DashboardSidebarProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const activeTab = searchParams?.get("tab") || "overview";
-  const [collapsed, setCollapsed] = useState(false);
 
-  const handleCollapse = () => {
-    const newCollapsed = !collapsed;
-    setCollapsed(newCollapsed);
-    onCollapseChange?.(newCollapsed);
-  };
+const EMPLOYEES_ITEM: SidebarItem = { id: "employees", label: "Employees", icon: <IconBriefcase className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/employees" };
+const TASKS_ITEM: SidebarItem = { id: "tasks", label: "Task Board", icon: <IconClipboardList className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/tasks" };
+
+const ROLE_CONFIG: Record<string, SidebarItem[]> = {
+  business: [
+    ...BASE_ITEMS,
+    EMPLOYEES_ITEM,
+    TASKS_ITEM,
+    MARKETPLACE_ITEM,
+    INTEGRATIONS_ITEM,
+    { id: "business-special", label: "Special Request", icon: <IconRosetteDiscountCheckFilled className="h-5 w-5 shrink-0 text-amber-500" />, href: "/dashboard/business/special-request" },
+  ],
+  developer: [
+    ...BASE_ITEMS,
+    { id: "api-keys", label: "API Keys", icon: <IconApi className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/api-keys" },
+    { id: "webhooks", label: "Webhooks", icon: <IconWebhook className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/webhooks" },
+    { id: "logs", label: "Live Logs", icon: <IconActivity className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/logs" },
+    { id: "documentation", label: "Docs", icon: <IconFiles className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/docs" },
+  ],
+  enterprise: [
+    ...BASE_ITEMS,
+    EMPLOYEES_ITEM,
+    TASKS_ITEM,
+    { id: "analytics", label: "Analytics", icon: <IconChartBar className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/enterprise/analytics" },
+    { id: "compliance", label: "Compliance", icon: <IconShieldLock className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/enterprise/compliance" },
+    { id: "sso", label: "SSO Settings", icon: <IconLock className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/enterprise/sso" },
+    { id: "audit", label: "Audit Logs", icon: <IconListCheck className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/enterprise/audit" },
+  ],
+  admin: [
+    { id: "global-overview", label: "Global Status", icon: <IconWorld className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/status" },
+    { id: "users", label: "User Management", icon: <IconUsers className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/users" },
+    { id: "tenants", label: "Tenants", icon: <IconBuildingStore className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/tenants" },
+    { id: "approvals", label: "Pending Approvals", icon: <IconListCheck className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/approvals" },
+    ...BASE_ITEMS,
+    INTEGRATIONS_ITEM,
+    { id: "system-logs", label: "System Logs", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/logs" },
+  ]
+};
+
+export default function DashboardSidebar() {
+  const [open, setOpen] = useState(false);
+  const [role, setRole] = useState<string>("business");
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [teamName, setTeamName] = useState<string>("");
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        setUserEmail(user.email || "");
+
+        // Strict Admin Check
+        if (user.email === "akinlorinjeremiah@gmail.com") {
+          setRole("admin");
+          return;
+        }
+
+        // Database Check
+        const { data: userProfile } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        if (userProfile?.role) {
+          setRole(userProfile.role);
+        }
+
+        // Fetch user profile for team name
+        const { data: profileData } = await supabase
+          .from("user_profiles")
+          .select("team_name, preferred_name")
+          .eq("user_id", user.id)
+          .single();
+
+        if (profileData?.team_name) setTeamName(profileData.team_name);
+        else if (profileData?.preferred_name) setTeamName(profileData.preferred_name);
+      }
+    };
+    fetchUserRole();
+  }, []);
+
+  const links = ROLE_CONFIG[role] || ROLE_CONFIG.business;
 
   const handleSignOut = async () => {
-    try {
-      await fetch("/api/auth/session", { method: "DELETE" });
-      window.location.href = "/signin";
-    } catch (error) {
-      console.error("Sign out error:", error);
-    }
+    await fetch("/api/auth/session", { method: "DELETE" });
+    window.location.href = "/signin";
   };
 
   return (
-    <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed left-0 top-0 h-full bg-[#0B0F19] text-white border-r border-white/10 z-50 transition-all duration-300 ease-in-out lg:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full",
-          collapsed ? "w-20" : "w-72"
-        )}
-      >
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="h-full w-full bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:28px_28px]" />
-        </div>
-
-        <div className="relative z-10 flex h-full flex-col px-4 pb-6">
-          <div className="flex items-center justify-between pt-6 pb-5">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8C89FF] via-[#C0B8FF] to-white shadow-[0_10px_20px_rgba(140,137,255,0.35)]">
-                <span className="h-5 w-5 rounded-xl bg-[#181C2F]" />
-              </span>
-              {!collapsed && (
-                <div>
-                  <p className="text-sm font-semibold">Untitled UI</p>
-                  <p className="text-xs text-white/50">Control center</p>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCollapse}
-                className="hidden lg:flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-white/60 transition hover:border-white/20 hover:text-white"
-              >
-                {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={onClose}
-                className="lg:hidden h-9 w-9 rounded-lg border border-white/10 text-white/60 transition hover:border-white/20 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {!collapsed && (
-            <div className="mb-6 hidden rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-sm text-white/60 md:flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              <span className="truncate">Search</span>
-              <span className="ml-auto rounded border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/40">⌘K</span>
-            </div>
-          )}
-
-          <nav className="flex-1 space-y-1 overflow-y-auto">
-            {sidebarItems.map((item) => {
-              const isActive = activeTab === item.id || (item.id === "overview" && pathname === "/dashboard" && !activeTab);
-              return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  onClick={onClose}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition",
-                    isActive
-                      ? "bg-white/10 text-white"
-                      : "text-white/55 hover:bg-white/5 hover:text-white"
-                  )}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <span className="flex-shrink-0 text-white/60 group-hover:text-white">{item.icon}</span>
-                  {!collapsed && <span className="font-medium">{item.label}</span>}
-                  {item.badge && !collapsed && (
-                    <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-xs">{item.badge}</span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {!collapsed && (
-            <div className="mt-6 space-y-4 text-sm text-white/70">
-              <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-white/5 text-left">
-                <HelpCircle className="h-4 w-4 text-white/50" />
-                Support
-              </button>
-              <Link
-                href="/dashboard?tab=settings"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-white/5"
-              >
-                <Settings className="h-4 w-4 text-white/50" />
-                Settings
-              </Link>
-
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="flex gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10">
-                    <Video className="h-5 w-5 text-white/80" />
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-sm font-semibold text-white">New features available!</p>
-                      <p className="text-xs text-white/55">Check out the new dashboard view. Pages now load faster.</p>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-white/60">
-                      <button className="rounded-md border border-white/15 px-3 py-1 hover:bg-white/10">Dismiss</button>
-                      <button className="rounded-md bg-white/90 px-3 py-1 font-medium text-black hover:bg-white">What’s new?</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-6 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#8C89FF] to-[#5A57D9] text-sm font-semibold">OR</span>
-            {!collapsed && (
-              <div className="flex-1 overflow-hidden">
-                <p className="truncate text-sm font-medium text-white">Olivia Rhye</p>
-                <p className="truncate text-xs text-white/55">olivia@untitledui.com</p>
-              </div>
-            )}
-            {!collapsed && (
-              <button
-                onClick={handleSignOut}
-                className="rounded-lg border border-white/10 px-3 py-1 text-xs text-white/60 transition hover:border-white/20 hover:text-white"
-              >
-                Sign out
-              </button>
-            )}
+    <Sidebar open={open} setOpen={setOpen}>
+      <SidebarBody className="justify-between gap-10">
+        <div className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+          {open ? <Logo role={role} /> : <LogoIcon />}
+          <div className="mt-8 flex flex-col gap-2">
+            {links.map((link) => (
+              <SidebarLink key={link.id} link={link} />
+            ))}
           </div>
         </div>
-      </aside>
-    </>
+        <div className="flex flex-col gap-2">
+          <SidebarLink
+            link={{
+              label: "Settings",
+              href: "/dashboard/settings",
+              icon: <IconSettings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+            }}
+          />
+          <div onClick={handleSignOut} className="cursor-pointer">
+            <SidebarLink
+              link={{
+                label: "Logout",
+                href: "#",
+                icon: <IconArrowLeft className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+              }}
+            />
+          </div>
+          <SidebarLink
+            link={{
+              label: teamName || userEmail || "User",
+              href: "/dashboard/profile",
+              icon: (
+                <div className="relative">
+                  <div className="h-7 w-7 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-xs font-bold text-neutral-700 dark:text-neutral-200">
+                    {(userEmail[0] || "U").toUpperCase()}
+                  </div>
+                  {userEmail === "akinlorinjeremiah@gmail.com" && (
+                    <div className="absolute -top-1 -right-1 bg-white dark:bg-black rounded-full text-blue-500">
+                      <IconRosetteDiscountCheckFilled className="h-3.5 w-3.5" />
+                    </div>
+                  )}
+                </div>
+              ),
+            }}
+          />
+        </div>
+      </SidebarBody>
+    </Sidebar>
   );
 }
 
+export const Logo = ({ role }: { role: string }) => {
+  return (
+    <Link
+      href="/dashboard"
+      className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
+    >
+      {/* <div className="h-5 w-6 bg-black dark:bg-white rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" /> */}
+      <Image src="/colored-logo (2).png" alt="logo" width={40} height={40} />
+      <motion.span
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="font-medium text-black dark:text-white whitespace-pre"
+      >
+        Bothive <span className="text-xs text-neutral-500 uppercase ml-1 tracking-widest">{role}</span>
+      </motion.span>
+    </Link>
+  );
+};
+
+export const LogoIcon = () => {
+  return (
+    <Link
+      href="/dashboard"
+      className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
+    >
+      <div className="h-5 w-6 bg-black dark:bg-white rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" />
+    </Link>
+  );
+};

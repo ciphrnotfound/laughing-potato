@@ -7,25 +7,39 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
+import { NavDropdown } from "./NavDropdown";
 
-type NavItem = { name: string; href: string };
-
-const NAV_ITEMS: NavItem[] = [
-  { name: "Features", href: "/features" },
-  { name: "Developers", href: "/developers" },
-  { name: "Pricing", href: "/pricing" },
-  { name: "Blog", href: "/blog" },
-  { name: "Changelog", href: "/about" },
-  { name: "Contact", href: "/contact" },
+const NAV_GROUPS = [
+  {
+    title: "Product",
+    items: [
+      { title: "Features", description: "The neural engine, memory, and security.", href: "/features" },
+      { title: "Swarm Builder", description: "Visually architect your agent swarms.", href: "/builder" },
+      { title: "Pricing", description: "Start for free, scale with your swarm.", href: "/pricing" },
+    ]
+  },
+  {
+    title: "Resources",
+    items: [
+      { title: "Documentation", description: "Guides, API references, and concepts.", href: "/changelog" }, // Changelog is now Docs
+      { title: "Blog", description: "Latest updates and deep dives.", href: "/blog" },
+      { title: "Changelog", description: "See what's new in BotHive.", href: "/changelog" },
+    ]
+  },
+  {
+    title: "Company",
+    items: [
+      { title: "Manifesto", description: "Meet the founder and our mission.", href: "/founder" },
+      { title: "Careers", description: "Join the core engineering team.", href: "/developers" }, // Careers is /developers
+      { title: "Contact", description: "Get in touch with us.", href: "/contact" },
+    ]
+  }
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
   const pathname = usePathname();
 
   useEffect(() => {
@@ -38,16 +52,10 @@ export default function Navbar() {
   const onLinkClick = () => setOpen(false);
 
   const headerClass = cn(
-    "fixed inset-x-0 top-0 z-50 border-b backdrop-blur-md",
-    isDark ? "border-white/10 bg-[#080A14]/92" : "border-[#D5DCFF]/80 bg-white/90"
+    "fixed inset-x-0 top-0 z-50 border-b backdrop-blur-md transition-colors duration-300",
+    "border-[#D5DCFF]/80 bg-white/20", // Light mode
+    "dark:border-white/10 dark:bg-[#080A14]/32" // Dark mode
   );
-
-  const navItemClass = (href: string) =>
-    cn(
-      "inline-flex items-center px-1 text-sm font-medium",
-      isDark ? "text-white/65" : "text-[#1F2758]/75",
-      pathname === href ? (isDark ? "text-white" : "text-[#0C1024]") : undefined
-    );
 
   return (
     <header className={headerClass}>
@@ -57,14 +65,13 @@ export default function Navbar() {
             <Link
               href="/"
               className="group inline-flex items-center gap-3 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6D5BFF]/60"
-              >
+            >
               <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-xl">
                 <span
                   className={cn(
                     "absolute inset-0 rounded-xl blur-md",
-                    isDark
-                      ? "bg-[radial-gradient(circle_at_center,rgba(140,89,255,0.45),transparent_70%)]"
-                      : "bg-[radial-gradient(circle_at_center,rgba(129,118,255,0.26),transparent_72%)]"
+                    "bg-[radial-gradient(circle_at_center,rgba(129,118,255,0.26),transparent_72%)]",
+                    "dark:bg-[radial-gradient(circle_at_center,rgba(140,89,255,0.45),transparent_70%)]"
                   )}
                 />
                 <Image
@@ -78,8 +85,8 @@ export default function Navbar() {
               </span>
               <span
                 className={cn(
-                  "hidden text-sm font-semibold tracking-[0.28em] uppercase sm:inline-block",
-                  isDark ? "text-white/75" : "text-[#1F2758]/75"
+                  "hidden text-sm font-semibold tracking-[0.28em] uppercase sm:inline-block transition-colors",
+                  "text-[#1F2758]/75 dark:text-white/75"
                 )}
               >
                 Bothive
@@ -88,12 +95,10 @@ export default function Navbar() {
           </div>
 
           <nav className="hidden flex-1 justify-center md:flex" aria-label="Primary">
-            <ul className="flex items-center gap-6">
-              {NAV_ITEMS.map((item) => (
-                <li key={item.name}>
-                  <Link href={item.href} onClick={onLinkClick} className={navItemClass(item.href)}>
-                    {item.name}
-                  </Link>
+            <ul className="flex items-center gap-2">
+              {NAV_GROUPS.map(group => (
+                <li key={group.title}>
+                  <NavDropdown title={group.title} items={group.items} scrolled={scrolled} />
                 </li>
               ))}
             </ul>
@@ -106,10 +111,9 @@ export default function Navbar() {
                 href="/signup"
                 onClick={onLinkClick}
                 className={cn(
-                  "inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium",
-                  isDark
-                    ? "border border-white/12 text-white/70"
-                    : "border border-[#C5CEFF]/60 text-[#1F2758]/70"
+                  "inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  "border border-[#C5CEFF]/60 text-[#1F2758]/70",
+                  "dark:border-white/12 dark:text-white/70"
                 )}
               >
                 Sign up
@@ -118,8 +122,9 @@ export default function Navbar() {
                 href="/signin"
                 onClick={onLinkClick}
                 className={cn(
-                  "inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold",
-                  isDark ? "bg-[#6D5BFF] text-white" : "bg-[#5D6BFF] text-white"
+                  "inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
+                  "bg-[#5D6BFF] text-white",
+                  "dark:bg-[#6D5BFF]"
                 )}
               >
                 Log in
@@ -131,9 +136,8 @@ export default function Navbar() {
               aria-label={open ? "Close menu" : "Open menu"}
               className={cn(
                 "inline-flex h-10 w-10 items-center justify-center rounded-md transition md:hidden",
-                isDark
-                  ? "text-white/65 hover:bg-white/10"
-                  : "text-[#1F2758]/70 hover:bg-[#E8ECFF]"
+                "text-[#1F2758]/70 hover:bg-[#E8ECFF]",
+                "dark:text-white/65 dark:hover:bg-white/10"
               )}
             >
               <svg
@@ -154,43 +158,46 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Mobile Menu */}
       <div
         className={cn(
           "overflow-hidden transition-[max-height] duration-400 md:hidden",
-          open ? "max-h-[460px]" : "max-h-0"
+          open ? "max-h-[600px]" : "max-h-0"
         )}
         aria-hidden={!open}
       >
-        <div className="px-4 pb-6 pt-2">
-          <ul className="flex flex-col gap-1">
-            {NAV_ITEMS.map((item, idx) => (
-              <li
-                key={item.name}
-                className="border-b border-white/5 last:border-none dark:border-white/10"
-              >
-                <Link
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "block px-2 py-3 text-sm font-medium",
-                    isDark
-                      ? "text-white/80"
-                      : "text-[#1F2758]/80"
-                  )}
-                >
-                  {item.name}
-                </Link>
+        <div className="px-4 pb-6 pt-2 bg-white/95 dark:bg-[#080A14]/95 backdrop-blur-xl border-t border-black/5 dark:border-white/5">
+          <ul className="flex flex-col gap-4">
+            {NAV_GROUPS.map((group) => (
+              <li key={group.title} className="space-y-2">
+                <div className="text-xs font-semibold uppercase opacity-40 px-2 tracking-wider">{group.title}</div>
+                <div className="pl-2 space-y-1">
+                  {group.items.map(item => (
+                    <Link
+                      key={item.title}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "block py-2 text-sm font-medium transition-colors",
+                        "text-[#1F2758]/80 dark:text-white/80"
+                      )}
+                    >
+                      {item.title}
+                    </Link>
+                  ))}
+                </div>
               </li>
             ))}
           </ul>
 
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="mt-8 flex flex-col gap-2">
             <Link
               href="/signup"
               onClick={() => setOpen(false)}
               className={cn(
-                "rounded-lg px-4 py-3 text-center text-sm font-medium",
-                isDark ? "border border-white/12 text-white/70" : "border border-[#C5CEFF]/60 text-[#1F2758]/70"
+                "rounded-lg px-4 py-3 text-center text-sm font-medium transition-colors",
+                "border border-[#C5CEFF]/60 text-[#1F2758]/70",
+                "dark:border-white/12 dark:text-white/70"
               )}
             >
               Sign up
@@ -199,8 +206,9 @@ export default function Navbar() {
               href="/signin"
               onClick={() => setOpen(false)}
               className={cn(
-                "rounded-lg px-4 py-3 text-center text-sm font-semibold",
-                isDark ? "bg-[#6D5BFF] text-white" : "bg-[#5D6BFF] text-white"
+                "rounded-lg px-4 py-3 text-center text-sm font-semibold transition-colors",
+                "bg-[#5D6BFF] text-white",
+                "dark:bg-[#6D5BFF]"
               )}
             >
               Log in

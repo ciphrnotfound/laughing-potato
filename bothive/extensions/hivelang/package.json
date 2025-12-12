@@ -1,0 +1,35 @@
+{
+    "name": "hivelang",
+    "displayName": "HiveLang",
+    "description": "Syntax highlighting for HiveLang (.hive) files",
+    "version": "1.0.0",
+    "publisher": "bothive",
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "hivelang",
+                "aliases": [
+                    "HiveLang",
+                    "hive"
+                ],
+                "extensions": [
+                    ".hive"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "hivelang",
+                "scopeName": "source.hive",
+                "path": "./syntaxes/hivelang.tmLanguage.json"
+            }
+        ]
+    }
+}

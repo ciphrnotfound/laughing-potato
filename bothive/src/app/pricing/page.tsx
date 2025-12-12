@@ -2,214 +2,163 @@
 
 import React from "react";
 import Navbar2 from "@/components/Navbar2";
-import Link from "next/link";
+import Pricing from "@/components/Pricing";
+import Footer from "@/components/Footer";
+import { motion } from "framer-motion";
+import { TrendingUp, DollarSign, Globe, ShieldCheck } from "lucide-react";
 
 const revenueStreams = [
   {
-    title: "Marketplace commission",
-    description:
-      "Earn 85% of every bot sale. Bothive retains a 15% fee that covers payment processing, fraud protection, and customer support.",
+    title: "Marketplace Commission",
+    description: "Earn 85% of every bot sale. We handle payments, fraud, and support.",
+    icon: <DollarSign className="w-6 h-6 text-emerald-400" />,
   },
   {
-    title: "Recurring usage",
-    description:
-      "Opt into usage-based billing for high-volume customers. You receive 75% of metered extension fees, paid out monthly.",
+    title: "Recurring Usage",
+    description: "Get 75% of metered extension fees from high-volume enterprise users.",
+    icon: <TrendingUp className="w-6 h-6 text-blue-400" />,
   },
   {
-    title: "Marketplace boosts",
-    description:
-      "Fund promotional slots to place your automations in the featured rail. Boosts are optional and priced dynamically.",
+    title: "Global Reach",
+    description: "Sell to customers in 58 countries with automatic tax compliance.",
+    icon: <Globe className="w-6 h-6 text-violet-400" />,
   },
 ];
 
-const marketplaceNumbers = [
-  { label: "Average cart value", value: "$162" },
-  { label: "Creator payout time", value: "7 days" },
-  { label: "Global customers", value: "58 countries" },
-  { label: "Refund rate", value: "< 1.2%" },
-];
-
-const feeTable = [
-  { item: "Primary bot sale", creator: "85%", bothive: "15%" },
-  { item: "Recurring usage (opt-in)", creator: "75%", bothive: "25%" },
-  { item: "Support escalations", creator: "100%", bothive: "Included" },
-  { item: "Marketplace boosts", creator: "Fixed bid", bothive: "N/A" },
-];
-
-const milestones = [
-  {
-    title: "List your agent",
-    description: "Upload branding, define capabilities, and set pricing tiers. Submit for a 24-hour review before going live.",
-  },
-  {
-    title: "Activate payment profile",
-    description: "Connect Stripe or bank transfer details. Payouts land every Friday with full ledger visibility.",
-  },
-  {
-    title: "Track conversions",
-    description: "Use marketplace analytics to monitor trials, upgrades, and retention with per-plan funnel data.",
-  },
-];
-
-const faqs = [
-  {
-    q: "Can I bring external billing?",
-    a: "Yes. You can connect an external billing URL. Bothive tracks entitlement and usage while letting you manage invoices.",
-  },
-  {
-    q: "How do refunds work?",
-    a: "If a refund is issued within 14 days, the commission is clawed back. After that, Bothive absorbs the cost.",
-  },
-  {
-    q: "Are enterprise deals supported?",
-    a: "Enterprise customers can request private offers. You negotiate terms and Bothive facilitates contract signing and invoicing.",
-  },
-];
-
-export default function MarketplaceEconomicsPage() {
+export default function PricingPage() {
   return (
-    <main className="relative min-h-screen bg-[#050507] text-white py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-black text-white selection:bg-violet-500/30">
       <Navbar2 />
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(106,0,255,0.32),transparent_55%),radial-gradient(circle_at_78%_8%,rgba(130,46,255,0.28),transparent_58%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,6,18,0.55),rgba(5,6,12,0.9))]" />
-        <div className="absolute inset-0 opacity-[0.18] [background-size:48px_48px] [background-image:linear-gradient(to_right,rgba(106,0,255,0.22)_1px,transparent_1px),linear-gradient(to_bottom,rgba(106,0,255,0.16)_1px,transparent_1px)]" />
-      </div>
 
-      <section className="relative z-10 mx-auto max-w-4xl text-center">
-        <p className="inline-flex items-center justify-center gap-2 rounded-full border border-[#7b3dff3d] bg-[#6a00ff1a] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/75">
-          Marketplace economics
-        </p>
-        <h1 className="mt-6 text-3xl sm:text-4xl font-extrabold">How creators monetise their Bothive automations</h1>
-        <p className="mt-4 text-white/70">
-          List your bots, design your pricing, and tap into recurring revenue. Bothive handles payments, compliance, and customer access so you
-          can focus on shipping.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            href="#"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#6a00ff] via-[#7c2dff] to-[#9f7aff] px-5 py-3 text-sm font-semibold text-white transition hover:shadow-[0_12px_32px_rgba(106,0,255,0.35)]"
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-violet-600/20 blur-[120px] rounded-full mix-blend-screen" />
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-5xl md:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60 mb-6"
           >
-            Launch seller profile
-          </Link>
-          <Link
-            href="#"
-            className="inline-flex items-center gap-2 rounded-xl border border-[#6a00ff29] bg-[#140b26] px-5 py-3 text-sm font-semibold text-white/75 transition hover:border-[#8a4dff66] hover:text-white"
+            Invest in your <br />
+            <span className="text-violet-400">Autonomous Workforce</span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xl text-neutral-400 max-w-2xl mx-auto"
           >
-            Download revenue guide
-          </Link>
+            Transparent pricing for teams. Lucrative economics for creators.
+            <br /> Join the economy where intelligence is the currency.
+          </motion.p>
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto mt-12 grid max-w-6xl gap-6 rounded-2xl border border-[#7b3dff33] bg-[#15092b] p-6 md:grid-cols-4">
-        {marketplaceNumbers.map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-[#6a00ff24] bg-[#0f071f] p-5 text-center">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/60">{stat.label}</p>
-            <p className="mt-3 text-2xl font-semibold text-white">{stat.value}</p>
+      {/* Platform Pricing */}
+      <Pricing />
+
+      {/* Creator Economics Section */}
+      <section className="relative py-24 px-6 border-t border-white/10 bg-neutral-900/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-6"
+              >
+                <DollarSign className="w-4 h-4" />
+                Creator Economy
+              </motion.div>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-4xl font-bold mb-6"
+              >
+                Build once. <br />
+                Earn perpetually.
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-lg text-neutral-400 mb-8"
+              >
+                Bothive isn't just a tool—it's a marketplace. Publish your specialized agents and earn recurring revenue every time they're deployed by other teams.
+              </motion.p>
+
+              <div className="space-y-6">
+                {revenueStreams.map((stream, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 + idx * 0.1 }}
+                    className="flex gap-4"
+                  >
+                    <div className="p-3 rounded-xl bg-white/5 border border-white/10 h-fit">
+                      {stream.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white mb-1">{stream.title}</h3>
+                      <p className="text-sm text-neutral-400">{stream.description}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/20 to-emerald-500/20 blur-[80px] rounded-full" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className="relative z-10 rounded-3xl border border-white/10 bg-black/50 backdrop-blur-xl p-8"
+              >
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <p className="text-sm text-neutral-400 uppercase tracking-wider">Estimated Earnings</p>
+                    <h3 className="text-3xl font-bold text-white">$12,450<span className="text-lg text-neutral-500 font-normal">/mo</span></h3>
+                  </div>
+                  <div className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-sm font-medium">
+                    +12% this week
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    { label: "Research Agent Pro", sales: "1,204 deployments", rev: "$8,420" },
+                    { label: "Email Triager", sales: "850 deployments", rev: "$2,950" },
+                    { label: "Code Reviewer", sales: "320 deployments", rev: "$1,080" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+                      <div>
+                        <p className="font-medium text-white">{item.label}</p>
+                        <p className="text-xs text-neutral-500">{item.sales}</p>
+                      </div>
+                      <p className="font-mono text-white">{item.rev}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <button className="w-full mt-8 py-3 rounded-xl bg-white text-black font-semibold hover:bg-neutral-200 transition-colors">
+                  Start Monetizing
+                </button>
+              </motion.div>
+            </div>
           </div>
-        ))}
-      </section>
-
-      <section className="relative z-10 mx-auto mt-12 grid max-w-6xl gap-6 lg:grid-cols-3">
-        {revenueStreams.map((stream) => (
-          <div
-            key={stream.title}
-            className="rounded-2xl border border-[#6a00ff24] bg-gradient-to-br from-[#150a29] via-[#0c0618] to-[#08040f] p-6"
-          >
-            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Revenue stream</p>
-            <h2 className="mt-3 text-xl font-semibold text-white">{stream.title}</h2>
-            <p className="mt-3 text-sm text-white/70">{stream.description}</p>
-          </div>
-        ))}
-      </section>
-
-      <section className="relative z-10 mx-auto mt-12 max-w-6xl rounded-2xl border border-[#7b3dff33] bg-[#1b0e36] p-6">
-        <p className="text-xs uppercase tracking-[0.3em] text-white/60">Revenue split</p>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[620px] text-left text-sm text-white/70">
-            <thead className="text-xs uppercase tracking-[0.24em] text-white/60">
-              <tr>
-                <th className="py-3 pr-4 font-semibold">Item</th>
-                <th className="py-3 pr-4 font-semibold">Creator</th>
-                <th className="py-3 font-semibold">Bothive</th>
-              </tr>
-            </thead>
-            <tbody>
-              {feeTable.map((row) => (
-                <tr key={row.item} className="border-t border-[#7b3dff33]">
-                  <td className="py-3 pr-4 text-white">{row.item}</td>
-                  <td className="py-3 pr-4 text-[#bda6ff]">{row.creator}</td>
-                  <td className="py-3 text-[#bda6ff]">{row.bothive}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto mt-12 grid max-w-6xl gap-6 rounded-2xl border border-[#6a00ff24] bg-gradient-to-br from-[#170a2f] via-[#0e0619] to-[#08050f] p-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/60">Launch checklist</p>
-          <p className="text-sm text-white/70">
-            Follow this sequence to unlock payouts quickly and keep customers delighted. Each step is documented inside the seller console.
-          </p>
-          <ul className="space-y-3 text-sm text-white/70">
-            {milestones.map((milestone) => (
-              <li key={milestone.title} className="rounded-xl border border-[#6a00ff24] bg-[#0f071f] p-4">
-                <p className="text-sm font-semibold text-white">{milestone.title}</p>
-                <p className="mt-2 text-white/65">{milestone.description}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="space-y-4 rounded-2xl border border-[#6a00ff24] bg-[#140b26] p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/60">Need help?</p>
-          <p className="text-sm text-white/70">
-            Book a 20-minute session with the marketplace success team. We’ll review pricing models, onboarding friction points, and growth
-            opportunities tailored to your bot.
-          </p>
-          <Link
-            href="#"
-            className="inline-flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-[#6a00ff] via-[#7c2dff] to-[#9f7aff] px-4 py-2 text-sm font-semibold text-white transition hover:shadow-[0_12px_32px_rgba(106,0,255,0.35)]"
-          >
-            Schedule strategy call
-          </Link>
-        </div>
-      </section>
-
-      <section className="relative z-10 mx-auto mt-12 max-w-6xl grid gap-6 rounded-2xl border border-[#6a00ff24] bg-gradient-to-br from-[#15092b] via-[#0c0618] to-[#08040f] p-6 md:grid-cols-2">
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/60">FAQ</p>
-          <ul className="space-y-3 text-sm text-white/70">
-            {faqs.map((entry) => (
-              <li key={entry.q} className="rounded-xl border border-[#6a00ff24] bg-[#0f071f] p-4">
-                <p className="font-semibold text-white">{entry.q}</p>
-                <p className="mt-2 text-white/65">{entry.a}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="space-y-4 rounded-2xl border border-[#6a00ff24] bg-[#140b26] p-6">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/60">Stay updated</p>
-          <p className="text-sm text-white/70">
-            Subscribe to marketplace release notes to hear about new payout tools, analytics, and promotional events for creators.
-          </p>
-          <form className="flex flex-col gap-3 sm:flex-row">
-            <input
-              type="email"
-              placeholder="you@bothive.dev"
-              className="w-full rounded-xl border border-[#7b3dff33] bg-[#100622] px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-[#a47aff70] focus:outline-none focus:ring-2 focus:ring-[#814dff55]"
-            />
-            <button
-              type="submit"
-              className="rounded-xl bg-gradient-to-r from-[#6a00ff] via-[#7c2dff] to-[#9f7aff] px-4 py-3 text-sm font-semibold text-white transition hover:shadow-[0_12px_32px_rgba(106,0,255,0.35)]"
-            >
-              Subscribe
-            </button>
-          </form>
-        </div>
-      </section>
+      <Footer />
     </main>
   );
 }

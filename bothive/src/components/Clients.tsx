@@ -1,118 +1,132 @@
 "use client";
 
-import Image from "next/image";
-import { Star } from "lucide-react";
-import { useTheme } from "@/lib/theme-context";
+import React, { useRef } from "react";
+import { motion, useInView } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Marquee } from "./ui/Marquee";
 
 const testimonials = [
   {
-    quote: "Bothive kicks off every bot launch and keeps our studio shipping without context juggling.",
-    name: "Sienna Hewitt",
-    handle: "@sienna.ops",
-    avatar: "/avatars/sienna.jpg",
+    name: "Alex Chen",
+    handle: "@alexchen",
+    quote: "This is exactly what we needed. Simple, fast, and it just works.",
   },
   {
-    quote: "Mission briefs land polished—from ideation to delivery Bothive handles the heavy lifting.",
-    name: "Kari Rasmussen",
-    handle: "@kari.ai",
-    avatar: "/avatars/kari.jpg",
+    name: "Sarah Kim",
+    handle: "@sarahkim",
+    quote: "Deployed our first agents in under an hour. Incredible experience.",
   },
   {
-    quote: "Quality stayed top-notch even as we 10x’d output across squads. The swarm just hums.",
-    name: "Amélie Laurent",
-    handle: "@amelie.builds",
-    avatar: "/avatars/amelie.jpg",
+    name: "Michael Park",
+    handle: "@mpark",
+    quote: "The best developer experience I've had in years.",
   },
   {
-    quote: "Our go-to control center for every automation sprint. Ship rooms love the clarity.",
-    name: "Aliah Lane",
-    handle: "@aliah_ux",
-    avatar: "/avatars/aliah.jpg",
+    name: "Emma Wilson",
+    handle: "@emmaw",
+    quote: "Finally, AI automation that doesn't require a PhD to set up.",
   },
   {
-    quote: "Bothive gives exactly what we need to start fast and cut review cycles dramatically.",
-    name: "Eduard Franz",
-    handle: "@eduardfranz",
-    avatar: "/avatars/eduard.jpg",
+    name: "David Lee",
+    handle: "@dlee",
+    quote: "Our team productivity increased 10x. Not exaggerating.",
   },
   {
-    quote: "From zero to live autopilots in days. Every launch feels choreographed now.",
-    name: "Lily-Rose Chedjou",
-    handle: "@lilyrose",
-    avatar: "/avatars/lilyrose.jpg",
+    name: "Jessica Torres",
+    handle: "@jtorres",
+    quote: "The workflow builder is intuitive and powerful. Love it.",
   },
 ];
 
 export default function Clients() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
-  const sectionClass = cn(
-    "relative overflow-hidden py-20 sm:py-28",
-    isDark ? "bg-[#060812] text-white" : "bg-[#F7F8FF] text-[#0C1024]"
-  );
-
-  const cardClass = cn(
-    "flex h-full flex-col gap-4 rounded-2xl border p-6 transition-colors duration-300",
-    isDark
-      ? "border-white/10 bg-white/5 shadow-[0_16px_40px_rgba(14,10,40,0.55)]"
-      : "border-[#D5DCFF] bg-white shadow-[0_24px_50px_rgba(103,117,255,0.08)]"
-  );
-
-  const subtleText = isDark ? "text-white/60" : "text-[#1F2758]/60";
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
 
   return (
-    <section className={sectionClass}>
-      <div className="pointer-events-none absolute inset-0">
-        <div
-          className={cn(
-            "absolute inset-x-0 top-[-240px] h-[520px] blur-3xl",
-            isDark
-              ? "bg-[radial-gradient(circle_at_center,rgba(138,82,255,0.25),transparent_70%)]"
-              : "bg-[radial-gradient(circle_at_center,rgba(129,118,255,0.18),transparent_75%)]"
-          )}
-        />
-        <div
-          className={cn(
-            "absolute inset-0 opacity-50",
-            isDark
-              ? "bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:64px_64px]"
-              : "bg-[linear-gradient(to_right,rgba(23,32,80,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(23,32,80,0.08)_1px,transparent_1px)] bg-[size:64px_64px]"
-          )}
+    <section ref={ref} className="relative py-24 bg-[#08080c] overflow-hidden">
+      {/* Animated border */}
+      <div className="absolute top-0 left-0 right-0 h-px overflow-hidden">
+        <motion.div
+          className="h-full w-1/3 bg-gradient-to-r from-transparent via-violet-500/30 to-transparent"
+          animate={{ x: ["-100%", "400%"] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
         />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 text-center sm:px-6">
-        <div className="space-y-4">
-          <p className={cn("text-xs font-semibold uppercase tracking-[0.32em]", subtleText)}>Wall of love</p>
-          <h2 className={cn("text-3xl font-semibold sm:text-4xl", isDark ? "text-white" : "text-[#0C1024]")}>Signals from the swarm</h2>
-          <p className={cn("mx-auto max-w-2xl text-sm sm:text-base", subtleText)}>
-            Hear first-hand how founders and ops leads keep missions aligned with Bothive’s automation layer.
-          </p>
-        </div>
+      {/* Background glow */}
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-violet-600/5 rounded-full blur-[150px]"
+        animate={{ opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {testimonials.map((item) => (
-            <div key={item.name} className={cardClass}>
-              <div className="flex items-center gap-1 text-[#F7C948]">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Star key={index} className="h-4 w-4 fill-current" />
-                ))}
-              </div>
-              <p className={cn("text-sm text-left sm:text-base", isDark ? "text-white/85" : "text-[#101430]/85")}>{item.quote}</p>
-              <div className="mt-auto flex items-center gap-3">
-                <div className="relative h-12 w-12 overflow-hidden rounded-full border border-white/10">
-                  <Image src={item.avatar} alt={item.name} fill className="object-cover" />
+      <div className="relative max-w-6xl mx-auto px-6">
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          className="text-center text-sm text-white/40 uppercase tracking-[0.2em] mb-12"
+        >
+          What developers are saying
+        </motion.p>
+      </div>
+
+      {/* Marquee */}
+      <div className="relative">
+        {/* Gradient masks */}
+        <div className="absolute left-0 top-0 bottom-0 w-40 bg-gradient-to-r from-[#08080c] to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-40 bg-gradient-to-l from-[#08080c] to-transparent z-10 pointer-events-none" />
+
+        <Marquee
+          items={testimonials}
+          pauseOnHover
+          speed="slow"
+          renderItem={(item) => (
+            <motion.div
+              className="relative w-80 p-6 rounded-2xl border border-white/[0.04] bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden group"
+              whileHover={{
+                y: -4,
+                borderColor: "rgba(139,92,246,0.2)",
+                transition: { duration: 0.2 }
+              }}
+            >
+              {/* Hover glow */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-br from-violet-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              />
+
+              <p className="relative z-10 text-sm text-white/60 leading-relaxed mb-4 group-hover:text-white/80 transition-colors">
+                "{item.quote}"
+              </p>
+
+              <div className="relative z-10 flex items-center gap-3">
+                {/* Animated avatar ring */}
+                <motion.div
+                  className="relative w-10 h-10 rounded-full overflow-hidden"
+                  whileHover={{ scale: 1.1 }}
+                >
+                  <motion.div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: "conic-gradient(from 0deg, rgba(139,92,246,0.3), transparent, rgba(139,92,246,0.3))",
+                    }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  />
+                  <div className="absolute inset-[2px] rounded-full bg-gradient-to-br from-[#15131d] to-[#0d0d15] flex items-center justify-center">
+                    <span className="text-sm font-medium text-white/50 group-hover:text-violet-400 transition-colors">
+                      {item.name.charAt(0)}
+                    </span>
+                  </div>
+                </motion.div>
+
+                <div>
+                  <p className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">{item.name}</p>
+                  <p className="text-xs text-white/30">{item.handle}</p>
                 </div>
-                <div className="text-left">
-                  <p className={cn("text-sm font-semibold", isDark ? "text-white" : "text-[#0C1024]")}>{item.name}</p>
-                  <p className={cn("text-xs", subtleText)}>{item.handle}</p>
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            </motion.div>
+          )}
+        />
       </div>
     </section>
   );

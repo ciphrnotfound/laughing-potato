@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  Zap,
 } from "lucide-react";
 import AmbientBackdrop from "@/components/AmbientBackdrop";
 import { ProfessionalAlert } from "@/components/ui/glass-alert";
@@ -51,10 +52,14 @@ type MarketplaceBotVersion = {
 type BotReview = {
   id: string;
   bot_id: string;
-  author: string | null;
+  user_id: string;
   rating: number | null;
   comment: string | null;
   created_at: string | null;
+  user?: {
+    full_name: string | null;
+    avatar_url: string | null;
+  };
 };
 
 type HiveStoreRecord = {
@@ -157,17 +162,22 @@ async function fetchBotDetail(identifier: string) {
   `;
 
   const bySlug = identifier
-    ? await supabase.from("bots").select(selectColumns).eq("slug", identifier).eq("status", "active").maybeSingle()
+    ? await supabase.from("bots").select(selectColumns).eq("slug", identifier).eq("status", "approved").maybeSingle()
     : { data: null, error: null };
 
   const row = bySlug.data;
   let botRow = row;
 
   if (!botRow) {
-    const byId = await supabase.from("bots").select(selectColumns).eq("id", identifier).eq("status", "active").maybeSingle();
-    botRow = byId.data ?? null;
-    if (byId.error && byId.error.code !== "PGRST116") {
-      throw byId.error;
+    // Only attempt ID lookup if identifier is a valid UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+
+    if (isUUID) {
+      const byId = await supabase.from("bots").select(selectColumns).eq("id", identifier).eq("status", "approved").maybeSingle();
+      botRow = byId.data ?? null;
+      if (byId.error && byId.error.code !== "PGRST116") {
+        throw byId.error;
+      }
     }
   }
 
@@ -234,7 +244,7 @@ async function fetchBotDetail(identifier: string) {
 
   const { data: reviewRows, error: reviewError } = await supabase
     .from("bot_reviews")
-    .select("id, bot_id, author, rating, comment, created_at")
+    .select("id, bot_id, user_id, rating, comment, created_at")
     .eq("bot_id", botRow.id)
     .order("created_at", { ascending: false })
     .limit(12);
@@ -243,10 +253,29 @@ async function fetchBotDetail(identifier: string) {
     throw reviewError;
   }
 
+  let reviews: BotReview[] = [];
+  
+  if (reviewRows?.length) {
+    const userIds = Array.from(new Set(reviewRows.map((r) => r.user_id)));
+    
+    // Fetch user profiles manually since the foreign key relationship might be missing in PostgREST cache
+    const { data: users } = await supabase
+        .from("users")
+        .select("id, full_name, avatar_url")
+        .in("id", userIds);
+
+    const userMap = new Map(users?.map((u) => [u.id, u]) || []);
+    
+    reviews = reviewRows.map((r) => ({
+      ...r,
+      user: userMap.get(r.user_id) || { full_name: "Anonymous", avatar_url: null },
+    }));
+  }
+
   return {
     bot: detail,
     versions,
-    reviews: (reviewRows ?? []) as BotReview[],
+    reviews,
   };
 }
 
@@ -378,18 +407,27 @@ export default function HiveStoreDetailPage() {
 
         try {
           const fallbackId = bot.slug ?? slugify(bot.name) ?? bot.id;
+
+          // Fix: Map frontend schema to API schema
+          const payload = {
+            name: bot.name,
+            description: bot.description,
+            // Map skills -> capabilities
+            capabilities: bot.skills.length ? bot.skills : ["automation"],
+            // Ensure model is set if available in metadata, otherwise let API default
+            model: (bot.metadata?.model as string) || "gpt-4-turbo",
+            // Pass source ID to track origin if needed
+            source_bot_id: bot.id,
+            // Include system prompt if available in metadata
+            system_prompt: (bot.metadata?.system_prompt as string) || `You are ${bot.name}, a helpful AI assistant specialized in ${bot.category}.`
+          };
+
           const response = await fetch("/api/agents", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              id: fallbackId,
-              name: bot.name,
-              description: bot.description,
-              skills: bot.skills.length ? bot.skills : ["automation"],
-              memoryKeys: bot.curatedTags,
-            }),
+            body: JSON.stringify(payload),
           });
 
           if (!response.ok) {
@@ -403,7 +441,7 @@ export default function HiveStoreDetailPage() {
             throw new Error(message);
           }
 
-          const payload: PostInstallPayload = {
+          const completionPayload: PostInstallPayload = {
             id: bot.id,
             name: bot.name,
             slug: bot.slug ?? fallbackId,
@@ -425,10 +463,11 @@ export default function HiveStoreDetailPage() {
           });
 
           setTimeout(() => {
-            sessionStorage.setItem("bothive:lastInstalledBot", JSON.stringify(payload));
-            router.push(`/dashboard/installs/${payload.slug}`);
+            sessionStorage.setItem("bothive:lastInstalledBot", JSON.stringify(completionPayload));
+            router.push(`/dashboard/installs/${completionPayload.slug}`);
           }, 1200);
         } catch (error) {
+          console.error("Install error:", error);
           const message = error instanceof Error ? error.message : "Unknown install error";
           setAlert({
             variant: "error",
@@ -465,330 +504,180 @@ export default function HiveStoreDetailPage() {
   }, [bot, primaryVersion]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#050312] text-white">
-      <AmbientBackdrop className="opacity-90" maskClassName="[mask-image:radial-gradient(circle_at_center,transparent_0%,black_70%)]" />
+    <main className="relative min-h-screen bg-black text-white selection:bg-purple-500/30">
+      {/* Dynamic Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] bg-purple-600/20 blur-[120px] rounded-full mix-blend-screen animate-pulse-slow" />
+        <div className="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] bg-blue-600/10 blur-[100px] rounded-full mix-blend-screen" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
+      </div>
 
-      {alert && (
-        <ProfessionalAlert
-          variant={alert.variant}
-          title={alert.title}
-          message={alert.message}
-          open
-          autoClose={alert.autoClose}
-          onClose={() => setAlert(null)}
-        />
-      )}
+      {/* Navigation */}
+      <nav className="relative z-50 flex items-center justify-between px-6 py-6 max-w-7xl mx-auto">
+        <button
+          onClick={() => router.push("/hivestore")}
+          className="group flex items-center gap-2 text-sm font-medium text-white/50 hover:text-white transition-colors"
+        >
+          <div className="p-1 rounded-full border border-white/10 bg-white/5 group-hover:border-white/20">
+            <ArrowLeft className="w-4 h-4" />
+          </div>
+          <span className="tracking-wide">BACK TO STORE</span>
+        </button>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-24 pt-14 sm:px-8">
-        <div className="flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => router.push("/hivestore")}
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.32em] text-white/70 transition hover:border-white/40 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to listings
-          </button>
-          {sessionLoading ? (
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-white/60">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Checking session
-            </div>
-          ) : isAuthenticated && profile ? (
-            <Link
-              href="/dashboard"
-              className="group inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-white/70 transition hover:border-white/40 hover:text-white"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-500 text-[11px] font-semibold">
-                {profile.fullName?.slice(0, 2).toUpperCase() ?? profile.email?.slice(0, 2).toUpperCase() ?? "BH"}
-              </div>
-              <span>Workspace</span>
-              <ArrowUpRight className="h-4 w-4 transition group-hover:translate-x-[2px]" />
-            </Link>
-          ) : (
-            <Link
-              href="/signin"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs uppercase tracking-[0.32em] text-white/70 transition hover:border-white/40 hover:text-white"
-            >
-              Sign in
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          )}
-        </div>
+        {isAuthenticated && profile ? (
+          <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
+            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+            <span className="text-xs font-mono text-white/70 uppercase tracking-wider">{profile.fullName}</span>
+          </div>
+        ) : (
+          <Link href="/signin" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+            Sign In
+          </Link>
+        )}
+      </nav>
 
+      {/* Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-6 pb-24">
         {loading ? (
-          <div className="flex min-h-[320px] items-center justify-center rounded-[32px] border border-white/10 bg-white/5 text-white/60">
-            <div className="inline-flex items-center gap-3 text-sm">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Syncing listing data
-            </div>
+          <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+            <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
+            <p className="text-white/40 font-mono text-sm tracking-widest uppercase">Initializing Link...</p>
           </div>
         ) : error ? (
-          <div className="rounded-[32px] border border-white/10 bg-white/5 p-10 text-center text-white/70">
-            <h2 className="text-2xl font-semibold text-white">{error}</h2>
-            <p className="mt-2 text-sm text-white/60">
-              Return to the Hive Store or refresh the page to try again.
-            </p>
-            <div className="mt-6 flex justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/hivestore")}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm text-white/80 transition hover:-translate-y-0.5 hover:border-white/40 hover:text-white"
-              >
-                Back to Hive Store
-              </button>
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-0.5"
-              >
-                Retry load
-              </button>
-            </div>
+          <div className="h-[50vh] flex flex-col items-center justify-center text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">Signal Lost</h1>
+            <p className="text-white/50 mb-6">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-white text-black rounded-full font-medium hover:bg-white/90"
+            >
+              Reconnect
+            </button>
           </div>
         ) : bot ? (
-          <div className="space-y-12">
-            <motion.section
-              initial="hidden"
-              animate="show"
-              variants={MOTION_CARD}
-              className="relative overflow-hidden rounded-[36px] border border-white/10 bg-white/5 p-8 shadow-[0_45px_100px_rgba(76,29,149,0.35)]"
-            >
-              <div className="pointer-events-none absolute inset-0 rounded-[36px] border border-white/5" />
-              <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-6">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-white/60">
-                    <Sparkles className="h-4 w-4" /> Spotlight detail
-                  </span>
-                  <div className="space-y-3">
-                    <h1 className="text-4xl font-semibold text-white sm:text-5xl">{bot.name}</h1>
-                    <p className="max-w-2xl text-sm text-white/70">{bot.description}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.28em] text-white/60">
-                    {detailChips.map((chip) => (
-                      <span key={chip.label} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2">
-                        {chip.label}: {chip.value}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <button
-                      type="button"
-                      onClick={() => void handleInstall("primary")}
-                      disabled={installing}
-                      className={cn(
-                        "inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold shadow-[0_24px_65px_rgba(255,255,255,0.35)] transition",
-                        "bg-white text-slate-900 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                      )}
-                    >
-                      {installing ? "Installing..." : isFreeBot ? "Install now" : "Install & billing"}
-                      <CreditCard className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleInstall("trial")}
-                      disabled={installing}
-                      className={cn(
-                        "inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm uppercase tracking-[0.28em] text-white/75 transition hover:border-white/40 hover:text-white",
-                        installing && "cursor-not-allowed opacity-60"
-                      )}
-                    >
-                      Request trial
-                      <ExternalLink className="h-4 w-4" />
-                    </button>
-                    <span className="text-xs uppercase tracking-[0.32em] text-white/60">{paymentPlaceholderCopy}</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-5">
-                  <div className="relative h-28 w-28 overflow-hidden rounded-3xl border border-white/15 bg-white/10 p-5 shadow-xl">
-                    <Image src={bot.icon || FALLBACK_ICON} alt={`${bot.name} icon`} fill className="object-contain" sizes="112px" />
-                  </div>
-                  <div className="flex flex-col items-center gap-2 text-xs uppercase tracking-[0.32em] text-white/60">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-1 text-white/70">
-                      <Download className="h-4 w-4" /> {formatInstallCount(bot.downloads)} installs
-                    </span>
-                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-1 text-white/70">
-                      <Star className="h-4 w-4 text-indigo-200" fill="#c4b5fd" /> {sentiment ?? bot.rating.toFixed(1)} rating
-                    </span>
-                  </div>
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+
+            {/* HERO SECTION */}
+            <div className="flex flex-col items-center text-center mt-12 mb-20">
+
+              {/* Icon Container */}
+              <div className="relative group mb-8">
+                <div className="absolute inset-0 bg-gradient-to-b from-purple-500 to-blue-500 blur-[40px] opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
+                <div className="relative w-32 h-32 rounded-3xl bg-[#0c0c16] border border-white/10 shadow-2xl flex items-center justify-center p-6 group-hover:scale-105 transition-transform duration-500">
+                  <Image src={bot.icon || FALLBACK_ICON} alt={bot.name} fill className="object-contain p-5" />
                 </div>
               </div>
-            </motion.section>
 
-            <section className="grid gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
-              <motion.div
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.2 }}
-                variants={MOTION_CARD}
-                className="space-y-6 rounded-[30px] border border-white/10 bg-white/5 p-6 shadow-[0_32px_85px_rgba(15,23,42,0.28)]"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-white">Capabilities &amp; ritual fit</h2>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-white/60">
-                    <ShieldCheck className="h-4 w-4" /> Guardrails ready
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.28em] text-white/65">
-                  {bot.skills.slice(0, 8).map((skill, index) => (
-                    <span key={`${bot.id}-skill-${index}`} className="rounded-full border border-white/15 bg-white/10 px-4 py-1">
-                      {skill.replace(/_/g, " ")}
-                    </span>
-                  ))}
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-5 text-sm text-white/65">
-                  <p>
-                    This bot ships with shared memory keys and automation hooks tuned for {bot.category} teams. Configure orchestrations inside the Builder to sync with your stack—Slack, Linear, Notion, and more.
-                  </p>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {bot.curatedTags.slice(0, 4).map((tag) => (
-                    <div
-                      key={tag}
-                      className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xs uppercase tracking-[0.32em] text-white/60"
-                    >
-                      <span className="block text-white/40">Curated signal</span>
-                      <span className="mt-1 block text-sm font-semibold text-white">{tag}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
+              {/* Title & Badge */}
+              <div className="flex items-center gap-3 mb-4">
+                <span className="px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-[10px] font-bold tracking-[0.2em] uppercase shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                  Verified Agent
+                </span>
+                <span className="px-3 py-1 rounded-full border border-white/10 bg-white/5 text-white/40 text-[10px] font-bold tracking-[0.2em] uppercase">
+                  v{primaryVersion?.version || "1.0"}
+                </span>
+              </div>
 
-              <motion.aside
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.2 }}
-                variants={MOTION_CARD}
-                className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5 text-sm text-white/70 shadow-[0_24px_75px_rgba(15,23,42,0.28)]"
-              >
-                <h3 className="text-base font-semibold text-white">Install checklist</h3>
-                <ol className="space-y-3 text-xs uppercase tracking-[0.3em] text-white/60">
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 text-emerald-300" /> Sign in with workspace owner account
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 text-emerald-300" /> Confirm billing preference (Stripe coming soon)
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 text-emerald-300" /> Choose default version &amp; deployment slot
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 text-emerald-300" /> Assign teammates &amp; automation triggers
-                  </li>
-                </ol>
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-xs text-white/65">
-                  <p>
-                    Billing flows are rolling out gradually. Your workspace will receive priority access in the next release wave. Until then, installs land in a sandbox state.
-                  </p>
-                </div>
-              </motion.aside>
-            </section>
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/40 mb-6 max-w-4xl">
+                {bot.name}
+              </h1>
 
-            <section className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-              <motion.div
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.2 }}
-                variants={MOTION_CARD}
-                className="rounded-[30px] border border-white/10 bg-white/5 p-6 text-white/70 shadow-[0_32px_85px_rgba(15,23,42,0.28)]"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold text-white">Version timeline</h3>
-                  <span className="text-xs uppercase tracking-[0.32em] text-white/60">
-                    {versions.length ? `${versions.length} releases` : "No releases yet"}
-                  </span>
-                </div>
-                <div className="mt-5 space-y-4">
-                  {versions.length ? (
-                    versions.map((version) => (
-                      <div
-                        key={version.id}
-                        className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.3em] text-white/60">
-                          <span>v{version.version}</span>
-                          <span>{formatDate(version.published_at ?? version.created_at)}</span>
-                        </div>
-                        <div className="flex flex-wrap items-center justify-between gap-3 text-[13px] text-white/70">
-                          <span>{version.label ?? "Unlabeled release"}</span>
-                          <span className={priceLabel(version) === "Included" ? "text-indigo-200" : "text-white"}>{priceLabel(version)}</span>
-                        </div>
-                        {version.description ? (
-                          <p className="text-xs text-white/60">{version.description}</p>
-                        ) : null}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-8 text-center text-sm text-white/60">
-                      Version history will appear here once the creator publishes their first milestone release.
-                    </div>
-                  )}
-                </div>
-              </motion.div>
+              <p className="text-lg md:text-xl text-white/60 max-w-2xl leading-relaxed mb-10">
+                {bot.description}
+              </p>
 
-              <motion.div
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.2 }}
-                variants={MOTION_CARD}
-                className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5 text-sm text-white/70 shadow-[0_24px_75px_rgba(15,23,42,0.28)]"
-              >
-                <h3 className="text-base font-semibold text-white">Latest reviews</h3>
-                {reviews.length ? (
-                  <div className="space-y-3">
-                    {reviews.slice(0, 4).map((review) => (
-                      <div key={review.id} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
-                        <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/60">
-                          <span>{review.author ?? "Anonymous"}</span>
-                          <span>{formatDate(review.created_at)}</span>
-                        </div>
-                        <div className="mt-1 inline-flex items-center gap-2 text-sm text-white/70">
-                          <Star className="h-4 w-4 text-indigo-200" fill="#c4b5fd" />
-                          {safeNumber(review.rating, bot.rating).toFixed(1)}
-                        </div>
-                        {review.comment ? (
-                          <p className="mt-2 text-xs text-white/60">{review.comment}</p>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-8 text-center text-sm text-white/60">
-                    Reviews land here once teams start sharing feedback.
-                  </div>
-                )}
-              </motion.div>
-            </section>
-
-            <motion.section
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.2 }}
-              variants={MOTION_CARD}
-              className="rounded-[30px] border border-white/10 bg-white/5 p-6 text-white/70 shadow-[0_32px_85px_rgba(15,23,42,0.28)]"
-            >
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">Creator studio</h3>
-                  <p className="text-sm text-white/60">
-                    Published by {bot.author}. Listing analytics, billing, and expansion packs will surface here for creators.
-                  </p>
-                </div>
+              {/* CTA Area */}
+              <div className="flex flex-col items-center gap-6">
                 <button
-                  type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white/70 transition hover:border-white/40 hover:text-white"
-                  onClick={() => setAlert({
-                    variant: "info",
-                    title: "Creator dashboard coming soon",
-                    message: "Studio metrics and monetization controls are rolling out alongside the billing launch.",
-                    autoClose: 4800,
-                  })}
+                  disabled={installing}
+                  onClick={() => handleInstall("primary")}
+                  className={cn(
+                    "group relative flex items-center gap-4 px-8 py-4 bg-white text-black rounded-full transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:cursor-not-allowed",
+                    installing && "scale-95 opacity-80"
+                  )}
                 >
-                  Join creator beta
-                  <ArrowUpRight className="h-4 w-4" />
+                  {installing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="font-bold tracking-wide">INSTALLING...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-bold tracking-wide text-lg">INSTALL AGENT</span>
+                      <ArrowUpRight className="w-5 h-5 text-black/60 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </>
+                  )}
+
+                  {/* Button Glow */}
+                  <div className="absolute inset-0 rounded-full ring-2 ring-white/20 group-hover:ring-white/60 transition-all" />
                 </button>
+
+                <p className="text-xs text-white/30 tracking-widest uppercase">
+                  {installing ? "Provisioning Container..." : isFreeBot ? "Instant Deployment • No Credit Card" : `Starting at ${priceLabel(bot)}/mo`}
+                </p>
               </div>
-            </motion.section>
+            </div>
+
+            {/* DATA GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-20">
+              {/* Stats Card */}
+              <div className="p-8 rounded-[32px] bg-white/[0.03] border border-white/5 backdrop-blur-sm hover:bg-white/[0.05] transition-colors">
+                <div className="flex items-center gap-3 mb-6 text-white/40 text-xs font-mono uppercase tracking-widest">
+                  <Download className="w-4 h-4" />
+                  Adoption
+                </div>
+                <div className="text-4xl font-bold text-white mb-2">{formatInstallCount(bot.downloads)}</div>
+                <div className="text-sm text-white/50">Active workspaces using this agent for production workflows.</div>
+              </div>
+
+              {/* Rating Card */}
+              <div className="p-8 rounded-[32px] bg-white/[0.03] border border-white/5 backdrop-blur-sm hover:bg-white/[0.05] transition-colors">
+                <div className="flex items-center gap-3 mb-6 text-white/40 text-xs font-mono uppercase tracking-widest">
+                  <Star className="w-4 h-4" />
+                  Satisfaction
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-white">{bot.rating.toFixed(1)}</span>
+                  <span className="text-white/30 text-lg">/ 5.0</span>
+                </div>
+                <div className="text-sm text-white/50">Based on verified developer reviews and uptime checks.</div>
+              </div>
+
+              {/* Latency/Speed Card (Mocked for Visuals) */}
+              <div className="p-8 rounded-[32px] bg-white/[0.03] border border-white/5 backdrop-blur-sm hover:bg-white/[0.05] transition-colors">
+                <div className="flex items-center gap-3 mb-6 text-white/40 text-xs font-mono uppercase tracking-widest">
+                  <Zap className="w-4 h-4" />
+                  Avg. Latency
+                </div>
+                <div className="text-4xl font-bold text-white mb-2">~140ms</div>
+                <div className="text-sm text-white/50">Optimized for real-time interaction on Edge Runtime.</div>
+              </div>
+            </div>
+
+            {/* CAPABILITIES SECTION */}
+            <div className="max-w-4xl mx-auto">
+              <h3 className="text-center text-white/40 text-sm font-mono uppercase tracking-[0.2em] mb-8">Core Capabilities</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {bot.skills.map((skill, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
+                      <Check className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-white font-medium capitalize">{skill.replace(/_/g, " ")}</div>
+                      <div className="text-xs text-white/40 mt-0.5">Ready out of the box</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer Info */}
+            <div className="text-center mt-24 text-white/20 text-xs">
+              Agent ID: {bot.id} • Published by {bot.author} • Secured by Bothive
+            </div>
+
           </div>
         ) : null}
       </div>

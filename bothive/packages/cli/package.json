@@ -1,0 +1,41 @@
+{
+  "name": "bothive",
+  "version": "1.0.0",
+  "description": "BotHive CLI - Build and deploy AI bots",
+  "main": "dist/index.js",
+  "bin": {
+    "bothive": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "bothive",
+    "bot",
+    "ai",
+    "hivelang",
+    "cli"
+  ],
+  "author": "BotHive",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "conf": "^12.0.0",
+    "inquirer": "^9.2.12",
+    "ora": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bothive/cli"
+  }
+}

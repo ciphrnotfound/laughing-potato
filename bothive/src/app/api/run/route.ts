@@ -1,93 +1,189 @@
-import { NextRequest } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { runBotPipeline } from "@/lib/orchestrator";
-import type { RunRequest } from "@/lib/agentTypes";
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseClient } from "@/lib/supabase";
+import {
+  agentTools,
+  integrationTools,
+  generalTools,
+  crmTools,
+  messagingTools,
+  contentTools,
+  codingTools,
+  studyTools
+} from "@/lib/tools";
+import { ToolDescriptor, ToolContext, RunResult, SharedMemory } from "@/lib/agentTypes";
+import { generateText } from "@/lib/ai-client";
 
-const POSTGRES_UNDEFINED_COLUMN = "42703";
-const POSTGREST_MISSING_COLUMN = "PGRST204";
+// Aggregate all tools into a map for O(1) lookup
+const ALL_TOOLS = [
+  ...agentTools,
+  ...integrationTools,
+  ...generalTools,
+  ...crmTools,
+  ...messagingTools,
+  ...contentTools,
+  ...codingTools,
+  ...studyTools
+];
 
-const isMissingColumnError = (error: unknown): error is { code?: string } =>
-  typeof error === "object" &&
-  error !== null &&
-  "code" in error &&
-  (((error as { code?: string }).code === POSTGRES_UNDEFINED_COLUMN) || (error as { code?: string }).code === POSTGREST_MISSING_COLUMN);
+const TOOL_MAP = new Map<string, ToolDescriptor>(
+  ALL_TOOLS.map(t => [t.name, t])
+);
+
+// Helper to create ephemeral shared memory for the run
+// In a future version, this should persist to Supabase 'memories' table
+function createEphemeralMemory(): SharedMemory {
+  const store = new Map<string, unknown>();
+  return {
+    get: async (key) => store.get(key),
+    set: async (key, val) => { store.set(key, val); },
+    append: async (key, val) => {
+      const existing = store.get(key);
+      if (Array.isArray(existing)) {
+        existing.push(val);
+      } else if (existing) {
+        store.set(key, [existing, val]);
+      } else {
+        store.set(key, [val]);
+      }
+    }
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as RunRequest & { botId: string; botVersionId?: string; triggeredBy?: string };
+    const supabase = getSupabaseClient();
 
-    if (!body.botId || !body.steps?.length) {
-      return Response.json({ error: "botId and at least one step required" }, { status: 400 });
+    // 1. Authenticate
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Note: In an edge case where api/run is called server-to-server without cookie, 
+    // we might need to check headers. For now, assume session cookie exists.
+
+    const body = await req.json();
+    const { botId, steps } = body;
+
+    // Guardrails
+    const MAX_STEPS = 25;
+    const STEP_TIMEOUT_MS = 30_000;
+
+    if (!steps || !Array.isArray(steps)) {
+      return NextResponse.json({ error: "Invalid request body: 'steps' array required" }, { status: 400 });
+    }
+    if (steps.length > MAX_STEPS) {
+      return NextResponse.json({ error: `Too many steps. Max allowed is ${MAX_STEPS}.` }, { status: 400 });
     }
 
-    let runId: string | null = null;
+    const transcript: any[] = [];
+    let lastOutput = "";
+    const runId = crypto.randomUUID();
 
-    const { data: runInsert, error: runInsertError } = await supabase
-      .from("bot_runs")
-      .insert({
-        bot_id: body.botId,
-        bot_version_id: body.botVersionId ?? null,
-        triggered_by: body.triggeredBy ?? null,
-        context: body.context ?? {},
-        status: "running",
-      })
-      .select("id")
-      .single();
+    // 2. Prepare Context
+    const memory = createEphemeralMemory();
 
-    if (runInsertError || !runInsert?.id) {
-      if (isMissingColumnError(runInsertError)) {
-        const { data: fallbackInsert, error: fallbackError } = await supabase
-          .from("bot_runs")
-          .insert({ bot_id: body.botId })
-          .select("id")
+    // 3. Execution Loop
+    for (const step of steps) {
+      const { agentId, input } = step || {};
+
+      if (!agentId) {
+        transcript.push({
+          role: "system",
+          agentId: "system",
+          content: "Missing agentId for step",
+          timestamp: Date.now()
+        });
+        continue;
+      }
+
+      const stepInput = typeof input === "string" ? { prompt: input } : (input || {});
+
+      let result: any;
+      let executedToolName = agentId;
+
+      // Strategy A: Direct Tool Match
+      const runWithTimeout = async <T>(fn: () => Promise<T>): Promise<T | { success: false; output: string }> => {
+        return Promise.race([
+          fn(),
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ success: false, output: `Step timed out after ${STEP_TIMEOUT_MS / 1000}s` }), STEP_TIMEOUT_MS)
+          ),
+        ]) as Promise<T | { success: false; output: string }>;
+      };
+
+      if (TOOL_MAP.has(agentId)) {
+        const tool = TOOL_MAP.get(agentId)!;
+        const ctx: ToolContext = {
+          metadata: {
+            botId: botId || "anonymous",
+            runId,
+            userId: user?.id,
+          },
+          sharedMemory: memory,
+          // Tenant would need to be loaded from DB based on user
+          tenant: {}
+        };
+
+        try {
+          result = await runWithTimeout(() => tool.run(stepInput, ctx));
+        } catch (e: any) {
+          result = { success: false, output: `Tool execution failed: ${e.message}` };
+        }
+      }
+      // Strategy B: Agent ID (UUID) -> Load Persona -> Run General Responder
+      else if (agentId.includes("-") && user?.id) { // Simple heuristic for UUID
+        // Fetch agent details
+        const { data: agentData } = await supabase
+          .from("agents")
+          .select("*")
+          .eq("id", agentId)
           .single();
 
-        if (fallbackError || !fallbackInsert?.id) {
-          throw fallbackError ?? new Error("Failed to create run record (legacy schema)");
+        if (agentData) {
+          // Use general.respond with the agent's system prompt
+          const tool = TOOL_MAP.get("general.respond");
+          if (tool) {
+            const ctx: ToolContext = {
+              metadata: {
+                botId: botId,
+                runId,
+                userId: user.id,
+                botSystemPrompt: agentData.system_prompt
+              },
+              sharedMemory: memory
+            };
+            try {
+              // Pass the input prompt + context of who they are
+              result = await runWithTimeout(() => tool.run(stepInput, ctx));
+            } catch (e: any) {
+              result = { success: false, output: `Agent execution failed: ${e.message}` };
+            }
+          } else {
+            result = { error: "General responder capability missing" };
+          }
+        } else {
+          result = { error: `Agent ${agentId} not found` };
         }
-
-        runId = fallbackInsert.id;
       } else {
-        throw runInsertError ?? new Error("Failed to create run record");
+        result = { error: `Unknown capability or agent: ${agentId}` };
       }
-    } else {
-      runId = runInsert.id;
+
+      transcript.push({
+        role: "agent",
+        agentId,
+        content: JSON.stringify(result),
+        timestamp: Date.now()
+      });
+
+      lastOutput = result?.output || JSON.stringify(result);
     }
 
-    if (!runId) {
-      throw new Error("Run record creation did not return an id");
-    }
-    const result = await runBotPipeline(runId, body);
+    const response: RunResult = {
+      transcript,
+      output: lastOutput
+    };
 
-    const messagesPayload = result.transcript.map((message) => ({
-      run_id: runId,
-      sender: message.role,
-      payload: message,
-    }));
+    return NextResponse.json(response);
 
-    if (messagesPayload.length > 0) {
-      const { error: logError } = await supabase.from("bot_run_messages").insert(messagesPayload);
-      if (logError) {
-        console.error("Failed to log run messages", logError);
-      }
-    }
-
-    return Response.json({ runId, ...result }, { status: 200 });
-  } catch (error) {
-    console.error("Run error:", error);
-    let message: string;
-    if (error instanceof Error) {
-      message = error.message;
-    } else if (typeof error === "string") {
-      message = error;
-    } else {
-      try {
-        message = `Failed to execute workflow: ${JSON.stringify(error)}`;
-      } catch {
-        message = "Failed to execute workflow";
-      }
-    }
-    return Response.json({ error: message }, { status: 500 });
+  } catch (error: any) {
+    console.error("Run API Error:", error);
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
-

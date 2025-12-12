@@ -1,43 +1,60 @@
-import { supabase } from "@/lib/supabase";
-import type { SharedMemory } from "@/lib/agentTypes";
+/**
+ * Shared Memory for bot execution
+ * Allows tools to communicate and share data during bot runs
+ */
 
-export function createSharedMemory(runId: string): SharedMemory {
-  return {
-    async get(key) {
-      const { data, error } = await supabase
-        .from("bot_runs")
-        .select("context")
-        .eq("id", runId)
-        .maybeSingle();
+export interface SharedMemory {
+    data: Record<string, any>;
+    set(key: string, value: any): Promise<void>;
+    get(key: string): Promise<any>;
+    has(key: string): boolean;
+    delete(key: string): boolean;
+    clear(): void;
+    keys(): string[];
+    values(): any[];
+    entries(): [string, any][];
+    append(key: string, value: any): Promise<void>;
+}
 
-      if (error) {
-        console.error("sharedMemory.get error", error);
-        return undefined;
-      }
+/**
+ * Create a new shared memory instance
+ */
+export function createSharedMemory(namespace: string = 'default'): SharedMemory {
+    const data: Record<string, any> = {};
 
-      return data?.context?.[key];
-    },
-    async set(key, value) {
-      const { error } = await supabase.rpc("bot_runs_set_context", {
-        run_id: runId,
-        key,
-        value,
-      });
-
-      if (error) {
-        console.error("sharedMemory.set error", error);
-      }
-    },
-    async append(key, value) {
-      const { error } = await supabase.rpc("bot_runs_append_context", {
-        run_id: runId,
-        key,
-        value,
-      });
-
-      if (error) {
-        console.error("sharedMemory.append error", error);
-      }
-    },
-  };
+    return {
+        data,
+        async set(key: string, value: any) {
+            data[key] = value;
+        },
+        async get(key: string) {
+            return data[key];
+        },
+        has(key: string) {
+            return key in data;
+        },
+        delete(key: string) {
+            const existed = key in data;
+            delete data[key];
+            return existed;
+        },
+        clear() {
+            Object.keys(data).forEach(key => delete data[key]);
+        },
+        keys() {
+            return Object.keys(data);
+        },
+        values() {
+            return Object.values(data);
+        },
+        entries() {
+            return Object.entries(data);
+        },
+        async append(key: string, value: any) {
+            if (!Array.isArray(data[key])) {
+                data[key] = [];
+            }
+            data[key].push(value);
+        },
+    };
 }

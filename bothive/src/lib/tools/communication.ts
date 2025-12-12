@@ -1,7 +1,13 @@
 // Communication tools for email and messaging automation
 
+export interface AccountConfig {
+  id: string;
+  type: 'email' | 'sms' | 'slack' | 'discord';
+  credentials?: Record<string, unknown>;
+}
+
 export interface SendEmailArgs {
-  account: any;
+  account: AccountConfig;
   to: string;
   subject: string;
   body: string;
@@ -10,7 +16,7 @@ export interface SendEmailArgs {
 }
 
 export interface ReplyToEmailArgs {
-  account: any;
+  account: AccountConfig;
   emailId: string;
   replyTo: string;
   subject: string;
@@ -18,27 +24,34 @@ export interface ReplyToEmailArgs {
 }
 
 export interface SendSMSArgs {
-  account: any;
+  account: AccountConfig;
   phoneNumber: string;
   message: string;
 }
 
 export interface SendSlackMessageArgs {
-  account: any;
+  account: AccountConfig;
   channel: string;
   message: string;
   threadId?: string;
 }
 
+export interface DiscordEmbed {
+  title?: string;
+  description?: string;
+  color?: number;
+  fields?: Array<{ name: string; value: string; inline?: boolean }>;
+}
+
 export interface SendDiscordMessageArgs {
-  account: any;
+  account: AccountConfig;
   channelId: string;
   message: string;
-  embeds?: any[];
+  embeds?: DiscordEmbed[];
 }
 
 // Email tools
-export async function sendEmail({ account, to, subject, body, cc, bcc }: SendEmailArgs) {
+export async function sendEmail({ to, subject, body }: SendEmailArgs) {
   console.log(`📧 Sending email to ${to}: ${subject}`);
   console.log(`Body: ${body.substring(0, 100)}...`);
   
@@ -52,7 +65,7 @@ export async function sendEmail({ account, to, subject, body, cc, bcc }: SendEma
   };
 }
 
-export async function replyToEmail({ account, emailId, replyTo, subject, body }: ReplyToEmailArgs) {
+export async function replyToEmail({ emailId, replyTo, subject, body }: ReplyToEmailArgs) {
   console.log(`📧 Replying to email ${emailId} from ${replyTo}`);
   console.log(`Subject: Re: ${subject}`);
   console.log(`Body: ${body.substring(0, 100)}...`);
@@ -66,7 +79,13 @@ export async function replyToEmail({ account, emailId, replyTo, subject, body }:
   };
 }
 
-export async function checkEmails({ account, folder = 'inbox', unreadOnly = true }: { account: any; folder?: string; unreadOnly?: boolean }) {
+export interface CheckEmailsArgs {
+  account: AccountConfig;
+  folder?: string;
+  unreadOnly?: boolean;
+}
+
+export async function checkEmails({ folder = 'inbox', unreadOnly = true }: CheckEmailsArgs) {
   console.log(`📧 Checking emails in ${folder}${unreadOnly ? ' (unread only)' : ''}`);
   
   // Simulate email checking
@@ -97,7 +116,7 @@ export async function checkEmails({ account, folder = 'inbox', unreadOnly = true
 }
 
 // SMS tools
-export async function sendSMS({ account, phoneNumber, message }: SendSMSArgs) {
+export async function sendSMS({ phoneNumber, message }: SendSMSArgs) {
   console.log(`📱 Sending SMS to ${phoneNumber}: ${message}`);
   
   return {
@@ -110,7 +129,7 @@ export async function sendSMS({ account, phoneNumber, message }: SendSMSArgs) {
 }
 
 // Slack tools
-export async function sendSlackMessage({ account, channel, message, threadId }: SendSlackMessageArgs) {
+export async function sendSlackMessage({ channel, message, threadId }: SendSlackMessageArgs) {
   console.log(`💬 Sending Slack message to #${channel}: ${message}`);
   
   return {
@@ -122,7 +141,12 @@ export async function sendSlackMessage({ account, channel, message, threadId }: 
   };
 }
 
-export async function checkSlackMessages({ account, channel }: { account: any; channel?: string }) {
+export interface CheckSlackMessagesArgs {
+  account: AccountConfig;
+  channel?: string;
+}
+
+export async function checkSlackMessages({ channel }: CheckSlackMessagesArgs) {
   console.log(`💬 Checking Slack messages${channel ? ` in #${channel}` : ''}`);
   
   const mockMessages = [
@@ -144,7 +168,7 @@ export async function checkSlackMessages({ account, channel }: { account: any; c
 }
 
 // Discord tools
-export async function sendDiscordMessage({ account, channelId, message, embeds }: SendDiscordMessageArgs) {
+export async function sendDiscordMessage({ account: _account, channelId, message, embeds }: SendDiscordMessageArgs) {
   console.log(`🎮 Sending Discord message to channel ${channelId}: ${message}`);
   
   return {
@@ -156,22 +180,24 @@ export async function sendDiscordMessage({ account, channelId, message, embeds }
   };
 }
 
-// Universal message handler
-export async function processIncomingMessage({
-  account,
-  platform,
-  messageId,
-  sender,
-  content,
-  timestamp
-}: {
-  account: any;
+export interface ProcessIncomingMessageArgs {
+  account: AccountConfig;
   platform: 'email' | 'sms' | 'slack' | 'discord';
   messageId: string;
   sender: string;
   content: string;
   timestamp: string;
-}) {
+}
+
+// Universal message handler
+export async function processIncomingMessage({
+  account: _account,
+  platform,
+  messageId,
+  sender,
+  content,
+  timestamp
+}: ProcessIncomingMessageArgs) {
   console.log(`📨 Processing ${platform} message from ${sender}: ${content.substring(0, 50)}...`);
   
   // Extract intent, entities, and other NLP processing would go here

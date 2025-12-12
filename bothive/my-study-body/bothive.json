@@ -1,0 +1,12 @@
+{
+  "name": "my-study-body",
+  "version": "1.0.0",
+  "description": "A bot created with BotHive",
+  "main": "bot.hive",
+  "author": "",
+  "license": "MIT",
+  "bothive": {
+    "runtime": "hivelang",
+    "region": "auto"
+  }
+}

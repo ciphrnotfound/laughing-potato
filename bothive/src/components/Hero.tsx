@@ -270,137 +270,91 @@
 // export default Hero;
 
 import React from "react";
-import { Spotlight } from "@/components/ui/Spotlight";
-import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import { TextGenerateEffect as Subheadline } from "@/components/ui/TextGenerateEffect2";
 import { TextGenerateEffect2 as Headline } from "@/components/ui/TextGenerateEffect";
-import MagicButton from "@/components/MagicButton";
-import { FaLocationArrow } from "react-icons/fa";
-import {Spotlight2} from "@/components/ui/spotlight-new";
-import Image from "next/image";
-import AmbientBackdrop from "./AmbientBackdrop";
-
+import { HeroBackground } from "@/components/HeroBackground";
+import { ArrowRight, Play } from "lucide-react";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 const Hero = () => {
     return (
-        <section
-            role="banner"
-            aria-label="Hero"
-            className="relative w-full  sm:min-h-screen overflow-hidden dark:bg-black bg-white pb-6 pt-16 sm:pb-16 sm:pt-24"
-        >
-            {/* Ambient spotlights: layered, soft, and dynamic */}
-            <div aria-hidden="true">
-                {/* Primary violet wash */}
-                <Spotlight className="-top-6 left-6 md:left-24 md:top-10 h-[82vh] opacity-80" fill="#7C3AED" />
-                {/* Secondary violet accent on the right */}
-                <Spotlight className="-top-8 left-full md:right-20 md:top-16 h-[76vh] opacity-65" fill="#6A00FF" />
-                {/* Subtle indigo blend to tie the center */}
-                <Spotlight className="-top-[72px] left-[72px] h-[64vh] w-[50vw] opacity-60" fill="#6366F1" />
-                <Spotlight2 />
-            </div>
-
-            {/* Background grid and soft mask */}
-            {/*<div className="pointer-events-none absolute inset-0" aria-hidden="true">*/}
-            {/*    <div*/}
-            {/*        className={cn(*/}
-            {/*            "absolute inset-0",*/}
-            {/*            "[background-size:36px_36px]",*/}
-            {/*            "[background-image:linear-gradient(to_right,rgba(109,40,217,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(109,40,217,0.18)_1px,transparent_1px)]"*/}
-            {/*        )}*/}
-            {/*    />*/}
-            {/*    <div className="absolute inset-0 flex items-center justify-center [mask-image:radial-gradient(ellipse_at_center,transparent_14%,black)]" />*/}
-            {/*    <div className="absolute inset-0 opacity-55 mix-blend-soft-light">*/}
-            {/*        <div*/}
-            {/*            className="absolute left-1/2 top-1/2 h-[58vmin] w-[58vmin] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"*/}
-            {/*            style={{*/}
-            {/*                background:*/}
-            {/*                    "conic-gradient(from 180deg at 50% 50%, rgba(124,58,237,0.16), rgba(106,0,255,0.12), rgba(99,102,241,0.14), rgba(124,58,237,0.16))",*/}
-            {/*            }}*/}
-            {/*        />*/}
-            {/*    </div>*/} min-h-[560px]
-            {/*</div>*/}
-            <AmbientBackdrop/>
-
-            {/* Foreground content - single column, tight spacing */}
-            <div className="relative z-10">
-                <div className="mx-auto flex md:items-center justify-center min-h-[480px]  w-full max-w-[92rem] mt-4 sm:mt-10 md:items-center px-6 sm:px-10">
+        <HeroBackground className="w-full overflow-hidden pb-16 pt-16 sm:pb-24 sm:pt-24">
+            <section
+                role="banner"
+                aria-label="Hero"
+                className="relative z-10"
+            >
+                {/* Foreground content - single column, tight spacing */}
+                <div className="mx-auto flex md:items-center justify-center w-full max-w-[92rem] mt-4 sm:mt-10 md:items-center px-6 sm:px-10">
                     <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
-                        {/* Compact badge */}
-                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 dark:bg-black/40 bg-white/40  px-3 py-1 backdrop-blur-md">
-              <span className="rounded-full bg-purple-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white dark:text-black">
-                New
-              </span>
-                            <span className="text-[10px] font-medium tracking-wider text-black dark:text-white/80">
-                Latest Integration Just Arrived
-              </span>
+                        {/* Compact badge - theme aware */}
+                        <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 dark:border-white/10 dark:bg-black/40 px-3 py-1.5 backdrop-blur-md">
+                            <span className="rounded-full bg-gradient-to-r from-violet-600 to-purple-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                                New
+                            </span>
+                            <span className="text-[10px] font-medium tracking-wider text-black/70 dark:text-white/80">
+                                Latest Integration Just Arrived
+                            </span>
                         </div>
 
                         {/* Headline - tight leading and minimal gap */}
-                        <div className="mt-3">
+                        <div className="mt-4">
                             <Headline
-                                className=" text-[36px] leading-[1.06] sm:text-[44px] md:text-[56px] xl:text-[68px]"
+                                className="text-[36px] leading-[1.06] sm:text-[44px] md:text-[56px] xl:text-[68px]"
                                 duration={0.35}
                                 words="Where AI Minds Collaborate"
                             />
                         </div>
 
                         {/* Subheadline - tighter and concise width */}
-                        <div className="mt-2 max-w-[56ch]">
+                        <div className="mt-3 max-w-[56ch]">
                             <Subheadline
-                                className="text-[13px] leading-snug  sm:text-sm md:text-[15px]"
+                                className="text-[13px] leading-snug sm:text-sm md:text-[15px] text-black/60 dark:text-white/60"
                                 duration={0.32}
                                 words="Bothive is the operating system for the AI era — a platform where autonomous agents connect, collaborate, and create new intelligence together."
                             />
                         </div>
 
                         {/* CTA row */}
-                        <div className="mt-5 flex flex-col items-center gap-3 sm:mt-6 sm:flex-row">
+                        <div className="mt-6 flex flex-col items-center gap-3 sm:mt-8 sm:flex-row sm:gap-4">
                             <a href="/signup?redirect=%2Fgetting-started" aria-label="Get started">
-                                <button className="rounded-lg dark:bg-white bg-black px-6 py-3 text-sm font-semibold dark:text-black text-white shadow-[0_8px_30px_rgba(124,58,237,0.25)] transition-all duration-300 hover:scale-[1.02]">
+                                <button className="group inline-flex items-center gap-2 rounded-xl bg-black dark:bg-white px-6 py-3.5 text-sm font-semibold text-white dark:text-black shadow-lg shadow-black/10 dark:shadow-white/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
                                     Get Started
+                                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                                 </button>
                             </a>
-
-
-                            
-                            {/*<button*/}
-                            {/*    className="group/button relative inline-flex items-center justify-center overflow-hidden rounded-md bg-blue-500/30 backdrop-blur-lg px-6 py-2 text-base  text-white transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl hover:shadow-blue-600/50 border border-white/20"*/}
-                            {/*>*/}
-                            {/*    <span className="text-lg">Get Started</span>*/}
-                            {/*    <div*/}
-                            {/*        className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-13deg)_translateX(-100%)] group-hover/button:duration-1000 group-hover/button:[transform:skew(-13deg)_translateX(100%)]"*/}
-                            {/*    >*/}
-                            {/*        <div className="relative h-full w-10 bg-white/30"></div>*/}
-                            {/*    </div>*/}
-                            {/*</button>*/}
-
-
-
+                            <a href="/demo" aria-label="Watch demo">
+                                <button className="group inline-flex items-center gap-2 rounded-xl border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5 px-6 py-3.5 text-sm font-medium text-black/70 dark:text-white/70 backdrop-blur-sm transition-all duration-300 hover:border-black/20 dark:hover:border-white/20 hover:bg-white dark:hover:bg-white/10">
+                                    <Play className="w-3.5 h-3.5" />
+                                    Watch Demo
+                                </button>
+                            </a>
                         </div>
 
                         {/* Microcopy */}
-                        <p className="mt-3 text-[11px] text-white/55 sm:text-xs">
-                            No credit card required. Free tier available.
+                        <p className="mt-4 text-[11px] text-black/40 dark:text-white/50 sm:text-xs">
+                            No credit card required · Free tier available
                         </p>
-                        {/*<div>*/}
-                        {/*    <Image src="/App.png" alt="Hero Image" className="" width={2100} height={1080} />*/}
-                        {/*</div>*/}
-                        <div className={`mt-10 text-[15px] text-white/60`}>
-                            <p>Trusted By the world's most innovative teams</p>
-                        </div>
-                       
                     </div>
                 </div>
-            </div>
 
-            {/* Optional subtle scroll hint */}
-            {/*<div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 opacity-70">*/}
-            {/*    <div className="flex items-center gap-2 text-[10px] text-white/60">*/}
-            {/*        <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" />*/}
-            {/*        <span>Scroll</span>*/}
-            {/*    </div>*/}
-            {/*</div>*/}
-        </section>
+                {/* Product Preview Video */}
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.5 }}
+                    className="mt-16 sm:mt-20 px-6 sm:px-10"
+                >
+                    <div className="max-w-5xl mx-auto">
+                        <VideoPlayer 
+                            videoUrl="/hero-demo.mp4" 
+                            className="w-full" 
+                        />
+                    </div>
+                </motion.div>
+            </section>
+        </HeroBackground>
     );
 };
 

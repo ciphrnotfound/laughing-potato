@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays,
   Send,
@@ -14,11 +14,19 @@ import {
   AlertCircle,
   ShieldCheck,
   Wand2,
+  Brain,
+  TrendingUp,
+  Clock,
+  Target,
+  BarChart3,
 } from "lucide-react";
 import { useAppSession } from "@/lib/app-session-context";
 import { CronControl } from "@/components/cron-control";
 import { listSocialPosts, createSocialPost, type SocialPostRecord, type SocialPlatform } from "@/lib/social-posts";
 import { useRouter } from "next/navigation";
+import AISocialAssistant from "@/components/AISocialAssistant";
+import { useTheme } from "@/lib/theme-context";
+import { cn } from "@/lib/utils";
 
 type ConnectedAccountSummary = {
   provider: string;
@@ -49,6 +57,8 @@ const INITIAL_AUTOPOSTER: AutoposterInputs = {
 export default function SocialDashboardPage() {
   const router = useRouter();
   const { isAuthenticated, loading, profile } = useAppSession();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [posts, setPosts] = useState<SocialPostRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [composerPlatform, setComposerPlatform] = useState<SocialPlatform>("twitter");
@@ -64,6 +74,36 @@ export default function SocialDashboardPage() {
   const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+
+  // AI Content Suggestion
+  const generateAISuggestion = async () => {
+    if (!composerText.trim()) return;
+    
+    try {
+      // Mock AI suggestion - integrate with AI API when ready
+      const suggestions = [
+        "Just discovered an amazing AI tool that transformed our workflow! The future of automation is here 🚀 #AI #Innovation #Tech",
+        "Building a startup? Focus on solving real problems first. Your users will thank you later. 🎯 #Startup #Entrepreneurship",
+        "Day in the life of our team! From morning coffee standups to late-night coding sessions. This is how the magic happens ✨ #TeamLife #BehindTheScenes",
+        "The future of work is remote, flexible, and AI-powered. Are you ready for what's coming? 🤖 #FutureOfWork #RemoteWork #AI",
+        "Productivity tip: Use AI to automate repetitive tasks, so you can focus on what truly matters - innovation and creativity! 💡 #Productivity #AI #Tips"
+      ];
+      
+      const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+      setAiSuggestion(randomSuggestion);
+    } catch (error) {
+      console.error("Error generating AI suggestion:", error);
+    }
+  };
+
+  const applyAISuggestion = () => {
+    if (aiSuggestion) {
+      setComposerText(aiSuggestion);
+      setAiSuggestion(null);
+    }
+  };
 
 
   const refreshPosts = useCallback(async () => {
@@ -336,6 +376,16 @@ useEffect(() => {
                   </div>
 
                   <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {/* AI Suggestion Button */}
+                    <button
+                      type="button"
+                      onClick={generateAISuggestion}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-[#6C43FF]/30 bg-gradient-to-r from-[#6C43FF]/10 to-[#8A63FF]/10 px-4 py-2 text-xs font-medium text-white transition hover:from-[#6C43FF]/20 hover:to-[#8A63FF]/20"
+                    >
+                      <Brain className="h-3.5 w-3.5 text-[#6C43FF]" />
+                      AI Suggest
+                    </button>
+                    
                     <button
                       type="button"
                       disabled={!composerText.trim() || isSaving}
@@ -355,6 +405,37 @@ useEffect(() => {
                       Queue for today
                     </button>
                   </div>
+
+                  {/* AI Suggestion Display */}
+                  {aiSuggestion && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 p-4 rounded-2xl border border-[#6C43FF]/30 bg-gradient-to-r from-[#6C43FF]/10 to-[#8A63FF]/10 backdrop-blur-sm"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Brain className="w-4 h-4 text-[#6C43FF]" />
+                          <span className="text-sm font-medium text-white">AI Suggestion</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={applyAISuggestion}
+                            className="px-3 py-1 rounded-lg bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] text-white text-xs font-medium"
+                          >
+                            Apply
+                          </button>
+                          <button
+                            onClick={() => setAiSuggestion(null)}
+                            className="px-3 py-1 rounded-lg bg-white/20 text-white text-xs font-medium"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-white/80 text-sm">{aiSuggestion}</p>
+                    </motion.div>
+                  )}
                 </div>
               </div>
             </motion.section>
@@ -478,7 +559,44 @@ useEffect(() => {
            
 
           <div className="space-y-6">
-                      <motion.section
+            {/* AI Social Assistant */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.02 }}
+              className="rounded-3xl border border-white/12 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
+            >
+              <div className="p-5 border-b border-white/10">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.28em] text-white/55">AI Intelligence</p>
+                    <h2 className="text-lg font-semibold text-white">Social Assistant</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowAIAssistant(!showAIAssistant)}
+                    className="inline-flex items-center gap-1 rounded-full bg-[#6C43FF]/20 px-3 py-1 text-[11px] text-[#6C43FF] border border-[#6C43FF]/30"
+                  >
+                    <Brain className="h-3.5 w-3.5" />
+                    {showAIAssistant ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+              
+              <AnimatePresence>
+                {showAIAssistant && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <AISocialAssistant />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.section>
+
+            <motion.section
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.05 }}

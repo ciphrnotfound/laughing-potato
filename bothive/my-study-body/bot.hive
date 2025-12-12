@@ -1,0 +1,23 @@
+@bot my-study-body
+@description "A bot created with BotHive"
+@category productivity
+
+# Welcome capability
+@capability greet(user_name)
+    prompt = f"""
+    Greet the user {user_name} warmly and ask how you can help today.
+    Be friendly and professional.
+    """
+    
+    return ai.generate(prompt)
+
+# Main response handler
+@capability respond(message)
+    prompt = f"""
+    You are a helpful assistant. Respond to this message:
+    {message}
+    
+    Be concise and helpful.
+    """
+    
+    return ai.generate(prompt)

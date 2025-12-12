@@ -1,108 +1,155 @@
 import { supabase } from "@/lib/supabase";
 
-export type SocialPlatform = "twitter" | "linkedin";
-export type SocialPostStatus = "draft" | "scheduled" | "published" | "failed";
-
 export interface SocialPostRecord {
-  id: string;
-  user_id: string;
-  platform: SocialPlatform;
-  status: SocialPostStatus;
-  content: string;
-  scheduled_for: string | null;
-  published_at: string | null;
-  external_id: string | null;
-  source: "manual" | "trend_bot";
-  meta: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
+    id: string;
+    user_id: string;
+    platform: 'twitter' | 'linkedin' | 'facebook' | 'instagram';
+    content: string;
+    status: 'draft' | 'scheduled' | 'published' | 'failed';
+    scheduled_for: string | null;
+    published_at: string | null;
+    external_id: string | null;
+    external_url: string | null;
+    media_urls: string[];
+    analytics: any;
+    created_at: string;
+    updated_at: string;
 }
 
-export async function getAllScheduledPosts(): Promise<SocialPostRecord[]> {
-  const { data, error } = await supabase
-    .from("social_posts")
-    .select("*")
-    .eq("status", "scheduled")
-    .order("scheduled_for", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error loading all scheduled posts", error.message);
-    return [];
-  }
-  return (data ?? []) as SocialPostRecord[];
-}
-
+/**
+ * List social posts for a user
+ */
 export async function listSocialPosts(userId: string): Promise<SocialPostRecord[]> {
-  const { data, error } = await supabase
-    .from("social_posts")
-    .select("*")
-    .eq("user_id", userId)
-    .order("scheduled_for", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+        .from('social_posts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error("Error loading social posts", error.message);
-    return [];
-  }
-  return (data ?? []) as SocialPostRecord[];
+    if (error) {
+        console.error('Error listing social posts:', error);
+        return [];
+    }
+
+    return (data || []) as SocialPostRecord[];
 }
 
-export async function createSocialPost(input: {
-  userId: string;
-  platform: SocialPlatform;
-  content: string;
-  status?: SocialPostStatus;
-  scheduledFor?: string | null;
-  source?: "manual" | "trend_bot";
-  meta?: Record<string, unknown>;
-}): Promise<SocialPostRecord | null> {
-  const payload = {
-    user_id: input.userId,
-    platform: input.platform,
-    content: input.content,
-    status: input.status ?? (input.scheduledFor ? "scheduled" : "draft"),
-    scheduled_for: input.scheduledFor ?? null,
-    source: input.source ?? "manual",
-    meta: input.meta ?? {},
-  };
+/**
+ * Get all scheduled posts across all users (for cron jobs)
+ */
+export async function getAllScheduledPosts(): Promise<SocialPostRecord[]> {
+    const { data, error } = await supabase
+        .from('social_posts')
+        .select('*')
+        .eq('status', 'scheduled')
+        .order('scheduled_for', { ascending: true });
 
-  const { data, error } = await supabase
-    .from("social_posts")
-    .insert(payload)
-    .select("*")
-    .single();
+    if (error) {
+        console.error('Error getting scheduled posts:', error);
+        return [];
+    }
 
-  if (error || !data) {
-    console.error("Error creating social post", error?.message);
-    return null;
-  }
-  return data as SocialPostRecord;
+    return (data || []) as SocialPostRecord[];
 }
 
+/**
+ * Create a new social post
+ */
+export async function createSocialPost(
+    userId: string,
+    platform: SocialPostRecord['platform'],
+    content: string,
+    scheduledFor?: string
+): Promise<SocialPostRecord | null> {
+    const { data, error } = await supabase
+        .from('social_posts')
+        .insert({
+            user_id: userId,
+            platform,
+            content,
+            status: scheduledFor ? 'scheduled' : 'draft',
+            scheduled_for: scheduledFor || null,
+            media_urls: [],
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error creating social post:', error);
+        return null;
+    }
+
+    return data as SocialPostRecord;
+}
+
+/**
+ * Update social post status
+ */
 export async function updateSocialPostStatus(
-  id: string,
-  status: SocialPostStatus,
-  extras?: { externalId?: string | null; publishedAt?: string | null }
+    postId: string,
+    status: SocialPostRecord['status'],
+    metadata?: {
+        externalId?: string;
+        externalUrl?: string;
+        publishedAt?: string;
+        analytics?: any;
+    }
 ): Promise<boolean> {
-  const updatePayload: Record<string, unknown> = { status };
+    const updates: any = {
+        status,
+        updated_at: new Date().toISOString(),
+    };
 
-  if (Object.prototype.hasOwnProperty.call(extras ?? {}, "externalId")) {
-    updatePayload.external_id = extras?.externalId ?? null;
-  }
+    if (metadata?.externalId) updates.external_id = metadata.externalId;
+    if (metadata?.externalUrl) updates.external_url = metadata.externalUrl;
+    if (metadata?.publishedAt) updates.published_at = metadata.publishedAt;
+    if (metadata?.analytics) updates.analytics = metadata.analytics;
 
-  if (Object.prototype.hasOwnProperty.call(extras ?? {}, "publishedAt")) {
-    updatePayload.published_at = extras?.publishedAt ?? null;
-  }
+    const { error } = await supabase
+        .from('social_posts')
+        .update(updates)
+        .eq('id', postId);
 
-  const { error } = await supabase
-    .from("social_posts")
-    .update(updatePayload)
-    .eq("id", id);
+    if (error) {
+        console.error('Error updating social post:', error);
+        return false;
+    }
 
-  if (error) {
-    console.error("Error updating social post status", error.message);
-    return false;
-  }
-  return true;
+    return true;
+}
+
+/**
+ * Delete a social post
+ */
+export async function deleteSocialPost(postId: string, userId: string): Promise<boolean> {
+    const { error } = await supabase
+        .from('social_posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', userId);
+
+    if (error) {
+        console.error('Error deleting social post:', error);
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * Get post by ID
+ */
+export async function getSocialPost(postId: string): Promise<SocialPostRecord | null> {
+    const { data, error } = await supabase
+        .from('social_posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+
+    if (error) {
+        console.error('Error getting social post:', error);
+        return null;
+    }
+
+    return data as SocialPostRecord;
 }

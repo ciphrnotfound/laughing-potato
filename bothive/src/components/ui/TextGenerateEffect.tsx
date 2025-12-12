@@ -5,33 +5,33 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
 
 export const TextGenerateEffect2 = ({
-                                       words,
-                                       className,
-                                       filter = true,
-                                       duration = 0.5,
-                                   }: {
+    words,
+    className,
+    filter = true,
+    duration = 0.5,
+}: {
     words: string;
     className?: string;
     filter?: boolean;
     duration?: number;
 }) => {
     const [scope, animate] = useAnimate();
-    const { theme } = useTheme();
-    const isDark = theme === "dark";
     let wordsArray = words.split(" ");
     useEffect(() => {
-        animate(
-            "span",
-            {
-                opacity: 1,
-                filter: filter ? "blur(0px)" : "none",
-            },
-            {
-                duration: duration ? duration : 1,
-                delay: stagger(0.2),
-            }
-        );
-    }, [scope.current]);
+        if (scope.current) {
+            animate(
+                "span",
+                {
+                    opacity: 1,
+                    filter: filter ? "blur(0px)" : "none",
+                },
+                {
+                    duration: duration ? duration : 1,
+                    delay: stagger(0.2),
+                }
+            );
+        }
+    }, [animate, duration, filter, scope]);
 
     const renderWords = () => {
         return (
@@ -41,12 +41,8 @@ export const TextGenerateEffect2 = ({
                         key={word + idx}
                         className={cn(
                             idx > 2
-                                ? isDark
-                                    ? "text-transparent bg-gradient-to-br from-white/90 via-white to-white bg-clip-text"
-                                    : "text-transparent bg-gradient-to-br from-violet-700 via-violet-500 to-purple-800 bg-clip-text"
-                                : isDark
-                                    ? "text-white"
-                                    : "text-slate-900",
+                                ? "text-transparent bg-clip-text bg-gradient-to-br from-violet-700 via-violet-500 to-purple-800 dark:from-white/90 dark:via-white dark:to-white"
+                                : "text-slate-900 dark:text-white",
                             "opacity-0"
                         )}
                         style={{
@@ -61,6 +57,6 @@ export const TextGenerateEffect2 = ({
     };
 
     return (
-        <div className={cn("max-w-xl", className, isDark ? "text-white" : "text-slate-900")}>{renderWords()}</div>
+        <div className={cn("max-w-xl text-slate-900 dark:text-white", className)}>{renderWords()}</div>
     );
 };

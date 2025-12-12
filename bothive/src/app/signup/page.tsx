@@ -1,401 +1,338 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import { Mail, Lock, Loader2, Moon, Sun, CheckCircle2, Github } from "lucide-react";
-import ProfessionalAlert from "@/components/ui/game-alert";
+import { useRouter } from "next/navigation";
+import { Loader2, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 import { motion } from "framer-motion";
-import { AuthLoader } from "@/components/ui/auth-loader";
 import { supabase } from "@/lib/supabase";
-import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function SignUp() {
-  const { theme, toggleTheme } = useTheme();
-  const isDark = theme === "dark";
-  const [showAlert, setShowAlert] = useState<{
-    type: "success" | "error" | "warning" | "info";
-    title: string;
-    message?: string;
-    autoClose?: number;
-  } | null>(null);
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isScreenLoading, setIsScreenLoading] = useState(true);
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
 
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            full_name: name,
-          },
-        },
+        options: { data: { full_name: name } },
       });
 
       if (error) {
-        setShowAlert({
-          type: "error",
-          title: "Sign up failed",
-          message: error.message || "We couldn’t create your workspace account.",
-        });
+        toast.error(error.message || "Sign up failed");
+        setIsLoading(false);
         return;
       }
 
-      setShowAlert({
-        type: "success",
-        title: "Workspace created",
-        message:
-          data.session?.access_token
-            ? "Redirecting you to the dashboard."
-            : "Check your inbox to confirm your email before signing in.",
-        autoClose: data.session?.access_token ? 1200 : undefined,
-      });
-
       if (data.session?.access_token) {
-        setTimeout(() => {
-          window.location.href = "/dashboard/home";
-        }, 1200);
+        toast.success("Account created!");
+        router.push("/onboarding");
+      } else {
+        toast.success("Check your email to confirm your account");
+        setIsLoading(false);
       }
-    } catch (error) {
-      setShowAlert({
-        type: "error",
-        title: "Unexpected error",
-        message: "Please try again in a moment.",
-      });
-    } finally {
+    } catch {
+      toast.error("An error occurred");
       setIsLoading(false);
     }
   };
 
-  const handleOAuthSignUp = async (provider: "google" | "github") => {
-    setShowAlert(null);
+  const handleOAuth = async (provider: "google" | "github") => {
     setOauthLoading(provider);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        },
+        options: { redirectTo: `${window.location.origin}/onboarding` },
       });
-
       if (error) {
-        setShowAlert({
-          type: "error",
-          title: "Sign up failed",
-          message: error.message || `Could not continue with ${provider === "google" ? "Google" : "GitHub"}.`,
-        });
+        toast.error(`Could not sign up with ${provider}`);
         setOauthLoading(null);
       }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown OAuth error";
-      setShowAlert({
-        type: "error",
-        title: "Sign up failed",
-        message,
-      });
+    } catch {
+      toast.error("OAuth failed");
       setOauthLoading(null);
     }
   };
 
-  useEffect(() => {
-    const timeout = setTimeout(() => setIsScreenLoading(false), 900);
-    return () => clearTimeout(timeout);
-  }, []);
+  const requirements = [
+    { met: password.length >= 8, label: "8+ characters" },
+    { met: /[A-Z]/.test(password), label: "Uppercase" },
+    { met: /[0-9!@#$%^&*]/.test(password), label: "Number/Symbol" },
+  ];
 
-  const rootBackground = cn(
-    "relative min-h-screen overflow-hidden transition-colors duration-500",
-    isDark
-      ? "bg-[#070910] text-white"
-      : "bg-gradient-to-br from-[#F5F7FF] via-white to-[#E9EEFF] text-[#0C1024]"
-  );
-
-  const cardShellClass = cn(
-    "pointer-events-none absolute inset-0 rounded-[28px] border backdrop-blur-xl transition-all duration-500",
-    isDark
-      ? "border-white/12 bg-[#0C1323]/80 shadow-[0_48px_120px_rgba(12,15,35,0.55)]"
-      : "border-[#B8C4FF]/40 bg-white/85 shadow-[0_44px_110px_rgba(88,112,255,0.18)]"
-  );
-
-  const gridOverlayClass = cn(
-    "absolute inset-0 bg-[length:64px_64px]",
-    isDark
-      ? "bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] opacity-40"
-      : "bg-[linear-gradient(to_right,rgba(12,16,36,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(12,16,36,0.08)_1px,transparent_1px)] opacity-70"
-  );
-
-  const radialOverlayClass = cn(
-    "absolute inset-x-0 top-[-240px] h-[520px] rounded-full",
-    isDark
-      ? "bg-[radial-gradient(circle_at_center,rgba(108,67,255,0.28),transparent_70%)]"
-      : "bg-[radial-gradient(circle_at_center,rgba(99,109,255,0.22),transparent_70%)]"
-  );
-
-  const subduedText = isDark ? "text-white/55" : "text-[#0C1024]/55";
-  const subtleText = isDark ? "text-white/40" : "text-[#0C1024]/40";
-  const strongText = isDark ? "text-white" : "text-[#0C1024]";
-
-  const inputClass = cn(
-    "w-full rounded-xl border py-3 pr-4 text-sm transition focus:outline-none focus:ring-2",
-    isDark
-      ? "border-white/12 bg-black/40 text-white placeholder:text-white/35 focus:border-white/30 focus:ring-white/20"
-      : "border-[#D7DEF8] bg-white/90 text-[#0C1024] placeholder:text-[#3B446B]/55 focus:border-[#A3B4F2] focus:ring-[#CDD5FF]"
-  );
-
-  const tabWrapperClass = cn(
-    "grid grid-cols-2 gap-2 rounded-xl border p-1 text-sm font-medium transition-all",
-    isDark ? "border-white/10 bg-black/40" : "border-[#C5CEFF]/60 bg-white/70"
-  );
-
-  const primaryTabClass = cn(
-    "flex items-center justify-center rounded-lg px-3 py-2 text-white shadow-[0_12px_32px_rgba(20,27,47,0.6)] transition",
-    isDark
-      ? "bg-[#141B2F]"
-      : "bg-gradient-to-r from-[#5F6BFF] to-[#8A9AFF] text-white shadow-[0_16px_40px_rgba(134,149,255,0.28)]"
-  );
-
-  const secondaryButtonClass = cn(
-    "flex items-center justify-center rounded-lg px-3 py-2 transition",
-    isDark ? "text-white/55 hover:text-white" : "text-[#1E2654]/65 hover:text-[#0C1024]"
-  );
-
-  const submitButtonClass = cn(
-    "flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70",
-    isDark
-      ? "bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] text-white shadow-[0_16px_40px_rgba(108,67,255,0.35)] hover:brightness-110"
-      : "bg-gradient-to-r from-[#5163FF] to-[#7F92FF] text-white shadow-[0_18px_46px_rgba(118,132,255,0.28)] hover:brightness-105"
-  );
-
-  const oauthButtonClass = cn(
-    "flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
-    isDark
-      ? "border-white/12 bg-black/40 text-white hover:border-white/25 hover:bg-black/50"
-      : "border-[#D7DEF8] bg-white/85 text-[#0C1024] hover:border-[#B7C4FF] hover:bg-white"
-  );
+  if (!mounted) return null;
 
   return (
-    <div className={rootBackground}>
-      {isScreenLoading && <AuthLoader />}
-
-      <div className="pointer-events-none absolute inset-0">
-        <div className={radialOverlayClass} />
-        <div className={gridOverlayClass} />
+    <div className="min-h-screen bg-[#09090b] text-white relative overflow-hidden">
+      {/* Gradient background effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[150px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[120px]" />
       </div>
 
-      {showAlert && (
-        <ProfessionalAlert
-          open
-          variant={showAlert.type}
-          title={showAlert.title}
-          message={showAlert.message}
-          autoClose={showAlert.autoClose}
-          position="center"
-          disableBackdropClose
-          onClose={() => setShowAlert(null)}
-        />
-      )}
+      {/* Grid pattern */}
+      <div
+        className="absolute inset-0 opacity-[0.02]"
+        style={{
+          backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
+          backgroundSize: '64px 64px'
+        }}
+      />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16 sm:px-6">
+      {/* Header */}
+      <header className="relative z-10 flex items-center justify-between px-6 py-4 md:px-10 md:py-6">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/20 transition-transform group-hover:scale-105">
+            <span className="font-bold text-white text-sm">B</span>
+          </div>
+          <span className="font-semibold text-lg tracking-tight hidden sm:block">bothive</span>
+        </Link>
+
+        <Link
+          href="/signin"
+          className="text-sm text-zinc-400 hover:text-white transition-colors"
+        >
+          Sign in →
+        </Link>
+      </header>
+
+      {/* Main content */}
+      <main className="relative z-10 flex items-center justify-center min-h-[calc(100vh-160px)] px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="relative w-full max-w-md"
+          transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+          className="w-full max-w-[360px]"
         >
-          <div className={cardShellClass} />
-          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
-            <div
-              className={cn(
-                "absolute inset-0",
-                isDark
-                  ? "bg-[radial-gradient(circle_at_top,rgba(124,68,255,0.22),transparent_70%)]"
-                  : "bg-[radial-gradient(circle_at_top,rgba(104,120,255,0.18),transparent_72%)]"
-              )}
-            />
-            <div
-              className={cn(
-                "absolute inset-0 mix-blend-screen",
-                isDark
-                  ? "bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[length:40px_40px]"
-                  : "bg-[linear-gradient(to_right,rgba(14,20,48,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(14,20,48,0.08)_1px,transparent_1px)] bg-[length:40px_40px]"
-              )}
-            />
+          {/* Title */}
+          <div className="text-center mb-8">
+            <h1 className="text-[28px] font-semibold tracking-tight mb-2">
+              Create your account
+            </h1>
+            <p className="text-zinc-500 text-[15px]">
+              Start building your AI workforce today
+            </p>
           </div>
 
-          <div className="relative z-10 space-y-8 px-8 py-10 sm:px-10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8C89FF] via-[#A3A0FF] to-white shadow-[0_14px_32px_rgba(124,111,255,0.42)]">
-                  <Image src="/colored-logo (2).png" alt="Bothive" width={24} height={24} className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className={cn("text-xs font-semibold uppercase tracking-[0.28em]", subduedText)}>Bothive</p>
-                  <p className={cn("text-lg font-semibold", strongText)}>Create your hive login</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className={cn(
-                  "group relative flex h-10 w-10 items-center justify-center rounded-xl border transition-colors",
-                  isDark
-                    ? "border-white/12 bg-white/5 text-white/70 hover:border-white/25 hover:bg-white/10"
-                    : "border-[#D7DEF8] bg-white/80 text-[#0C1024]/70 hover:border-[#B3C2FF] hover:bg-white"
-                )}
-                aria-label="Toggle theme"
-              >
-                {isDark ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
-                <span className="sr-only">Toggle theme</span>
-              </button>
+          {/* OAuth buttons */}
+          <div className="space-y-3 mb-8">
+            <button
+              onClick={() => handleOAuth("google")}
+              disabled={!!oauthLoading}
+              className="w-full h-11 bg-white text-black rounded-lg font-medium text-sm flex items-center justify-center gap-2.5 hover:bg-zinc-100 transition-colors disabled:opacity-50"
+            >
+              {oauthLoading === "google" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  Continue with Google
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => handleOAuth("github")}
+              disabled={!!oauthLoading}
+              className="w-full h-11 bg-zinc-900 border border-zinc-800 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2.5 hover:bg-zinc-800 hover:border-zinc-700 transition-colors disabled:opacity-50"
+            >
+              {oauthLoading === "github" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  Continue with GitHub
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => handleOAuth("auth0" as any)}
+              disabled={!!oauthLoading}
+              className="w-full h-11 bg-[#eb5424] text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2.5 hover:bg-[#d94213] transition-colors disabled:opacity-50"
+            >
+              {oauthLoading === "auth0" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21.98 12c0 2.2-1.39 4.09-3.39 4.88-.19.08-.39.14-.59.2-.07.02-.13.04-.2.05-.12.04-.25.07-.37.1-.06.01-.12.03-.18.04-.23.05-.46.08-.7.1-.07.01-.15.01-.22.01h-.04l-.2.01H7.91l-.2-.01h-.04l-.22-.01c-.24-.02-.47-.05-.7-.1-.06-.01-.12-.03-.18-.04-.12-.03-.25-.06-.37-.1-.07-.01-.13-.03-.2-.05-.2-.06-.4-.12-.59-.2C3.39 16.09 2 14.2 2 12s1.39-4.09 3.39-4.88c.19-.08.39-.14.59-.2.07-.02.13-.04.2-.05.12-.04.25-.07.37-.1.06-.01.12-.03.18-.04.23-.05.46-.08.7-.1.07-.01.15-.01.22-.01h.04l.2-.01h8.18l.2.01h.04l.22.01c.24.02.47.05.7.1.06.01.12.03.18.04.12.03.25.06.37.1.07.01.13.03.2.05.2.06.4.12.59.2 2 1.3 3.39 3.19 3.39 5.39zM12 7.7a4.3 4.3 0 1 0 0 8.6 4.3 4.3 0 0 0 0-8.6z"/>
+                  </svg>
+                  Continue with Auth0
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-zinc-800" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-[#09090b] px-4 text-xs text-zinc-600 uppercase tracking-widest">
+                or continue with email
+              </span>
+            </div>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2" htmlFor="name">
+                Full name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoComplete="name"
+                placeholder="John Doe"
+                className="w-full h-11 px-4 bg-zinc-900/50 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all"
+              />
             </div>
 
-            <div className="space-y-2 text-center">
-              <p className={cn("text-sm", subduedText)}>Start your 30-day trial. Cancel anytime.</p>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2" htmlFor="email">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="you@company.com"
+                className="w-full h-11 px-4 bg-zinc-900/50 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all"
+              />
             </div>
 
-            <div className={tabWrapperClass}>
-              <button type="button" className={primaryTabClass}>
-                Sign up
-              </button>
-              <Link href="/signin" className={secondaryButtonClass}>
-                Log in
-              </Link>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2 text-left">
-                <label
-                  htmlFor="name"
-                  className={cn("text-xs font-medium uppercase tracking-[0.2em]", subduedText)}
-                >
-                  Name
-                </label>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2" htmlFor="password">
+                Password
+              </label>
+              <div className="relative">
                 <input
-                  id="name"
-                  name="name"
-                  type="text"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="Enter your name"
-                  className={inputClass}
+                  minLength={8}
+                  autoComplete="new-password"
+                  className="w-full h-11 px-4 pr-11 bg-zinc-900/50 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all"
                 />
-              </div>
-
-              <div className="space-y-2 text-left">
-                <label
-                  htmlFor="email"
-                  className={cn("text-xs font-medium uppercase tracking-[0.2em]", subduedText)}
-                >
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className={cn("pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2", subtleText)} />
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    placeholder="Enter your email"
-                    className={cn("pl-12", inputClass)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2 text-left">
-                <label
-                  htmlFor="password"
-                  className={cn("text-xs font-medium uppercase tracking-[0.2em]", subduedText)}
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className={cn("pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2", subtleText)} />
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    minLength={8}
-                    required
-                    placeholder="Create a password"
-                    className={cn("pl-12", inputClass)}
-                  />
-                </div>
-              </div>
-
-              <ul className={cn("space-y-2 text-sm", subduedText)}>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[#9E7BFF]" />
-                  Must be at least 8 characters
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[#9E7BFF]" />
-                  Include one number or symbol
-                </li>
-              </ul>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={submitButtonClass}
-              >
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Get started"}
-              </button>
-            </form>
-
-            <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => void handleOAuthSignUp("google")}
-                  disabled={oauthLoading === "google" || oauthLoading === "github"}
-                  className={oauthButtonClass}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
                 >
-                  {oauthLoading === "google" ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <svg className="h-5 w-5" viewBox="0 0 533.5 544.3" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M533.5 278.4c0-17.4-1.4-34.1-4.1-50.4H272v95.4h147.5c-6.4 35-25.6 64.7-54.5 84.7v70h88c51.4-47.4 80.5-117.3 80.5-199.7Z" fill="#4285F4" />
-                      <path d="M272 544.3c73.8 0 135.8-24.5 181-66.2l-88-70c-24.4 16.4-55.9 25.9-93 25.9-71.5 0-132.1-48.2-153.9-113.1h-90v71.2c45.1 89.9 138.7 152.2 243.9 152.2Z" fill="#34A853" />
-                      <path d="M118.1 320.9c-11.3-33.8-11.3-70.2 0-104l-.1-71.3H28c-38.3 76.2-38.3 165.9 0 242.1l90.1-66.8Z" fill="#FBBC05" />
-                      <path d="M272 107.7c38.8-.6 76.1 14.2 104.3 41.6l77.9-77.9C407.3 24.5 345.8 0 272 0 166.7 0 73.1 62.3 28 152.3l90 71.2c21.8-64.8 82.4-115.8 154-115.8Z" fill="#EA4335" />
-                    </svg>
-                  )}
-                  <span>Sign up with Google</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleOAuthSignUp("github")}
-                  disabled={oauthLoading === "google" || oauthLoading === "github"}
-                  className={oauthButtonClass}
-                >
-                  {oauthLoading === "github" ? <Loader2 className="h-5 w-5 animate-spin" /> : <Github className="h-5 w-5" />}
-                  <span>Sign up with GitHub</span>
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className={cn("text-center text-sm", subduedText)}>
-                Already have an account?
-                <Link
-                  href="/signin"
-                  className={cn("ml-1 font-semibold hover:underline", isDark ? "text-white" : "text-[#3140A5]")}
-                >
-                  Log in
-                </Link>
-              </p>
+
+              {/* Password requirements */}
+              <div className="flex gap-3 mt-3">
+                {requirements.map((req, i) => (
+                  <span
+                    key={i}
+                    className={cn(
+                      "text-xs flex items-center gap-1 transition-colors",
+                      req.met ? "text-emerald-400" : "text-zinc-600"
+                    )}
+                  >
+                    <Check className="w-3 h-3" />
+                    {req.label}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || !email || !password || !name || password.length < 8}
+              className="w-full h-11 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 hover:from-violet-500 hover:to-violet-400 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-500/20 transition-all"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  Create account
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Terms */}
+          <p className="text-center text-xs text-zinc-600 mt-6">
+            By signing up, you agree to our{" "}
+            <Link href="/terms" className="text-zinc-400 hover:text-white transition-colors">Terms of Service</Link>
+            {" "}and{" "}
+            <Link href="/privacy" className="text-zinc-400 hover:text-white transition-colors">Privacy Policy</Link>
+          </p>
+
+          {/* Footer link */}
+          <p className="text-center text-sm text-zinc-500 mt-4">
+            Already have an account?{" "}
+            <Link href="/signin" className="text-violet-400 hover:text-violet-300 transition-colors">
+              Sign in
+            </Link>
+          </p>
         </motion.div>
-      </div>
+      </main>
+
+      {/* Footer with large brand text */}
+      <footer className="relative z-10 w-full overflow-hidden">
+        <div className="relative">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 1 }}
+            className="flex justify-center"
+          >
+            <span
+              className="font-black tracking-[-0.05em] select-none whitespace-nowrap"
+              style={{
+                fontSize: 'clamp(100px, 25vw, 320px)',
+                lineHeight: 0.8,
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 80%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              BOTHIVE
+            </span>
+          </motion.div>
+        </div>
+      </footer>
     </div>
   );
 }

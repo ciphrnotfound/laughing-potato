@@ -1,250 +1,112 @@
 "use client";
 
-import React, { useState } from "react";
-import { Plus, Trash2, Save, Code, Wand2 } from "lucide-react";
+import React, { useState } from 'react';
 import { AgentDefinition } from "@/lib/agentTypes";
+import { Plus, Save, Bot, Brain, Sparkles } from 'lucide-react';
 
 interface AgentBuilderProps {
-  onSave?: (agent: AgentDefinition) => void;
+    onSave: (agent: AgentDefinition) => void;
 }
 
 export default function AgentBuilder({ onSave }: AgentBuilderProps) {
-  const [agent, setAgent] = useState<Partial<AgentDefinition>>({
-    name: "",
-    description: "",
-    skills: [],
-    memoryKeys: [],
-  });
-  const [newSkill, setNewSkill] = useState("");
-  const [newMemoryKey, setNewMemoryKey] = useState("");
-  const [mode, setMode] = useState<"visual" | "code">("visual");
+    const [name, setName] = useState("");
+    const [description, setDescription] = useState("");
+    const [skills, setSkills] = useState<string>("");
+    const [memoryKeys, setMemoryKeys] = useState<string>("");
 
-  const addSkill = () => {
-    if (newSkill.trim()) {
-      setAgent((prev) => ({
-        ...prev,
-        skills: [...(prev.skills || []), newSkill.trim()],
-      }));
-      setNewSkill("");
-    }
-  };
+    const handleSave = () => {
+        if (!name.trim()) return;
 
-  const removeSkill = (index: number) => {
-    setAgent((prev) => ({
-      ...prev,
-      skills: prev.skills?.filter((_, i) => i !== index) || [],
-    }));
-  };
+        const newAgent: AgentDefinition = {
+            id: crypto.randomUUID(),
+            name,
+            description,
+            skills: skills.split(',').map(s => s.trim()).filter(Boolean),
+            memoryKeys: memoryKeys.split(',').map(s => s.trim()).filter(Boolean),
+        };
 
-  const addMemoryKey = () => {
-    if (newMemoryKey.trim()) {
-      setAgent((prev) => ({
-        ...prev,
-        memoryKeys: [...(prev.memoryKeys || []), newMemoryKey.trim()],
-      }));
-      setNewMemoryKey("");
-    }
-  };
+        onSave(newAgent);
 
-  const removeMemoryKey = (index: number) => {
-    setAgent((prev) => ({
-      ...prev,
-      memoryKeys: prev.memoryKeys?.filter((_, i) => i !== index) || [],
-    }));
-  };
-
-  const handleSave = async () => {
-    if (!agent.name || !agent.name.trim()) {
-      alert("Please provide an agent name");
-      return;
-    }
-
-    const fullAgent: AgentDefinition = {
-      id: `agent-${Date.now()}`,
-      name: agent.name,
-      description: agent.description || "",
-      skills: agent.skills || [],
-      memoryKeys: agent.memoryKeys || [],
+        // Reset form
+        setName("");
+        setDescription("");
+        setSkills("");
+        setMemoryKeys("");
     };
 
-    try {
-      const response = await fetch("/api/agents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fullAgent),
-      });
-
-      if (response.ok) {
-        onSave?.(fullAgent);
-        alert("Agent saved successfully!");
-        setAgent({ name: "", description: "", skills: [], memoryKeys: [] });
-      }
-    } catch (error) {
-      console.error("Failed to save agent:", error);
-      alert("Failed to save agent");
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Mode Toggle */}
-      <div className="flex gap-2 p-1 rounded-lg bg-white/5 border border-white/10">
-        <button
-          onClick={() => setMode("visual")}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition ${
-            mode === "visual"
-              ? "bg-white text-black"
-              : "text-white/70 hover:text-white"
-          }`}
-        >
-          <Wand2 className="w-4 h-4" />
-          Visual Builder
-        </button>
-        <button
-          onClick={() => setMode("code")}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition ${
-            mode === "code"
-              ? "bg-white text-black"
-              : "text-white/70 hover:text-white"
-          }`}
-        >
-          <Code className="w-4 h-4" />
-          SDK/Code
-        </button>
-      </div>
-
-      {mode === "visual" ? (
-        <div className="space-y-6">
-          {/* Basic Info */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Agent Name</label>
-              <input
-                type="text"
-                value={agent.name}
-                onChange={(e) => setAgent((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Research Assistant"
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30"
-              />
+    return (
+        <div className="space-y-6 text-white bg-black/50 p-6 rounded-xl border border-white/10">
+            <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                <div className="p-2 bg-purple-600/20 rounded-lg text-purple-400">
+                    <Bot className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="text-xl font-bold">New Agent Definition</h3>
+                    <p className="text-white/50 text-sm">Define capabilities and memory access</p>
+                </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Description</label>
-              <textarea
-                value={agent.description}
-                onChange={(e) => setAgent((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="What does this agent do?"
-                rows={3}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 resize-none"
-              />
-            </div>
-          </div>
 
-          {/* Skills */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Skills</label>
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && addSkill()}
-                placeholder="e.g., web_search, code_generation"
-                className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30"
-              />
-              <button
-                onClick={addSkill}
-                aria-label="Add skill"
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-white transition"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Agent Name</label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 transition-colors"
+                        placeholder="e.g. Researcher Bot"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Description</label>
+                    <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 focus:outline-none focus:border-purple-500 transition-colors h-24"
+                        placeholder="What is this agent's primary purpose?"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Skills (comma separated)</label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={skills}
+                            onChange={(e) => setSkills(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-purple-500 transition-colors"
+                            placeholder="search, write_code, analyze_data"
+                        />
+                        <Sparkles className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Memory Keys (comma separated)</label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={memoryKeys}
+                            onChange={(e) => setMemoryKeys(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-purple-500 transition-colors"
+                            placeholder="user_preferences, current_task"
+                        />
+                        <Brain className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
+                    </div>
+                </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {agent.skills?.map((skill, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-sm"
+
+            <div className="pt-4 flex justify-end">
+                <button
+                    onClick={handleSave}
+                    disabled={!name.trim()}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-all"
                 >
-                  {skill}
-                  <button
-                    onClick={() => removeSkill(i)}
-                    className="hover:text-red-400 transition"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
+                    <Save className="w-4 h-4" />
+                    Save Agent
+                </button>
             </div>
-          </div>
-
-          {/* Memory Keys */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Memory Keys (for context)</label>
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={newMemoryKey}
-                onChange={(e) => setNewMemoryKey(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && addMemoryKey()}
-                placeholder="e.g., user_preferences, project_context"
-                className="flex-1 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30"
-              />
-              <button
-                onClick={addMemoryKey}
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-white transition"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {agent.memoryKeys?.map((key, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-sm"
-                >
-                  {key}
-                  <button
-                    onClick={() => removeMemoryKey(i)}
-                    className="hover:text-red-400 transition"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">SDK Code</label>
-            <pre className="p-4 rounded-lg bg-white/5 border border-white/10 text-sm text-white/80 overflow-x-auto">
-{`import { Bothive } from '@bothive/sdk';
-
-const agent = new Bothive.Agent({
-  name: "${agent.name || "MyAgent"}",
-  description: "${agent.description || ""}",
-  skills: ${JSON.stringify(agent.skills || [], null, 2)},
-  memoryKeys: ${JSON.stringify(agent.memoryKeys || [], null, 2)},
-});
-
-await agent.register();`}
-            </pre>
-          </div>
-          <p className="text-sm text-white/60">
-            Use the Bothive SDK to programmatically create agents. Install: <code className="px-2 py-1 rounded bg-white/10 text-xs">npm install @bothive/sdk</code>
-          </p>
-        </div>
-      )}
-
-      <button
-        onClick={handleSave}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium transition shadow-lg"
-      >
-        <Save className="w-4 h-4" />
-        Save Agent
-      </button>
-    </div>
-  );
+    );
 }
-

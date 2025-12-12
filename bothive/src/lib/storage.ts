@@ -10,27 +10,27 @@ const SESSIONS_FILE = path.join(DATA_DIR, "sessions.json");
 
 // Ensure data directory exists
 async function ensureDataDir() {
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-  } catch (_error) {
-    // Directory might already exist
-  }
+    try {
+        await fs.mkdir(DATA_DIR, { recursive: true });
+    } catch (_error) {
+        // Directory might already exist
+    }
 }
 
 // Generic file operations
 async function readFile<T>(filePath: string, defaultValue: T): Promise<T> {
-  try {
-    await ensureDataDir();
-    const data = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(data) as T;
-  } catch (_error) {
-    return defaultValue;
-  }
+    try {
+        await ensureDataDir();
+        const data = await fs.readFile(filePath, "utf-8");
+        return JSON.parse(data) as T;
+    } catch (_error) {
+        return defaultValue;
+    }
 }
 
 async function writeFile<T>(filePath: string, data: T): Promise<void> {
-  await ensureDataDir();
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+    await ensureDataDir();
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
 }
 
 type KeyValueStore = Record<string, unknown>;
@@ -38,61 +38,63 @@ type MemoryStore = unknown[];
 type TaskStore = AutomationTask[];
 
 export type AutomationTask = {
-  id: string;
-  title: string;
-  dueDate?: string | null;
-  status: "open" | "done";
-  createdAt: string;
-  metadata?: Record<string, unknown>;
+    id: string;
+    title: string;
+    dueDate?: string | null;
+    status: "open" | "done";
+    createdAt: string;
+    metadata?: Record<string, unknown>;
 };
 
-// Agents storage
+// Agents storage - DEPRECATED: Use Supabase 'agents' table
 export const agentsStorage = {
-  async read(): Promise<KeyValueStore> {
-    return readFile<KeyValueStore>(AGENTS_FILE, {} as KeyValueStore);
-  },
-  async write(data: KeyValueStore): Promise<void> {
-    await writeFile(AGENTS_FILE, data);
-  },
+    async read(): Promise<KeyValueStore> {
+        console.warn("agentsStorage.read() is deprecated. Use Supabase client.");
+        return {};
+    },
+    async write(data: KeyValueStore): Promise<void> {
+        console.warn("agentsStorage.write() is deprecated. Use Supabase client.");
+    },
 };
 
 // Users storage
 export const usersStorage = {
-  async read(): Promise<KeyValueStore> {
-    return readFile<KeyValueStore>(USERS_FILE, {} as KeyValueStore);
-  },
-  async write(data: KeyValueStore): Promise<void> {
-    await writeFile(USERS_FILE, data);
-  },
+    async read(): Promise<KeyValueStore> {
+        return readFile<KeyValueStore>(USERS_FILE, {} as KeyValueStore);
+    },
+    async write(data: KeyValueStore): Promise<void> {
+        await writeFile(USERS_FILE, data);
+    },
 };
 
 // Memory storage
 export const memoryStorage = {
-  async read(): Promise<MemoryStore> {
-    return readFile<MemoryStore>(MEMORY_FILE, [] as MemoryStore);
-  },
-  async write(data: MemoryStore): Promise<void> {
-    await writeFile(MEMORY_FILE, data);
-  },
+    async read(): Promise<MemoryStore> {
+        return readFile<MemoryStore>(MEMORY_FILE, [] as MemoryStore);
+    },
+    async write(data: MemoryStore): Promise<void> {
+        await writeFile(MEMORY_FILE, data);
+    },
 };
 
-// Automation tasks storage
+// Automation tasks storage - DEPRECATED: Use Supabase 'automation_tasks' table
 export const tasksStorage = {
-  async read(): Promise<TaskStore> {
-    return readFile<TaskStore>(TASKS_FILE, [] as TaskStore);
-  },
-  async write(data: TaskStore): Promise<void> {
-    await writeFile(TASKS_FILE, data);
-  },
+    async read(): Promise<TaskStore> {
+        console.warn("tasksStorage.read() is deprecated. Use Supabase client.");
+        return [];
+    },
+    async write(data: TaskStore): Promise<void> {
+        console.warn("tasksStorage.write() is deprecated. Use Supabase client.");
+    },
 };
 
 // Sessions storage
 export const sessionsStorage = {
-  async read(): Promise<KeyValueStore> {
-    return readFile<KeyValueStore>(SESSIONS_FILE, {} as KeyValueStore);
-  },
-  async write(data: KeyValueStore): Promise<void> {
-    await writeFile(SESSIONS_FILE, data);
-  },
+    async read(): Promise<KeyValueStore> {
+        return readFile<KeyValueStore>(SESSIONS_FILE, {} as KeyValueStore);
+    },
+    async write(data: KeyValueStore): Promise<void> {
+        await writeFile(SESSIONS_FILE, data);
+    },
 };
 

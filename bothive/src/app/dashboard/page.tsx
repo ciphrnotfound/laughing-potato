@@ -1,680 +1,402 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useMemo } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useTheme } from "@/lib/theme-context";
+import { useAppSession } from "@/lib/app-session-context";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
-  CalendarDays,
-  MoreHorizontal,
-  Network,
-  PenSquare,
-  Plus,
-  SlidersHorizontal,
-  TrendingUp,
-  UserPlus,
+  Bot,
+  Key,
+  Sparkles,
+  Users,
+  Store,
+  Code,
   Zap,
   Activity,
+  ArrowUpRight,
+  MessageSquare,
+  Gift,
+  Rocket,
+  GraduationCap
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import DashboardSidebarWrapper from "@/components/DashboardSidebarWrapper";
-import AgentBuilder from "@/components/AgentBuilder";
-import Orchestrator from "@/components/Orchestrator";
-import Marketplace from "@/components/Marketplace";
-import MemoryTracker from "@/components/MemoryTracker";
-import Integrations from "@/components/Integrations";
-import { AgentDefinition } from "@/lib/agentTypes";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import DashboardHeader from "@/components/DashboardHeader";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { DashboardPageShell } from "@/components/DashboardPageShell";
+import AIChatInterface from "@/components/AIChatInterface"; // Assuming this exists or will be created/used
 
-type DashboardTab = "overview" | "agents" | "orchestrator" | "marketplace" | "memory" | "integrations";
-
-const TIMEFRAME_OPTIONS = ["12 months", "30 days", "7 days", "24 hours"] as const;
-
-type TimeframeOption = typeof TIMEFRAME_OPTIONS[number];
-
-const MRR_SERIES: Record<TimeframeOption, { label: string; value: number }[]> = {
-  "12 months": [
-    { label: "Jan", value: 15400 },
-    { label: "Feb", value: 15840 },
-    { label: "Mar", value: 16280 },
-    { label: "Apr", value: 16720 },
-    { label: "May", value: 17100 },
-    { label: "Jun", value: 17560 },
-    { label: "Jul", value: 17820 },
-    { label: "Aug", value: 18140 },
-    { label: "Sep", value: 18360 },
-    { label: "Oct", value: 18520 },
-    { label: "Nov", value: 18680 },
-    { label: "Dec", value: 18880 },
-  ],
-  "30 days": [
-    { label: "Day 1", value: 18040 },
-    { label: "Day 5", value: 18110 },
-    { label: "Day 10", value: 18280 },
-    { label: "Day 15", value: 18410 },
-    { label: "Day 20", value: 18540 },
-    { label: "Day 25", value: 18620 },
-    { label: "Day 30", value: 18880 },
-  ],
-  "7 days": [
-    { label: "Mon", value: 18520 },
-    { label: "Tue", value: 18580 },
-    { label: "Wed", value: 18620 },
-    { label: "Thu", value: 18660 },
-    { label: "Fri", value: 18740 },
-    { label: "Sat", value: 18810 },
-    { label: "Sun", value: 18880 },
-  ],
-  "24 hours": [
-    { label: "02:00", value: 18740 },
-    { label: "06:00", value: 18780 },
-    { label: "10:00", value: 18820 },
-    { label: "14:00", value: 18840 },
-    { label: "18:00", value: 18860 },
-    { label: "22:00", value: 18870 },
-    { label: "24:00", value: 18880 },
-  ],
-};
-
-const SUMMARY_METRICS = [
-  { label: "Total members", value: "4,862", change: "+9.2%" },
-  { label: "Paid members", value: "2,671", change: "+6.6%" },
-  { label: "Email open rate", value: "82%", change: "+8.1%" },
-];
-
-const ACTION_SHORTCUTS = [
-  {
-    title: "Compose mission update",
-    description: "Share the latest deployment status with the crew.",
-    icon: PenSquare,
-    accent: "from-[#8A2FFF] to-[#4F2EFF]",
-  },
-  {
-    title: "Invite collaborator",
-    description: "Bring teammates into Bothive mission control.",
-    icon: UserPlus,
-    accent: "from-[#28D1FF] to-[#1276FF]",
-  },
-];
-
-const RECENT_POSTS = [
-  {
-    id: "post-1",
-    title: "UX review presentations",
-    excerpt: "How our product design team prepares async show-and-tell updates.",
-    gradient: "from-[#8A2FFF] via-[#5936FF] to-[#130A2C]",
-  },
-  {
-    id: "post-2",
-    title: "Migrating to Linear 101",
-    excerpt: "A tactical breakdown of migrating workflows without losing momentum.",
-    gradient: "from-[#28D1FF] via-[#1763FF] to-[#0A1226]",
-  },
-];
-
-const TOP_MEMBERS = [
-  { name: "Phoenix Baker", detail: "Member since Feb 2025" },
-  { name: "Lana Steiner", detail: "Member since Jan 2025" },
-  { name: "Demi Wilkinson", detail: "Member since Mar 2025" },
-  { name: "Candice Wu", detail: "Member since Feb 2025" },
-  { name: "Natali Craig", detail: "Member since Jan 2025" },
-  { name: "Orlando Diggs", detail: "Member since Apr 2025" },
-  { name: "Drew Cano", detail: "Member since Apr 2025" },
-];
-
-function DashboardContent() {
-  const searchParams = useSearchParams();
+export default function Dashboard() {
+  const { theme } = useTheme();
+  const { profile } = useAppSession();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
-  const [agents, setAgents] = useState<AgentDefinition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTimeframe, setActiveTimeframe] = useState<TimeframeOption>("12 months");
+  const isDark = theme === "dark";
+  const supabase = createClientComponentClient();
 
-  const chartSeries = MRR_SERIES[activeTimeframe] ?? [];
+  const [stats, setStats] = useState({
+    botCount: 0,
+    keyCount: 0,
+    deployments: 0,
+    loading: true
+  });
 
-  const chartGeometry = useMemo(() => {
-    if (!chartSeries.length) {
-      return { line: "", area: "", min: 0, max: 0 };
-    }
-
-    const values = chartSeries.map((point) => point.value);
-    const maxValue = Math.max(...values);
-    const minValue = Math.min(...values);
-    const range = Math.max(maxValue - minValue, 1);
-    const coords = chartSeries.map((point, index) => {
-      const x = (index / Math.max(chartSeries.length - 1, 1)) * 100;
-      const y = 85 - ((point.value - minValue) / range) * 70;
-      return { x, y };
-    });
-
-    const line = coords
-      .map((coord, index) => `${index === 0 ? "M" : "L"} ${coord.x.toFixed(2)} ${coord.y.toFixed(2)}`)
-      .join(" ");
-
-    const area = [
-      `M ${coords[0]?.x.toFixed(2) ?? 0} 100`,
-      ...coords.map((coord) => `L ${coord.x.toFixed(2)} ${coord.y.toFixed(2)}`),
-      `L ${coords.at(-1)?.x.toFixed(2) ?? 100} 100`,
-      "Z",
-    ].join(" ");
-
-    return { line, area, min: minValue, max: maxValue };
-  }, [chartSeries]);
-
-  const currentMRR = chartSeries.at(-1)?.value ?? 0;
-  const startingMRR = chartSeries[0]?.value ?? 0;
-  const mrrDeltaPercent = startingMRR ? ((currentMRR - startingMRR) / startingMRR) * 100 : 0;
-
-  const dashboardStats: { label: string; value: string; change: string; icon: LucideIcon }[] = [
-    {
-      label: "Active agents",
-      value: agents.length.toString(),
-      change: "+12%",
-      icon: Zap,
-    },
-    {
-      label: "Workflows",
-      value: "8",
-      change: "+3",
-      icon: Network,
-    },
-    {
-      label: "Success rate",
-      value: "94.2%",
-      change: "+2.1%",
-      icon: TrendingUp,
-    },
-    {
-      label: "Total interactions",
-      value: "1.2K",
-      change: "+156",
-      icon: Activity,
-    },
-  ];
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [userMode, setUserMode] = useState<'simple' | 'developer' | 'admin'>('simple');
+  const [greeting, setGreeting] = useState('');
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
 
   useEffect(() => {
-    // Get tab from URL
-    const tab = searchParams?.get("tab") as DashboardTab;
-    if (tab && ["overview", "agents", "orchestrator", "marketplace", "memory", "integrations"].includes(tab)) {
-      setActiveTab(tab);
-    }
-    fetchAgents();
-  }, [searchParams]);
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
+  }, []);
 
-  const fetchAgents = async () => {
-    try {
-      const response = await fetch("/api/agents");
-      if (response.ok) {
-        const data = await response.json();
-        setAgents(data.agents || []);
-        
-        if (data.agents.length === 0) {
-          await fetch("/api/seed", { method: "POST" });
-          const seedResponse = await fetch("/api/agents");
-          if (seedResponse.ok) {
-            const seedData = await seedResponse.json();
-            setAgents(seedData.agents || []);
-          }
-        }
+  useEffect(() => {
+    if (!profile) return;
+
+    async function fetchDashboardData() {
+      try {
+        // Fetch basic stats
+        const [{ count: botCount }, { count: keyCount }, { count: deploymentsCount }] = await Promise.all([
+          supabase.from('bots').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
+          supabase.from('api_keys').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
+          supabase.from('deployments').select('*', { count: 'exact', head: true }).eq('user_id', profile.id)
+        ]);
+
+        // Fetch recent activity (mock for now if table is empty or structured differently)
+        const { data: activityData } = await supabase
+          .from('bot_executions') // Using bot_executions as a proxy for activity
+          .select('*')
+          .eq('user_id', profile.id)
+          .order('started_at', { ascending: false })
+          .limit(5);
+
+        // Determine user mode/role
+        let mode: 'simple' | 'developer' | 'admin' = 'simple';
+        if (profile.role === 'admin') mode = 'admin';
+        else if ((keyCount || 0) > 0 || (botCount || 0) > 0) mode = 'developer';
+
+        setUserMode(mode);
+
+        setStats({
+          botCount: botCount || 0,
+          keyCount: keyCount || 0,
+          deployments: deploymentsCount || 0,
+          loading: false
+        });
+
+        setRecentActivity(activityData || []);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setStats(prev => ({ ...prev, loading: false }));
       }
-    } catch (error) {
-      console.error("Failed to fetch agents:", error);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const handleAgentSave = (agent: AgentDefinition) => {
-    setAgents((prev) => [...prev, agent]);
-    fetchAgents();
-  };
+    fetchDashboardData();
+  }, [profile, supabase]);
 
-  const handleTabChange = (tab: DashboardTab) => {
-    setActiveTab(tab);
-    if (tab === "overview") {
-      router.push("/dashboard");
+  if (!profile) return null;
+
+  const getDashboardCards = () => {
+    const commonCards = [
+      {
+        title: "Bot Market",
+        description: "Explore community bots",
+        icon: Store,
+        href: "/marketplace",
+        color: "text-green-500",
+        delay: 0.1
+      },
+      {
+        title: "Integrations",
+        description: "Connect your tools",
+        icon: Zap,
+        href: "/dashboard/integrations",
+        color: "text-blue-500",
+        delay: 0.2
+      }
+    ];
+
+    if (userMode === 'developer' || userMode === 'admin') {
+      return [
+        {
+          title: "New Bot",
+          description: "Create a custom agent",
+          icon: Code,
+          href: "/dashboard/bots/new",
+          color: "text-[#6C43FF]",
+          delay: 0
+        },
+        ...commonCards,
+        {
+          title: "API Access",
+          description: "Manage API keys",
+          icon: Key,
+          href: "/dashboard/developer/api-keys",
+          color: "text-amber-500",
+          delay: 0.3
+        }
+      ];
     } else {
-      router.push(`/dashboard?tab=${tab}`);
+      return [
+        {
+          title: "Get Started",
+          description: "Create your first bot",
+          icon: Sparkles,
+          href: "/dashboard/bots/new",
+          color: "text-[#6C43FF]",
+          delay: 0
+        },
+        ...commonCards,
+        {
+          title: "Student Hub",
+          description: "Tools for school & study",
+          icon: GraduationCap,
+          href: "/dashboard/student",
+          color: "text-indigo-500",
+          delay: 0.25
+        },
+        {
+          title: "Documentation",
+          description: "Learn how to build",
+          icon: Users,
+          href: "https://docs.bothive.app",
+          color: "text-pink-500",
+          delay: 0.3
+        }
+      ];
     }
   };
-
-  const stats = [
-    { label: "Active Agents", value: agents.length, icon: Zap, change: "+12%", color: "purple" },
-    { label: "Workflows", value: "8", icon: Network, change: "+3", color: "blue" },
-    { label: "Success Rate", value: "94.2%", icon: TrendingUp, change: "+2.1%", color: "green" },
-    { label: "Total Interactions", value: "1.2K", icon: Activity, change: "+156", color: "orange" },
-  ];
 
   return (
-    <div className="bg-white dark:bg-black text-black dark:text-white min-h-screen flex relative overflow-hidden transition-colors duration-300">
-      {/* Futuristic grid background */}
-      <div className="fixed inset-0 opacity-20 dark:opacity-30 pointer-events-none">
-        <div className="h-full w-full bg-[linear-gradient(to_right,rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-        {/* Diagonal grid overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(124,58,237,0.02)_1px,transparent_1px),linear-gradient(-45deg,rgba(124,58,237,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(45deg,rgba(124,58,237,0.03)_1px,transparent_1px),linear-gradient(-45deg,rgba(124,58,237,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
-      </div>
+    <DashboardPageShell
+      title="Overview"
+      headerAction={<ThemeToggle />}
+    >
+      <div className="max-w-7xl mx-auto space-y-8">
 
-      {/* Gradient overlays */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-gradient-to-br from-violet-500/3 dark:from-violet-500/5 via-transparent to-transparent" />
-        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-gradient-to-tl from-violet-500/3 dark:from-violet-500/5 via-transparent to-transparent" />
-      </div>
-
-      {/* Sidebar */}
-      <DashboardSidebarWrapper 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)}
-        onCollapseChange={setSidebarCollapsed}
-      />
-
-      {/* Main Content */}
-      <div className={cn(
-        "flex-1 flex flex-col transition-all duration-300 relative z-10",
-        sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
-      )}>
-        {/* Header */}
-        <DashboardHeader onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto">
-          {activeTab === "overview" && (
-            <div className="relative p-4 sm:p-6 lg:p-8">
-              <div className="flex flex-col gap-8">
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                  <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-[0.3em] text-black/35 dark:text-white/35">Dashboard</p>
-                    <h1 className="text-3xl sm:text-4xl font-semibold text-black dark:text-white">
-                      Mission telemetry
-                    </h1>
-                    <p className="max-w-xl text-sm text-black/55 dark:text-white/55">
-                      Monitor Bothive swarms, orchestrations, and customer momentum in a single control panel.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {TIMEFRAME_OPTIONS.map((option) => {
-                      const isActive = option === activeTimeframe;
-                      return (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setActiveTimeframe(option)}
-                          className={cn(
-                            "rounded-full px-4 py-2 text-xs font-medium transition border",
-                            isActive
-                              ? "border-violet-500/80 bg-violet-500/10 text-violet-500"
-                              : "border-black/10 bg-white/60 text-black/60 hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/5 dark:text-white/60 dark:hover:border-white/20"
-                          )}
-                        >
-                          {option}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
-                  <motion.section
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35 }}
-                    className="relative overflow-hidden rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
-                  >
-                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top,rgba(124,58,237,0.18),transparent_65%)]" />
-                    <div className="relative z-10 flex flex-col gap-6">
-                      <header className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.25em] text-black/50 dark:text-white/50">MRR</p>
-                          <div className="mt-2 flex items-baseline gap-3">
-                            <span className="text-3xl font-semibold text-black dark:text-white">
-                              ${currentMRR.toLocaleString()}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-500">
-                              <ArrowUpRight className="h-3 w-3" />
-                              {mrrDeltaPercent >= 0 ? `+${mrrDeltaPercent.toFixed(1)}%` : `${mrrDeltaPercent.toFixed(1)}%`}
-                            </span>
-                          </div>
-                          <p className="text-xs text-black/45 dark:text-white/45">Revenue trend across {activeTimeframe.toLowerCase()}.</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-xs font-semibold text-black/70 hover:border-black/20 dark:border-white/15 dark:bg-white/10 dark:text-white/70">
-                            <CalendarDays className="h-3.5 w-3.5" />
-                            Select dates
-                          </button>
-                          <button className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-xs font-semibold text-black/70 hover:border-black/20 dark:border-white/15 dark:bg-white/10 dark:text-white/70">
-                            <SlidersHorizontal className="h-3.5 w-3.5" />
-                            Filters
-                          </button>
-                        </div>
-                      </header>
-
-                      <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-b from-white via-white/80 to-white/60 dark:border-white/10 dark:from-transparent dark:via-white/5 dark:to-white/5">
-                        <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
-                          <defs>
-                            <linearGradient id="mrr-area" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgba(124,58,237,0.32)" />
-                              <stop offset="100%" stopColor="rgba(124,58,237,0)" />
-                            </linearGradient>
-                            <linearGradient id="mrr-line" x1="0" y1="0" x2="1" y2="0">
-                              <stop offset="0%" stopColor="rgba(167,139,250,1)" />
-                              <stop offset="100%" stopColor="rgba(124,58,237,1)" />
-                            </linearGradient>
-                          </defs>
-                          <path d={chartGeometry.area} fill="url(#mrr-area)" fillOpacity={0.9} />
-                          <path d={chartGeometry.line} fill="none" stroke="url(#mrr-line)" strokeWidth={1.4} strokeLinecap="round" />
-                        </svg>
-                        <div className="absolute inset-x-6 bottom-4 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-black/45 dark:text-white/45">
-                          {chartSeries.map((point) => (
-                            <span key={point.label}>{point.label}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.section>
-
-                  <div className="space-y-6">
-                    <motion.section
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1, duration: 0.35 }}
-                      className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
-                    >
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
-                          Summary
-                        </h2>
-                        <button className="text-xs text-violet-500 hover:text-violet-400">View report</button>
-                      </div>
-                      <div className="mt-5 space-y-4">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                          {SUMMARY_METRICS.map((metric) => (
-                            <div key={metric.label} className="space-y-1">
-                              <p className="text-xs uppercase tracking-[0.18em] text-black/45 dark:text-white/45">
-                                {metric.label}
-                              </p>
-                              <p className="text-2xl font-semibold text-black dark:text-white">{metric.value}</p>
-                              <p className="text-xs text-emerald-400">{metric.change}</p>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          {dashboardStats.map((stat) => {
-                            const Icon = stat.icon;
-                            return (
-                              <div
-                                key={stat.label}
-                                className="flex items-center justify-between rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-sm text-black/70 dark:border-white/10 dark:bg-white/10 dark:text-white/70"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-500">
-                                    <Icon className="h-4 w-4" />
-                                  </span>
-                                  <div>
-                                    <p className="text-xs uppercase tracking-[0.15em] text-black/45 dark:text-white/45">{stat.label}</p>
-                                    <p className="text-base font-semibold text-black dark:text-white">{stat.value}</p>
-                                  </div>
-                                </div>
-                                <span className="text-xs font-semibold text-emerald-400">{stat.change}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </motion.section>
-
-                    <motion.section
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.18, duration: 0.35 }}
-                      className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
-                    >
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
-                          Top members
-                        </h2>
-                        <button className="text-xs text-violet-500 hover:text-violet-400">Manage</button>
-                      </div>
-                      <ul className="mt-4 space-y-3 text-sm text-black/70 dark:text-white/70">
-                        {TOP_MEMBERS.map((member) => (
-                          <li key={member.name} className="flex items-center justify-between rounded-xl border border-black/10 bg-white/80 px-4 py-2 dark:border-white/10 dark:bg-white/10">
-                            <div className="flex items-center gap-3">
-                              <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-violet-500/10 text-violet-400">
-                                {member.name
-                                  .split(" ")
-                                  .map((part) => part[0])
-                                  .join("")}
-                              </span>
-                              <div>
-                                <p className="font-medium text-black dark:text-white">{member.name}</p>
-                                <p className="text-xs text-black/45 dark:text-white/45">{member.detail}</p>
-                              </div>
-                            </div>
-                            <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
-                          </li>
-                        ))}
-                      </ul>
-                    </motion.section>
-                  </div>
-                </div>
-
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-                  <motion.section
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25, duration: 0.35 }}
-                    className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
-                        Quick actions
-                      </h2>
-                      <button className="text-xs text-violet-500 hover:text-violet-400">View all</button>
-                    </div>
-                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {ACTION_SHORTCUTS.map((action) => (
-                        <button
-                          key={action.title}
-                          type="button"
-                          onClick={() => {
-                            if (action.title.toLowerCase().includes("mission")) {
-                              handleTabChange("orchestrator");
-                              return;
-                            }
-                            handleTabChange("agents");
-                          }}
-                          className="group relative overflow-hidden rounded-2xl border border-black/10 bg-white/80 p-6 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20"
-                        >
-                          <div className={cn("pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300", `bg-gradient-to-br ${action.accent}`)} />
-                          <div className="relative flex h-full flex-col gap-4">
-                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500">
-                              <action.icon className="h-4 w-4" />
-                            </span>
-                            <div className="space-y-1">
-                              <p className="text-sm font-semibold text-black dark:text-white">{action.title}</p>
-                              <p className="text-xs text-black/55 dark:text-white/55">{action.description}</p>
-                            </div>
-                            <span className="mt-auto inline-flex items-center gap-2 text-xs font-semibold text-violet-500">
-                              Initiate
-                              <ArrowUpRight className="h-3 w-3" />
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </motion.section>
-
-                  <motion.section
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.35 }}
-                    className="rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
-                        Recent posts
-                      </h2>
-                      <button className="text-xs text-violet-500 hover:text-violet-400">Open library</button>
-                    </div>
-                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {RECENT_POSTS.map((post) => (
-                        <article
-                          key={post.id}
-                          className={cn(
-                            "relative overflow-hidden rounded-2xl border border-black/10 bg-white/80 p-4 text-left transition hover:border-black/20 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:hover:border-white/20",
-                            `bg-gradient-to-br ${post.gradient}`
-                          )}
-                        >
-                          <div className="space-y-2 text-white">
-                            <p className="text-xs uppercase tracking-[0.18em] text-white/70">{post.id}</p>
-                            <h3 className="text-lg font-semibold leading-tight">{post.title}</h3>
-                            <p className="text-sm text-white/80">{post.excerpt}</p>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </motion.section>
-                </div>
-
-                <motion.section
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35, duration: 0.35 }}
-                  className="grid gap-4 rounded-3xl border border-black/10 bg-white/70 p-6 backdrop-blur-lg dark:border-white/10 dark:bg-white/5 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]"
-                >
-                  <div className="space-y-3">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-black/50 dark:text-white/50">
-                      Activity feed
-                    </h2>
-                    <ul className="space-y-3 text-sm text-black/70 dark:text-white/70">
-                      {agents.slice(0, 4).map((agent) => (
-                        <li key={agent.id} className="flex items-center justify-between rounded-xl border border-black/10 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/10">
-                          <div className="flex items-center gap-3">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/10 text-violet-500">
-                              <Zap className="h-4 w-4" />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="truncate font-medium text-black dark:text-white">{agent.name}</p>
-                              <p className="text-xs text-black/45 dark:text-white/45">Agent deployed</p>
-                            </div>
-                          </div>
-                          <span className="text-xs text-black/40 dark:text-white/50">moments ago</span>
-                        </li>
-                      ))}
-                      {agents.length === 0 && (
-                        <li className="rounded-xl border border-dashed border-black/15 bg-white/50 px-4 py-6 text-center text-sm text-black/45 dark:border-white/20 dark:bg-white/5 dark:text-white/50">
-                          No agent activity yet. Seed the hive to populate this stream.
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-
-                  <div className="space-y-4 rounded-2xl border border-black/10 bg-white/80 p-5 dark:border-white/10 dark:bg-white/10">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-black/50 dark:text-white/50">Release notes</p>
-                      <h3 className="mt-1 text-lg font-semibold text-black dark:text-white">Hive Store refresh</h3>
-                      <p className="mt-2 text-sm text-black/55 dark:text-white/55">
-                        Discover curated copilots, spotlighted vendors, and the newest orchestrations approved for the marketplace.
-                      </p>
-                    </div>
-                    <button className="inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs font-semibold text-violet-500 transition hover:border-violet-500/30 hover:text-violet-400">
-                      Read changelog
-                      <ArrowUpRight className="h-3 w-3" />
-                    </button>
-                  </div>
-                </motion.section>
-              </div>
+        {/* Personalized Welcome Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600/10 to-indigo-600/10 dark:from-violet-900/20 dark:to-indigo-900/20 p-8 md:p-10">
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-2"
+              >
+                {greeting}, <span className="text-[#6C43FF]">
+                  {profile.team_name || profile.preferred_name || profile.name || profile.full_name || 'User'}
+                </span>.
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-neutral-500 dark:text-neutral-400 max-w-xl text-lg"
+              >
+                {userMode === 'developer'
+                  ? "Your bots have been busy. Here's what's happening with your swarms today."
+                  : "Ready to supercharge your workflow? Let's build something amazing."}
+              </motion.p>
             </div>
-          )}
 
-          {/* Tab Content */}
-          {activeTab !== "overview" && (
-            <div className="p-4 sm:p-6 lg:p-8">
-              {loading ? (
-                <div className="text-center py-12 text-white/60">Loading...</div>
+            {/* Conditional AI Assistant Feature - Only for Devs/Admins or Paid */}
+            {(userMode === 'developer' || userMode === 'admin') && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowAiAssistant(!showAiAssistant)}
+                className="flex items-center gap-2 px-5 py-3 bg-[#6C43FF] text-white rounded-xl font-medium shadow-lg shadow-violet-500/20"
+              >
+                <Sparkles className="w-5 h-5" />
+                AI Assistant
+              </motion.button>
+            )}
+          </div>
+
+          {/* Decorative circles */}
+          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        </div>
+
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatBox label="Total Bots" value={stats.botCount} icon={<Bot className="w-5 h-5" />} delay={0} />
+          <StatBox label="Deployments" value={stats.deployments} icon={<Rocket className="w-5 h-5" />} delay={0.1} />
+          <StatBox label="API Keys" value={stats.keyCount} icon={<Key className="w-5 h-5" />} delay={0.2} />
+          <StatBox label="Credits" value="2,500" icon={<Gift className="w-5 h-5" />} delay={0.3} link="/dashboard/settings" />
+        </div>
+
+        {/* Main Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {getDashboardCards().map((card) => (
+            <motion.div
+              key={card.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: card.delay }}
+            >
+              <Link
+                href={card.href}
+                className={cn(
+                  "group relative block p-6 h-full rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+                  isDark
+                    ? "bg-white/[0.02] border-white/10 hover:bg-white/[0.05]"
+                    : "bg-white border-neutral-100 shadow-sm hover:shadow-md"
+                )}
+              >
+                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
+                  isDark ? "bg-white/10" : "bg-neutral-100",
+                  card.color
+                )}>
+                  <card.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold mb-2 text-neutral-900 dark:text-white">{card.title}</h3>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">{card.description}</p>
+
+                <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
+                  <ArrowUpRight className="w-5 h-5 text-neutral-400" />
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Recent Activity */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-white">Recent Activity</h3>
+              <Link href="/dashboard/profile" className="text-sm text-[#6C43FF] hover:underline">View All</Link>
+            </div>
+            <div className={cn(
+              "rounded-2xl border min-h-[300px]",
+              isDark ? "bg-white/[0.02] border-white/10" : "bg-white border-neutral-100"
+            )}>
+              {recentActivity.length > 0 ? (
+                <div className="divide-y divide-neutral-100 dark:divide-white/5">
+                  {recentActivity.map((activity, i) => (
+                    <div key={i} className="p-4 flex items-center gap-4 hover:bg-neutral-50 dark:hover:bg-white/[0.02] transition-colors">
+                      <div className="p-2 rounded-full bg-blue-500/10 text-blue-500">
+                        <Activity className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-neutral-900 dark:text-white">Bot Execution</p>
+                        <p className="text-xs text-neutral-500">Completed 2 tasks successfully</p>
+                      </div>
+                      <span className="text-xs text-neutral-400">2h ago</span>
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <>
-                  {activeTab === "agents" && (
-                    <div className="max-w-5xl mx-auto">
-                      <div className="mb-6">
-                        <h2 className="text-2xl sm:text-3xl font-bold mb-2">Agent Builder</h2>
-                        <p className="text-white/60">
-                          Create AI agents using our no-code interface or SDK
-                        </p>
-                      </div>
-                      <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-purple-950/20 to-black border border-white/10">
-                        <AgentBuilder onSave={handleAgentSave} />
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "orchestrator" && (
-                    <div className="h-[600px] sm:h-[800px] rounded-2xl bg-gradient-to-br from-purple-950/20 to-black border border-white/10 overflow-hidden">
-                      <Orchestrator agents={agents} />
-                    </div>
-                  )}
-
-                  {activeTab === "marketplace" && (
-                    <div className="max-w-7xl mx-auto">
-                      <div className="mb-6">
-                        <h2 className="text-2xl sm:text-3xl font-bold mb-2">Agent Marketplace</h2>
-                        <p className="text-white/60">
-                          Discover, test, and integrate pre-built AI agents
-                        </p>
-                      </div>
-                      <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-purple-950/20 to-black border border-white/10">
-                        <Marketplace />
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "memory" && (
-                    <div className="max-w-6xl mx-auto">
-                      <div className="mb-6">
-                        <h2 className="text-2xl sm:text-3xl font-bold mb-2">Memory & Learning</h2>
-                        <p className="text-white/60">
-                          Track agent interactions and shared memory
-                        </p>
-                      </div>
-                      <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-purple-950/20 to-black border border-white/10">
-                        <MemoryTracker />
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "integrations" && (
-                    <div className="max-w-7xl mx-auto">
-                      <div className="mb-6">
-                        <h2 className="text-2xl sm:text-3xl font-bold mb-2">Integrations</h2>
-                        <p className="text-white/60">
-                          Connect Bothive to your favorite tools and automate workflows
-                        </p>
-                      </div>
-                      <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-purple-950/20 to-black border border-white/10">
-                        <Integrations />
-                      </div>
-                    </div>
-                  )}
-                </>
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center text-neutral-500">
+                  <Activity className="w-12 h-12 mb-4 opacity-20" />
+                  <p className="text-lg font-medium">No recent activity</p>
+                  <p className="text-sm mt-1">Start your first bot to see updates here.</p>
+                </div>
               )}
             </div>
-          )}
-        </main>
+          </div>
+
+          {/* Quick Tips / Announcements */}
+          <div>
+            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-6">Did you know?</h3>
+            <div className={cn(
+              "rounded-2xl border p-6 space-y-4",
+              isDark ? "bg-gradient-to-br from-[#6C43FF]/20 to-purple-900/20 border-[#6C43FF]/20" : "bg-gradient-to-br from-violet-50 to-fuchsia-50 border-violet-100"
+            )}>
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-[#6C43FF] text-white rounded-lg mt-1">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-neutral-900 dark:text-white mb-1">New Integrations Available</h4>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                    You can now connect Slack and GitHub directly to your bot swarms.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/integrations"
+                className="block w-full py-3 text-center rounded-xl bg-[#6C43FF] text-white font-medium hover:opacity-90 transition-opacity"
+              >
+                Check it out
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* AI Assistant Overlay */}
+      {showAiAssistant && (
+        <div className="fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-3rem)]">
+          <div className={cn(
+            "rounded-2xl border shadow-2xl overflow-hidden",
+            isDark ? "bg-neutral-900 border-white/10" : "bg-white border-neutral-200"
+          )}>
+            <div className="p-4 bg-linear-to-r from-[#6C43FF] to-[#8A63FF] text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Bot className="w-5 h-5" />
+                <span className="font-bold">Antigravity AI</span>
+              </div>
+              <button onClick={() => setShowAiAssistant(false)} className="hover:bg-white/20 p-1 rounded-full"><Users className="w-4 h-4" /></button>
+            </div>
+            <div className="h-80 p-4 overflow-y-auto">
+              <div className="flex gap-3 mb-4">
+                <div className="w-8 h-8 rounded-full bg-[#6C43FF]/20 flex items-center justify-center text-[#6C43FF] shrink-0">
+                  <Bot className="w-4 h-4" />
+                </div>
+                <div className={cn("p-3 rounded-2xl rounded-tl-none text-sm", isDark ? "bg-white/10" : "bg-neutral-100")}>
+                  Hello {profile.name.split(' ')[0]}! How can I help you optimize your bots today?
+                </div>
+              </div>
+            </div>
+            <div className="p-3 border-t border-neutral-200 dark:border-white/10">
+              <input
+                type="text"
+                placeholder="Type a message..."
+                className="w-full px-4 py-2 rounded-xl bg-neutral-100 dark:bg-white/5 outline-none border border-transparent focus:border-[#6C43FF] transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardPageShell>
   );
 }
 
-export default function Dashboard() {
-  return (
-    <Suspense fallback={
-      <div className="bg-black text-white min-h-screen flex items-center justify-center">
-        <div className="text-white/60">Loading...</div>
+function StatBox({ label, value, icon, delay, link }: { label: string, value: string | number, icon: React.ReactNode, delay: number, link?: string }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
+  const Content = (
+    <div className={cn(
+      "p-5 rounded-2xl border transition-all duration-200 hover:shadow-md",
+      isDark ? "bg-white/[0.02] border-white/10" : "bg-white border-neutral-100"
+    )}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">{label}</span>
+        <div className={cn("p-2 rounded-lg", isDark ? "bg-white/5" : "bg-neutral-100")}>
+          {icon}
+        </div>
       </div>
-    }>
-      <DashboardContent />
-    </Suspense>
+      <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+        {value}
+      </div>
+    </div>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.3 }}
+    >
+      {link ? <Link href={link}>{Content}</Link> : Content}
+    </motion.div>
   );
 }

@@ -34,6 +34,8 @@ export default function PostInstallDashboardPage() {
   const { isAuthenticated, loading } = useAppSession();
   const [alert, setAlert] = useState<AlertState>(null);
   const [bot, setBot] = useState<InstalledBotSummary | null>(null);
+  const [isDeploying, setIsDeploying] = useState(true);
+  const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -51,19 +53,39 @@ export default function PostInstallDashboardPage() {
         message: "Install a bot from the Hive Store to see personalised onboarding here.",
         autoClose: 6200,
       });
+      setIsDeploying(false);
       return;
     }
     try {
       const parsed = JSON.parse(stored) as InstalledBotSummary;
       setBot(parsed);
+
+      // Sequence the fake deployment logs
+      const steps = [
+        { msg: `> Initializing container for ${parsed.name}...`, delay: 200 },
+        { msg: `> Pulling image hive-registry/${parsed.slug}:latest...`, delay: 800 },
+        { msg: "> Verifying dependencies... OK", delay: 1800 },
+        { msg: "> Allocating shared memory... OK", delay: 2400 },
+        { msg: `> Starting ${parsed.name}.service...`, delay: 3000 },
+        { msg: "> Health check passed. Agent is LIVE.", delay: 3800 },
+      ];
+
+      let currentStep = 0;
+      const interval = setInterval(() => {
+        if (currentStep >= steps.length) {
+          clearInterval(interval);
+          setTimeout(() => setIsDeploying(false), 800);
+          return;
+        }
+        setTerminalLogs(prev => [...prev, steps[currentStep].msg]);
+        currentStep++;
+      }, 700);
+
+      return () => clearInterval(interval);
+
     } catch (error) {
       console.error("Failed to parse last install payload", error);
-      setAlert({
-        variant: "error",
-        title: "Installation context missing",
-        message: "We couldnt recover the bot details. Try reinstalling from the Hive Store.",
-        autoClose: 6800,
-      });
+      setIsDeploying(false);
     }
   }, []);
 
@@ -94,20 +116,20 @@ export default function PostInstallDashboardPage() {
       return [
         {
           title: "Customise prompts",
-          description: "Tune the system prompt and guardrails so responses match your orgs tone.",
-          action: "/builder?section=agents",
+          description: "Tune the system prompt and guardrails so responses match your org s tone.",
+          action: `/builder?bot=${bot.id}&section=agents`,
           icon: Sparkles,
         },
         {
           title: "Connect data sources",
           description: "Wire CRM, docs, and knowledge bases to give the bot richer context.",
-          action: "/builder?section=integrations",
+          action: `/builder?bot=${bot.id}&section=integrations`,
           icon: Layers,
         },
         {
           title: "Launch a workflow",
           description: "Trigger your first automation sequence with a single click.",
-          action: "/builder?section=orchestrator",
+          action: `/builder?bot=${bot.id}&section=orchestrator`,
           icon: Zap,
         },
       ];
@@ -121,6 +143,41 @@ export default function PostInstallDashboardPage() {
       },
     ];
   }, [bot]);
+
+  if (isDeploying && bot) {
+    return (
+      <main className="relative min-h-screen flex flex-col items-center justify-center bg-black text-white font-mono p-6">
+        <div className="w-full max-w-2xl bg-[#0c0c16] rounded-xl border border-white/10 p-6 shadow-2xl">
+          <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-4">
+            <div className="w-3 h-3 rounded-full bg-red-500/50" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+            <div className="w-3 h-3 rounded-full bg-green-500/50" />
+            <span className="ml-2 text-xs text-white/40">deployment-console — -zsh — 80x24</span>
+          </div>
+          <div className="h-64 flex flex-col justify-end gap-2 text-sm text-green-400/90 leading-relaxed">
+            {terminalLogs.map((log, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="whitespace-pre-wrap"
+              >
+                {log}
+              </motion.div>
+            ))}
+            <motion.div
+              animate={{ opacity: [0, 1] }}
+              transition={{ repeat: Infinity, duration: 0.8 }}
+              className="w-2.5 h-5 bg-green-500/50 mt-1"
+            />
+          </div>
+        </div>
+        <p className="mt-8 text-white/30 text-xs tracking-[0.2em] uppercase animate-pulse">
+          Provisioning Secure Environment...
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#050312] text-white">
@@ -142,7 +199,7 @@ export default function PostInstallDashboardPage() {
       )}
 
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pb-24 pt-16 sm:px-8">
-        <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between animate-in fade-in slide-in-from-top-4 duration-1000">
           <div className="space-y-5">
             <Link
               href="/hivestore"
@@ -220,7 +277,7 @@ export default function PostInstallDashboardPage() {
             </div>
             <ul className="space-y-3 text-sm text-white/75">
               <li className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <span className="font-semibold text-white/90">Experiment, dont break production</span>
+                <span className="font-semibold text-white/90">Experiment, don t break production</span>
                 <p className="mt-1 text-xs text-white/60">Use the sandbox workspace to iterate before inviting collaborators.</p>
               </li>
               <li className="rounded-2xl border border-white/10 bg-white/5 p-4">

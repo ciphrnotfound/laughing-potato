@@ -1,165 +1,336 @@
 "use client";
 
-import React, { useState } from "react";
-import { Slack, FileText, MessageSquare, Github, Zap, Check } from "lucide-react";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { 
+  Zap, 
+  Database, 
+  Globe, 
+  Github, 
+  Twitter, 
+  Mail, 
+  Calendar,
+  Settings,
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  ExternalLink
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 
 interface Integration {
   id: string;
   name: string;
-  icon: React.ReactNode;
   description: string;
-  connected: boolean;
   category: string;
+  status: "connected" | "disconnected" | "error";
+  icon: React.ReactNode;
+  features: string[];
+  lastSync?: string;
+  configUrl?: string;
 }
 
-export default function Integrations() {
-  const [integrations, setIntegrations] = useState<Integration[]>([
-    {
-      id: "slack",
-      name: "Slack",
-      icon: <Slack className="w-6 h-6" />,
-      description: "Send notifications and trigger workflows from Slack",
-      connected: false,
-      category: "communication",
-    },
-    {
-      id: "notion",
-      name: "Notion",
-      icon: <FileText className="w-6 h-6" />,
-      description: "Sync agents with your Notion workspace",
-      connected: false,
-      category: "productivity",
-    },
-    {
-      id: "discord",
-      name: "Discord",
-      icon: <MessageSquare className="w-6 h-6" />,
-      description: "Integrate agents into Discord servers",
-      connected: false,
-      category: "communication",
-    },
-    {
-      id: "github",
-      name: "GitHub",
-      icon: <Github className="w-6 h-6" />,
-      description: "Connect agents to GitHub repositories",
-      connected: false,
-      category: "development",
-    },
-    {
-      id: "zapier",
-      name: "Zapier",
-      icon: <Zap className="w-6 h-6" />,
-      description: "Connect to 5000+ apps via Zapier",
-      connected: false,
-      category: "automation",
-    },
-  ]);
+const integrations: Integration[] = [
+  {
+    id: "github",
+    name: "GitHub",
+    description: "Connect your repositories for code analysis and automation",
+    category: "Development",
+    status: "connected",
+    icon: <Github className="w-5 h-5" />,
+    features: ["Repository analysis", "Issue tracking", "PR automation"],
+    lastSync: "2 minutes ago",
+    configUrl: "https://github.com/settings/applications"
+  },
+  {
+    id: "notion",
+    name: "Notion",
+    description: "Sync databases and pages for knowledge management",
+    category: "Productivity",
+    status: "connected",
+    icon: <Database className="w-5 h-5" />,
+    features: ["Database sync", "Page creation", "Content indexing"],
+    lastSync: "5 minutes ago"
+  },
+  {
+    id: "twitter",
+    name: "Twitter/X",
+    description: "Monitor and engage with social media content",
+    category: "Social",
+    status: "disconnected",
+    icon: <Twitter className="w-5 h-5" />,
+    features: ["Tweet monitoring", "Auto-reply", "Content analysis"]
+  },
+  {
+    id: "gmail",
+    name: "Gmail",
+    description: "Process and organize email communications",
+    category: "Communication",
+    status: "error",
+    icon: <Mail className="w-5 h-5" />,
+    features: ["Email sorting", "Smart replies", "Meeting scheduling"],
+    lastSync: "2 hours ago"
+  },
+  {
+    id: "calendar",
+    name: "Google Calendar",
+    description: "Manage schedules and automate meeting coordination",
+    category: "Productivity",
+    status: "connected",
+    icon: <Calendar className="w-5 h-5" />,
+    features: ["Event scheduling", "Meeting prep", "Availability tracking"],
+    lastSync: "1 hour ago"
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    description: "Integrate with team communication channels",
+    category: "Communication",
+    status: "disconnected",
+    icon: <Zap className="w-5 h-5" />,
+    features: ["Message monitoring", "Channel summaries", "Bot integration"]
+  }
+];
 
-  const handleConnect = (id: string) => {
-    setIntegrations((prev) =>
-      prev.map((int) =>
-        int.id === id ? { ...int, connected: !int.connected } : int
+const categories = ["All", "Development", "Productivity", "Communication", "Social"];
+
+export default function Integrations() {
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [integrationsList, setIntegrationsList] = useState(integrations);
+
+  const filteredIntegrations = integrationsList.filter(integration => 
+    selectedCategory === "All" || integration.category === selectedCategory
+  );
+
+  const getStatusColor = (status: Integration["status"]) => {
+    switch (status) {
+      case "connected":
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
+      case "disconnected":
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400";
+      case "error":
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400";
+    }
+  };
+
+  const getStatusIcon = (status: Integration["status"]) => {
+    switch (status) {
+      case "connected":
+        return <CheckCircle className="w-3 h-3" />;
+      case "disconnected":
+        return <AlertCircle className="w-3 h-3" />;
+      case "error":
+        return <AlertCircle className="w-3 h-3" />;
+      default:
+        return <AlertCircle className="w-3 h-3" />;
+    }
+  };
+
+  const handleToggleIntegration = (id: string, enabled: boolean) => {
+    setIntegrationsList(prev => 
+      prev.map(integration => 
+        integration.id === id 
+          ? { ...integration, status: enabled ? "connected" as const : "disconnected" as const }
+          : integration
       )
     );
   };
 
-  const categories = [
-    "all",
-    "communication",
-    "productivity",
-    "development",
-    "automation",
-  ];
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const handleConnect = (id: string) => {
+    // Handle OAuth flow or connection process
+    console.log(`Connecting to ${id}`);
+    handleToggleIntegration(id, true);
+  };
 
-  const filteredIntegrations =
-    selectedCategory === "all"
-      ? integrations
-      : integrations.filter((int) => int.category === selectedCategory);
+  const handleDisconnect = (id: string) => {
+    handleToggleIntegration(id, false);
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Integrations</h2>
-        <p className="text-white/60">
-          Connect Bothive to your favorite tools and automate workflows
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Settings className="w-6 h-6 text-violet-500" />
+            Integrations
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300">
+            Connect external services to extend your bot capabilities
+          </p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Custom Integration
+        </Button>
       </div>
 
       {/* Category Filter */}
-      <div className="flex gap-2 flex-wrap">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              selectedCategory === cat
-                ? "bg-purple-600 text-white"
-                : "bg-white/5 text-white/70 hover:bg-white/10"
-            }`}
+      <div className="flex gap-2">
+        {categories.map(category => (
+          <Button
+            key={category}
+            variant={selectedCategory === category ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedCategory(category)}
           >
-            {cat.charAt(0).toUpperCase() + cat.slice(1)}
-          </button>
+            {category}
+          </Button>
         ))}
       </div>
 
-      {/* Integration Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredIntegrations.map((integration) => (
-          <div
+      {/* Integrations Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredIntegrations.map((integration, index) => (
+          <motion.div
             key={integration.id}
-            className={`p-6 rounded-xl border transition ${
-              integration.connected
-                ? "bg-purple-500/10 border-purple-500/30"
-                : "bg-white/5 border-white/10 hover:border-white/30"
-            }`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`p-3 rounded-lg ${
-                    integration.connected
-                      ? "bg-purple-500/20 text-purple-300"
-                      : "bg-white/10 text-white/60"
-                  }`}
-                >
-                  {integration.icon}
+            <Card className="h-full">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg text-violet-600 dark:text-violet-400">
+                      {integration.icon}
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{integration.name}</CardTitle>
+                      <CardDescription>{integration.category}</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getStatusColor(integration.status)}>
+                      {getStatusIcon(integration.status)}
+                      <span className="ml-1 capitalize">{integration.status}</span>
+                    </Badge>
+                    <Switch
+                      checked={integration.status === "connected"}
+                      onCheckedChange={(enabled) => {
+                        if (enabled) {
+                          handleConnect(integration.id);
+                        } else {
+                          handleDisconnect(integration.id);
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold">{integration.name}</h3>
-                  {integration.connected && (
-                    <span className="text-xs text-green-400 flex items-center gap-1 mt-1">
-                      <Check className="w-3 h-3" />
-                      Connected
-                    </span>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {integration.description}
+                </p>
+
+                {/* Features */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-white">Features</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {integration.features.map(feature => (
+                      <Badge key={feature} variant="secondary" className="text-xs">
+                        {feature}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Last Sync */}
+                {integration.lastSync && (
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>Last sync</span>
+                    <span>{integration.lastSync}</span>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  {integration.status === "connected" ? (
+                    <>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Settings className="w-3 h-3 mr-1" />
+                        Configure
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDisconnect(integration.id)}>
+                        Disconnect
+                      </Button>
+                    </>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleConnect(integration.id)}
+                    >
+                      Connect
+                    </Button>
+                  )}
+                  {integration.configUrl && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={integration.configUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </Button>
                   )}
                 </div>
-              </div>
-            </div>
-
-            <p className="text-sm text-white/70 mb-4">{integration.description}</p>
-
-            <button
-              onClick={() => handleConnect(integration.id)}
-              className={`w-full py-2 rounded-lg text-sm font-medium transition ${
-                integration.connected
-                  ? "bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                  : "bg-purple-600 hover:bg-purple-700 text-white"
-              }`}
-            >
-              {integration.connected ? "Disconnect" : "Connect"}
-            </button>
-          </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
       </div>
 
       {filteredIntegrations.length === 0 && (
-        <div className="text-center py-12 text-white/40">
-          <p>No integrations found in this category</p>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+            <Globe className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No integrations found
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400">
+            No integrations match the selected category.
+          </p>
         </div>
       )}
+
+      {/* Stats Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Integration Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {integrationsList.filter(i => i.status === "connected").length}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Connected</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {integrationsList.filter(i => i.status === "disconnected").length}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Available</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {integrationsList.filter(i => i.status === "error").length}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Needs Attention</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                {integrationsList.length}
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Total</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

@@ -6,6 +6,9 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme-context";
+import DashboardBackground from "@/components/DashboardBackground";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   Sparkles,
   CalendarDays,
@@ -25,16 +28,19 @@ import {
   Globe,
   ArrowUpRight,
   X,
+  Bot,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAppSession } from "@/lib/app-session-context";
 import { supabase } from "@/lib/supabase";
-import type { RunResult } from "@/lib/agentTypes";
+import type { RunResult, UserBot } from "@/lib/agentTypes";
 import { PageLoadingOverlay } from "@/components/PageLoadingOverlay";
+import { BotCard } from "@/components/BotCard";
+import { PublishBotModal } from "@/components/PublishBotModal";
 
 const sidebarLinks: Array<{ label: string; href: string; icon: LucideIcon }> = [
   { label: "Command Center", href: "/dashboard/home", icon: Home },
-  { label: "My Bots", href: "/hivestore", icon: Layers },
+  { label: "My Bots", href: "/dashboard/bots", icon: Layers },
   { label: "Playbooks", href: "/automations", icon: Bookmark },
   { label: "Signal Logs", href: "/dashboard/activity", icon: BarChart3 },
   { label: "Support", href: "/contact", icon: Globe },
@@ -186,6 +192,8 @@ export default function HomeDashboardPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, loading, profile } = useAppSession();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [primaryActions, setPrimaryActions] = useState<PrimaryActionCard[]>(FALLBACK_PRIMARY_ACTIONS);
   const [quickWins, setQuickWins] = useState<QuickWinCard[]>(FALLBACK_QUICK_WINS);
@@ -200,6 +208,10 @@ export default function HomeDashboardPage() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [myBots, setMyBots] = useState<Array<{ id: string; name: string; description?: string }>>([]);
+  const [executingBotId, setExecutingBotId] = useState<string | null>(null);
+  const [publishingBot, setPublishingBot] = useState<UserBot | null>(null);
+  const [lastExecutionResult, setLastExecutionResult] = useState<string | null>(null);
 
   const isLinkActive = (href: string) => {
     if (!pathname) return false;
@@ -218,8 +230,31 @@ export default function HomeDashboardPage() {
   }, [loading, isAuthenticated, router]);
 
   useEffect(() => {
+    if (!isAuthenticated || !profile?.id) return;
+
+    // Check if user completed onboarding
+    const checkOnboardingStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_profiles")
+          .select("onboarding_completed")
+          .eq("user_id", profile.id)
+          .single();
+
+        if (!data?.onboarding_completed) {
+          router.replace("/onboarding");
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [isAuthenticated, profile?.id, router]);
+
+  useEffect(() => {
     if (!isAuthenticated) return;
-    let cancelled = false;
+    let isCancelled = false;
 
     const loadDashboard = async () => {
       setIsLoadingData(true);
@@ -240,7 +275,7 @@ export default function HomeDashboardPage() {
         if (botError) throw botError;
         if (runError) throw runError;
 
-        if (cancelled) return;
+        if (isCancelled) return;
 
         const mappedBots: DashboardBot[] = (botRows ?? []).map((row) => {
           const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
@@ -251,8 +286,8 @@ export default function HomeDashboardPage() {
           const rawCapabilities = Array.isArray(row.capabilities)
             ? (row.capabilities as unknown[])
             : Array.isArray(metadata.capabilities)
-            ? (metadata.capabilities as unknown[])
-            : [];
+              ? (metadata.capabilities as unknown[])
+              : [];
           const capabilities = rawCapabilities
             .map((entry) => `${entry}`.trim())
             .filter(Boolean);
@@ -331,8 +366,8 @@ export default function HomeDashboardPage() {
             const detail = run.status === "succeeded"
               ? `${run.botName} completed its workflow successfully.`
               : run.status
-              ? `${run.botName} run ended with status ${run.status}.`
-              : `${run.botName} started a workflow.`;
+                ? `${run.botName} run ended with status ${run.status}.`
+                : `${run.botName} started a workflow.`;
             return {
               title: `${slot} — ${run.botName}`,
               detail,
@@ -349,24 +384,88 @@ export default function HomeDashboardPage() {
         }
       } catch (error) {
         console.error("Failed to load dashboard", error);
-        if (cancelled) return;
+        if (isCancelled) return;
         setPrimaryActions(FALLBACK_PRIMARY_ACTIONS);
         setQuickWins(FALLBACK_QUICK_WINS);
         setResources(FALLBACK_RESOURCES);
         setDailyRhythm(FALLBACK_DAILY_RHYTHM);
       } finally {
-        if (!cancelled) {
+        if (!isCancelled) {
           setIsLoadingData(false);
         }
       }
     };
 
     void loadDashboard();
+    loadMyBots();
 
     return () => {
-      cancelled = true;
+      isCancelled = true;
     };
   }, [isAuthenticated]);
+
+  const loadMyBots = async () => {
+    try {
+      const response = await fetch("/api/my-bots");
+      if (response.ok) {
+        const data = await response.json();
+        setMyBots(data.bots || []);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to load my bots:", response.status, errorData);
+        setMyBots([]);
+      }
+    } catch (error) {
+      console.error("Failed to load my bots:", error);
+      setMyBots([]);
+    }
+  };
+
+  const handleExecuteBot = async (botId: string) => {
+    setExecutingBotId(botId);
+    setLastExecutionResult(null);
+    let isCancelled = false;
+
+    try {
+      const response = await fetch(`/api/my-bots/${botId}/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: { /* User will provide input via modal later */ },
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setLastExecutionResult(result.output);
+        // Optionally reload runs
+        if (!isCancelled) {
+          const { data: runRows } = await supabase
+            .from("bot_runs")
+            .select("id, bot_id, status, created_at, completed_at, bots(name)")
+            .order("created_at", { ascending: false })
+            .limit(6);
+          const mappedRuns: DashboardRun[] = (runRows ?? []).map((row) => ({
+            id: row.id,
+            botId: row.bot_id,
+            botName: Array.isArray(row.bots) ? row.bots[0]?.name ?? "Unknown" : (row.bots as { name?: string })?.name ?? "Unknown",
+            status: row.status,
+            createdAt: row.created_at,
+            completedAt: row.completed_at,
+          }));
+          setRecentRuns(mappedRuns);
+        }
+      } else {
+        const error = await response.json();
+        setLastExecutionResult(`Error: ${error.error || "Execution failed"}`);
+      }
+    } catch (error) {
+      console.error("Bot execution failed:", error);
+      setLastExecutionResult("Execution failed. Check console for details.");
+    } finally {
+      setExecutingBotId(null);
+    }
+  };
 
   useEffect(() => {
     if (bots.length > 0 && !chatBotId) {
@@ -423,14 +522,14 @@ export default function HomeDashboardPage() {
           <Image src="/Logo2.png" alt="Bothive" width={32} height={32} className="relative z-10 h-8 w-8" priority />
         </span>
         <div className="flex flex-col">
-          <span className="text-sm font-semibold tracking-[0.35em] text-white/80">BOTHIVE</span>
-          <span className="text-[10px] uppercase tracking-[0.32em] text-white/40">Mission control</span>
+          <span className="text-sm font-semibold tracking-[0.35em]" style={{ color: 'var(--text-secondary)' }}>BOTHIVE</span>
+          <span className="text-[10px] uppercase tracking-[0.32em]" style={{ color: 'var(--text-muted)' }}>Mission control</span>
         </div>
       </Link>
 
       <div className="mt-8 flex flex-1 flex-col">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">Navigation</p>
+          <p className="text-xs uppercase tracking-[0.28em]" style={{ color: 'var(--text-muted)' }}>Navigation</p>
           <nav className="mt-4 space-y-2">
             {sidebarLinks.map((link) => {
               const Icon = link.icon;
@@ -443,19 +542,29 @@ export default function HomeDashboardPage() {
                   className={cn(
                     "group flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium transition",
                     isActive
-                      ? "border-white/20 bg-white/10 text-white shadow-[0_24px_60px_rgba(124,58,237,0.32)]"
-                      : "border-transparent text-white/60 hover:border-white/10 hover:bg-white/5 hover:text-white"
+                      ? "border-white/20 bg-white/10 shadow-[0_24px_60px_rgba(124,58,237,0.32)]"
+                      : "border-transparent hover:border-white/10 hover:bg-white/5"
                   )}
+                  style={{
+                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)'
+                  }}
                 >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition group-hover:border-white/20 group-hover:text-white">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl border transition group-hover:border-white/20"
+                    style={{
+                      borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(12, 16, 36, 0.15)',
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(12, 16, 36, 0.05)',
+                      color: 'var(--text-secondary)'
+                    }}>
                     <Icon className="h-4 w-4" />
                   </span>
                   <span>{link.label}</span>
                   <span
                     className={cn(
-                      "ml-auto h-2 w-2 rounded-full transition",
-                      isActive ? "bg-white" : "bg-white/20 group-hover:bg-white/60"
+                      "ml-auto h-2 w-2 rounded-full transition"
                     )}
+                    style={{
+                      backgroundColor: isActive ? 'var(--text-primary)' : 'var(--text-muted)'
+                    }}
                   />
                 </Link>
               );
@@ -463,53 +572,38 @@ export default function HomeDashboardPage() {
           </nav>
         </div>
 
-        <div className="mt-8 rounded-3xl border border-white/10 bg-gradient-to-br from-[#211046]/70 via-[#120b2c]/80 to-[#050413]/90 p-5 shadow-[0_36px_80px_rgba(14,10,40,0.55)]">
-          <p className="text-xs uppercase tracking-[0.28em] text-white/45">Operations summary</p>
-          <div className="mt-4 space-y-3 text-sm text-white/70">
-            <div className="flex items-center justify-between">
-              <span>Total runs</span>
-              <span className="text-white/90">{stats.totalRuns ?? "—"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Success rate</span>
-              <span className="text-white/90">{stats.successRate !== null ? `${stats.successRate}%` : "—"}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Active bots</span>
-              <span className="text-white/90">{stats.activeBots}</span>
-            </div>
-          </div>
-          <Link
-            href="/dashboard/activity"
-            onClick={() => onNavigate?.()}
-            className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-violet-200 transition hover:text-white"
-          >
-            View analytics trail
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
         <div className="mt-auto space-y-4">
           <Link
             href="/builder"
             onClick={() => onNavigate?.()}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#4338CA] to-[#0EA5E9] px-4 py-3 text-sm font-semibold text-white shadow-[0_25px_65px_rgba(67,56,202,0.4)] transition hover:shadow-[0_30px_80px_rgba(14,165,233,0.45)]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#7C3AED] via-[#4338CA] to-[#0EA5E9] px-4 py-3 text-sm font-semibold shadow-[0_25px_65px_rgba(67,56,202,0.4)] transition hover:shadow-[0_30px_80px_rgba(14,165,233,0.45)]"
+            style={{ color: 'white' }}
           >
             <Sparkles className="h-4 w-4" /> Launch new automation
           </Link>
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/40 p-4">
+          <div className="flex items-center gap-3 rounded-2xl p-4"
+            style={{
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(12, 16, 36, 0.15)',
+              backgroundColor: isDark ? 'rgba(0, 0, 0, 0.4)' : 'rgba(12, 16, 36, 0.05)'
+            }}>
             {profile?.avatarUrl ? (
-              <div className="relative h-10 w-10 overflow-hidden rounded-full border border-white/20">
+              <div className="relative h-10 w-10 overflow-hidden rounded-full border"
+                style={{ borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(12, 16, 36, 0.2)' }}>
                 <Image src={profile.avatarUrl} alt={displayName} fill sizes="40px" className="object-cover" />
               </div>
             ) : (
-              <div className="grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-white/10 text-sm font-semibold text-white/80">
+              <div className="grid h-10 w-10 place-items-center rounded-full border text-sm font-semibold"
+                style={{
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(12, 16, 36, 0.2)',
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(12, 16, 36, 0.1)',
+                  color: 'var(--text-secondary)'
+                }}>
                 {initials}
               </div>
             )}
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white/90">{displayName}</p>
-              <p className="truncate text-[11px] uppercase tracking-[0.28em] text-white/45">Secure workspace</p>
+              <p className="truncate text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{displayName}</p>
+              <p className="truncate text-[11px] uppercase tracking-[0.28em]" style={{ color: 'var(--text-muted)' }}>Secure workspace</p>
             </div>
           </div>
         </div>
@@ -561,124 +655,91 @@ export default function HomeDashboardPage() {
         throw new Error(details?.error ?? "Bot run failed");
       }
 
-      const result = (await response.json()) as RunResult & { output?: string };
-      const assistantOutput = result.output ?? "No response received.";
-      setChatMessages([...nextHistory, { id: crypto.randomUUID(), role: "assistant", content: assistantOutput }]);
+      const data = await response.json();
+      const assistantMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant" as const,
+        content: data.output ?? "I'm still thinking about that…",
+      };
+      setChatMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to reach the bot.";
-      setChatError(message);
-      setChatMessages(chatMessages);
+      console.error(error);
+      setChatError(error instanceof Error ? error.message : "Bot run failed");
     } finally {
       setIsChatLoading(false);
     }
   };
 
+  const renderDailyRhythm = () => (
+    <ul className="mt-5 space-y-3">
+      {dailyRhythm.map((entry) => (
+        <li key={entry.title} className="rounded-2xl border border-white/10 bg-white/5/50 p-4">
+          <p className="text-xs uppercase tracking-[0.3em] text-white/50">{entry.title}</p>
+          <p className="mt-2 text-sm text-white/75">{entry.detail}</p>
+        </li>
+      ))}
+    </ul>
+  );
+
+  if (loading || !isAuthenticated) {
+    return <PageLoadingOverlay />;
+  }
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#030008] text-white">
-      <PageLoadingOverlay show={loading || isLoadingData} />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,58,237,0.25),transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(14,165,233,0.2),transparent_60%)]" />
-
-      <div className="relative z-10 mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-5 pb-16 pt-8 sm:px-8 lg:px-10 xl:flex-row">
-        <motion.aside
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="hidden w-full max-w-[260px] shrink-0 flex-col rounded-[32px] border border-white/10 bg-black/60 p-6 shadow-[0_40px_120px_rgba(8,5,25,0.55)] backdrop-blur-2xl xl:flex"
-        >
-          {renderSidebar()}
-        </motion.aside>
-
-        <div className="flex-1">
-          <motion.header
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="mb-7 flex items-center justify-between rounded-3xl border border-white/10 bg-black/40 px-5 py-4 backdrop-blur-xl sm:px-7"
-          >
-            <div className="flex items-center gap-3 sm:gap-4">
-              <button
-                type="button"
-                onClick={() => setIsSidebarOpen(true)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white/70 shadow-[0_20px_50px_rgba(9,6,28,0.45)] transition hover:border-white/20 hover:text-white xl:hidden"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">Welcome back</p>
-                <h1 className="text-xl font-semibold text-white sm:text-2xl">{firstName}, your command center is live</h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.28em] text-white/60">
-              <Settings className="hidden h-4 w-4 sm:inline" />
-              <span>{profile?.email ?? "Personal workspace"}</span>
-            </div>
-          </motion.header>
-
+    <DashboardBackground>
+      <div className="relative min-h-screen">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* My Bots Section */}
           <motion.section
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="relative overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.25),transparent_65%)] p-8 backdrop-blur-2xl sm:p-10"
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mt-8"
           >
-            <div className="pointer-events-none absolute inset-0 border border-white/10/60 [mask:linear-gradient(135deg,rgba(255,255,255,0.1),transparent_55%)]" />
-            <div className="pointer-events-none absolute -right-20 bottom-0 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(14,165,233,0.35),transparent_70%)]" />
-            <div className="relative z-10 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
-              <div className="space-y-6">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/50 px-3 py-1 text-[11px] uppercase tracking-[0.32em] text-white/60">
-                  <Sparkles className="h-4 w-4" /> Launch sequence ready
-                </div>
-                <h2 className="text-3xl font-semibold text-white sm:text-[2.6rem] sm:leading-tight">
-                  Deploy automations that feel like a futuristic ops team
-                </h2>
-                <p className="max-w-xl text-sm text-white/70">
-                  Your personalised mission control keeps automations, data signals, and support flows synchronised across tenant workspaces.
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Link
-                    href="/hivestore"
-                    className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-[0_24px_70px_rgba(255,255,255,0.3)] transition hover:bg-white/90"
-                  >
-                    <Layers className="h-4 w-4" /> Discover automations
-                  </Link>
+            <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-purple-900/20 to-indigo-900/20 p-6 sm:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Layers className="h-5 w-5" />
+                  My Bots
+                </h3>
+                <Link href="/builder" className="text-[11px] uppercase tracking-[0.28em] text-white/50 hover:text-white">
+                  Create New
+                </Link>
+              </div>
+
+              {myBots.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-black/40 px-5 py-10 text-center">
+                  <Bot className="h-12 w-12 mx-auto mb-3 text-white/30" />
+                  <p className="text-sm text-white/60">No bots yet. Create your first bot to get started!</p>
                   <Link
                     href="/builder"
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/80 shadow-[0_24px_70px_rgba(13,10,40,0.45)] transition hover:border-white/40 hover:text-white"
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white hover:from-purple-500 hover:to-indigo-500"
                   >
-                    <Plus className="h-4 w-4" /> Launch builder console
+                    <Plus className="h-4 w-4" />
+                    Create Bot
                   </Link>
                 </div>
-                <div className="grid gap-3 pt-4 sm:grid-cols-3">
-                  {quickStats.map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="rounded-2xl border border-white/10 bg-black/40 p-4 shadow-[0_22px_60px_rgba(8,5,28,0.45)]"
-                    >
-                      <p className="text-[11px] uppercase tracking-[0.32em] text-white/45">{stat.label}</p>
-                      <p className="mt-2 text-2xl font-semibold text-white">{stat.value}</p>
-                      <p className="text-xs text-white/50">{stat.caption}</p>
-                    </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {myBots.map((bot) => (
+                    <BotCard
+                      key={bot.id}
+                      bot={bot}
+                      onExecute={() => handleExecuteBot(bot.id)}
+                      onEdit={() => router.push(`/builder?id=${bot.id}`)}
+                      onPublish={() => setPublishingBot(bot)}
+                      isExecuting={executingBotId === bot.id}
+                    />
                   ))}
                 </div>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-black/60 p-6 text-sm text-white/75 shadow-[0_30px_90px_rgba(12,12,12,0.5)]">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-white">Daily rhythm</h3>
-                  {stats.totalRuns !== null ? (
-                    <span className="text-[11px] uppercase tracking-[0.28em] text-white/50">
-                      {stats.totalRuns} runs · {stats.successRate ?? 0}% success
-                    </span>
-                  ) : null}
+              )}
+
+              {lastExecutionResult && (
+                <div className="mt-4 rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                  <p className="text-sm font-medium text-green-300">Last Execution Result:</p>
+                  <p className="mt-1 text-xs text-white/70">{lastExecutionResult}</p>
                 </div>
-                <ul className="mt-5 space-y-3">
-                  {dailyRhythm.map((entry) => (
-                    <li key={entry.title} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <p className="text-sm font-semibold text-white">{entry.title}</p>
-                      <p className="text-xs text-white/60">{entry.detail}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              )}
             </div>
           </motion.section>
 
@@ -862,8 +923,8 @@ export default function HomeDashboardPage() {
                         const bubbleClasses = isUser
                           ? "bg-gradient-to-br from-white/95 via-white to-white/85 text-black shadow-[0_18px_40px_rgba(255,255,255,0.15)]"
                           : isAssistant
-                          ? "border border-white/10 bg-gradient-to-br from-[#201A42]/80 via-[#16122B]/85 to-[#0B0A15]/90 text-white shadow-[0_20px_45px_rgba(12,10,40,0.65)]"
-                          : "border border-white/10 bg-black/50 text-white/70";
+                            ? "border border-white/10 bg-gradient-to-br from-[#201A42]/80 via-[#16122B]/85 to-[#0B0A15]/90 text-white shadow-[0_20px_45px_rgba(12,10,40,0.65)]"
+                            : "border border-white/10 bg-black/50 text-white/70";
 
                         return (
                           <motion.li
@@ -875,9 +936,8 @@ export default function HomeDashboardPage() {
                           >
                             <div className="max-w-[85%] space-y-2">
                               <span
-                                className={`block text-[10px] uppercase tracking-[0.32em] ${
-                                  isUser ? "text-white/60 text-right" : "text-white/55"
-                                }`}
+                                className={`block text-[10px] uppercase tracking-[0.32em] ${isUser ? "text-white/60 text-right" : "text-white/55"
+                                  }`}
                               >
                                 {isUser ? "You" : activeChatBot?.name ?? "System"}
                               </span>
@@ -927,8 +987,8 @@ export default function HomeDashboardPage() {
               </div>
             </div>
           </motion.section>
-        </div>
-      </div>
+        </div >
+      </div >
 
       <AnimatePresence>
         {isSidebarOpen ? (
@@ -961,6 +1021,17 @@ export default function HomeDashboardPage() {
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </div>
+
+      {/* Publish Modal */}
+      {
+        publishingBot && (
+          <PublishBotModal
+            open={!!publishingBot}
+            onOpenChange={(open) => !open && setPublishingBot(null)}
+            bot={publishingBot}
+          />
+        )
+      }
+    </DashboardBackground >
   );
 }

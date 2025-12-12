@@ -1,286 +1,190 @@
 "use client";
 
-import Image from "next/image";
-import { FormEvent, useState } from "react";
-import ProfessionalAlert from "@/components/ui/game-alert";
+import React from "react";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { ArrowRight, Calendar, Clock, User, ArrowUpRight, Sparkles } from "lucide-react";
+import Navbar2 from "@/components/Navbar2";
+import Footer from "@/components/Footer";
 
-type BlogPost = {
-  id: number;
-  category: string;
-  title: string;
-  description: string;
-  author: string;
-  date: string;
-  image: string;
-};
+import { BLOG_POSTS, CATEGORIES } from "@/lib/blogData";
 
-const posts: BlogPost[] = [
-  {
-    id: 1,
-    category: "Design",
-    title: "UX review presentations",
-    description: "How do you create compelling presentations that wow your colleagues and impress your manager?",
-    author: "Olivia Rhye",
-    date: "20 Jan 2025",
-    image: "/appstore.jpg",
-  },
-  {
-    id: 2,
-    category: "Product",
-    title: "Migrating to Linear 101",
-    description: "Linear helps streamline software projects, sprints, tasks, and bug tracking. Here’s how to get started.",
-    author: "Phoenix Baker",
-    date: "19 Jan 2025",
-    image: "/design.jpg",
-  },
-  {
-    id: 3,
-    category: "Software Engineering",
-    title: "Building your API stack",
-    description: "The rise of RESTful APIs has been met by a rise in tools for creating, testing, and managing them.",
-    author: "Lana Steiner",
-    date: "18 Jan 2025",
-    image: "/maxresdefault.jpg",
-  },
-  {
-    id: 4,
-    category: "Product",
-    title: "PM mental models",
-    description: "Mental models are simple expressions of complex processes or relationships.",
-    author: "Demi Wilkinson",
-    date: "16 Jan 2025",
-    image: "/tony.jpg",
-  },
-  {
-    id: 5,
-    category: "Software Engineering",
-    title: "What is wireframing?",
-    description: "Introduction to wireframing and its principles. Learn from the best in the industry.",
-    author: "Candice Wu",
-    date: "15 Jan 2025",
-    image: "/1142efc6-17ef-41b1-a69d-16ed7cc3abb4.jpg",
-  },
-  {
-    id: 6,
-    category: "Customer Success",
-    title: "Podcast: Creating a better CX",
-    description: "Starting a community doesn’t need to be complicated, but how do you get started?",
-    author: "Orlando Diggs",
-    date: "12 Jan 2025",
-    image: "/john.jpg",
-  },
-  {
-    id: 7,
-    category: "Design",
-    title: "How collaboration makes us better designers",
-    description: "Collaboration can make our teams stronger, and our individual designs better.",
-    author: "Natali Craig",
-    date: "24 Jan 2025",
-    image: "/appstore.jpg",
-  },
-  {
-    id: 8,
-    category: "Product",
-    title: "Our top 10 Javascript frameworks to use",
-    description: "JavaScript frameworks make development easy with extensive features and functionalities.",
-    author: "Drew Cano",
-    date: "23 Jan 2025",
-    image: "/design.jpg",
-  },
-  {
-    id: 9,
-    category: "Design",
-    title: "Beyond the pixels: design systems",
-    description: "Considerations when you scale visual systems across complex product portfolios.",
-    author: "Enola Luna",
-    date: "18 Jan 2025",
-    image: "/maxresdefault.jpg",
-  },
-];
+function BlogCard({ post, featured = false }: { post: typeof BLOG_POSTS[0]; featured?: boolean }) {
+  return (
+    <Link href={`/blog/${post.id}`}>
+      <motion.article
+        whileHover={{ y: -4 }}
+        className={`group relative overflow-hidden rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-white/[0.02] ${featured ? "h-full" : ""
+          }`}
+      >
+        {/* Image placeholder */}
+        {featured && (
+          <div className="aspect-[16/9] bg-gradient-to-br from-violet-500/20 via-purple-500/10 to-transparent flex items-center justify-center">
+            <Sparkles className="w-12 h-12 text-violet-500/30" />
+          </div>
+        )}
 
-const categories = ["View all", "Design", "Product", "Software Engineering", "Customer Success"] as const;
+        <div className="p-6">
+          {/* Category & Meta */}
+          <div className="flex items-center gap-3 text-xs mb-4">
+            <span className="px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium">
+              {post.category}
+            </span>
+            <span className="text-black/40 dark:text-white/40 flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {post.date}
+            </span>
+            <span className="text-black/40 dark:text-white/40 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {post.readTime}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h3 className={`font-semibold text-[#0a0a0f] dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors mb-2 ${featured ? "text-xl md:text-2xl" : "text-lg"
+            }`}>
+            {post.title}
+          </h3>
+
+          {/* Excerpt */}
+          <p className="text-black/60 dark:text-white/60 text-sm leading-relaxed mb-4">
+            {post.excerpt}
+          </p>
+
+          {/* Author & CTA */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+                <User className="w-3 h-3 text-white" />
+              </div>
+              <span className="text-xs text-black/50 dark:text-white/50">{post.author}</span>
+            </div>
+            <span className="text-xs font-medium text-violet-600 dark:text-violet-400 flex items-center gap-1 group-hover:gap-2 transition-all">
+              Read more <ArrowRight className="w-3 h-3" />
+            </span>
+          </div>
+        </div>
+      </motion.article>
+    </Link>
+  );
+}
 
 export default function BlogPage() {
-  const cards = [{ type: "newsletter" as const }, ...posts.map((post) => ({ type: "post" as const, post }))];
-  const [newsletterEmail, setNewsletterEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alert, setAlert] = useState<{
-    variant: "success" | "error" | "warning" | "info";
-    title: string;
-    message?: string;
-    autoClose?: number;
-  } | null>(null);
+  const [activeCategory, setActiveCategory] = React.useState("All");
 
-  const handleNewsletterSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (isSubmitting) return;
+  const filteredPosts = activeCategory === "All"
+    ? BLOG_POSTS
+    : BLOG_POSTS.filter(post => post.category === activeCategory);
 
-    if (!newsletterEmail) {
-      setAlert({
-        variant: "warning",
-        title: "Email required",
-        message: "Drop in your mission control address so we can keep you briefed.",
-        autoClose: 1800,
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    window.setTimeout(() => {
-      setIsSubmitting(false);
-      setAlert({
-        variant: "success",
-        title: "Transmission linked",
-        message: "You're now receiving Bothive weekly drops. See you in the swarm.",
-        autoClose: 2400,
-      });
-      setNewsletterEmail("");
-    }, 900);
-  };
+  const featuredPosts = BLOG_POSTS.filter(post => post.featured);
 
   return (
-    <main className="relative min-h-screen bg-gradient-to-br from-[#05060F] via-[#0B1021] to-[#05040F] text-white">
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(116,112,255,0.26),transparent_58%),radial-gradient(circle_at_bottom,rgba(76,55,189,0.22),transparent_65%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(-120deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[length:64px_64px] opacity-30" />
-      </div>
+    <div className="min-h-screen bg-[#fafafa] dark:bg-[#030014] text-[#0a0a0f] dark:text-white">
+      <Navbar2 />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-16 px-4 pb-24 pt-24 sm:px-6 lg:px-10">
-        <header className="space-y-6 text-center">
-          <p className="text-sm font-medium text-white/55">Our blog</p>
-          <div className="space-y-4">
-            <h1 className="text-3xl font-semibold sm:text-4xl">The latest writings from our team</h1>
-            <p className="mx-auto max-w-2xl text-sm text-white/60">
-              The latest industry news, interviews, technologies, and resources.
+      {/* Hero */}
+      <section className="pt-32 pb-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl"
+          >
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 text-xs font-medium text-violet-600 dark:text-violet-400 mb-4">
+              Blog
+            </span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-4">
+              Insights & Updates
+            </h1>
+            <p className="text-lg text-black/50 dark:text-white/50">
+              News, engineering deep-dives, and thoughts on the future of AI agents.
             </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Featured Posts */}
+      <section className="pb-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6">
+            {featuredPosts.map((post, i) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <BlogCard post={post} featured />
+              </motion.div>
+            ))}
           </div>
-          <div className="mx-auto flex w-full max-w-md items-center gap-3 rounded-xl border border-white/12 bg-white/10 px-4 py-2.5 backdrop-blur">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white/50">
-              <path
-                d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm6-2 4 4"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="text-sm text-white/50">Search</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
-            {categories.map((category, idx) => (
+        </div>
+      </section>
+
+      {/* Category Filter */}
+      <section className="pb-8 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((category) => (
               <button
                 key={category}
-                type="button"
-                className={`${
-                  idx === 0
-                    ? "rounded-full bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] px-5 py-2 text-sm font-medium text-white shadow-[0_12px_28px_rgba(108,67,255,0.3)]"
-                    : "rounded-full border border-white/12 px-5 py-2 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
-                }`}
+                onClick={() => setActiveCategory(category)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeCategory === category
+                  ? "bg-[#0a0a0f] dark:bg-white text-white dark:text-black"
+                  : "bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 hover:bg-black/10 dark:hover:bg-white/10"
+                  }`}
               >
                 {category}
               </button>
             ))}
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-full border border-white/12 px-4 py-2 text-sm text-white/60 transition hover:border-white/20 hover:text-white"
-            >
-              Most recent
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
           </div>
-        </header>
-
-        <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
-          {cards.map((card, index) => {
-            if (card.type === "newsletter") {
-              return (
-                <div
-                  key="newsletter"
-                  className="flex h-full flex-col justify-between gap-5 rounded-2xl border border-white/12 bg-white/10 p-6 text-left shadow-[0_24px_55px_rgba(8,10,25,0.45)] backdrop-blur"
-                >
-                  <div className="space-y-3">
-                    <p className="text-sm font-semibold text-white">Weekly newsletter</p>
-                    <p className="text-sm text-white/60">
-                      No spam. Just the latest releases and tips, interesting articles, and exclusive interviews in your inbox every
-                      week.
-                    </p>
-                  </div>
-                  <form className="mt-6 space-y-3" onSubmit={handleNewsletterSubmit}>
-                    <input
-                      type="email"
-                      placeholder="Enter your email"
-                      className="w-full rounded-lg border border-white/12 bg-black/30 px-4 py-2.5 text-sm text-white placeholder:text-white/45 focus:border-[#6C43FF] focus:outline-none focus:ring-2 focus:ring-[#6C43FF1f]"
-                      value={newsletterEmail}
-                      onChange={(event) => setNewsletterEmail(event.target.value)}
-                    />
-                    <button
-                      type="submit"
-                      className="w-full rounded-lg bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(108,67,255,0.35)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? "Linking..." : "Subscribe"}
-                    </button>
-                    <p className="text-xs text-white/40">Read about our privacy policy.</p>
-                  </form>
-                </div>
-              );
-            }
-
-            return (
-              <article
-                key={card.post.id}
-                className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/12 bg-white/10 shadow-[0_22px_48px_rgba(8,10,25,0.35)] backdrop-blur"
-              >
-                <div className="relative h-40 w-full overflow-hidden bg-black">
-                  <Image src={card.post.image} alt={card.post.title} fill className="object-cover" priority={index < 3} />
-                </div>
-                <div className="flex flex-1 flex-col gap-4 p-6">
-                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/55">{card.post.category}</span>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold text-white">{card.post.title}</h3>
-                    <p className="text-sm text-white/60">{card.post.description}</p>
-                  </div>
-                  <div className="mt-auto flex items-center justify-between text-xs text-white/50">
-                    <span className="font-medium text-white/70">{card.post.author}</span>
-                    <span>{card.post.date}</span>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
         </div>
+      </section>
 
-        <nav className="flex flex-wrap items-center justify-center gap-2 text-sm text-white/50">
-          <button type="button" className="rounded-md px-3 py-2 transition hover:bg-white/10 hover:text-white">
-            Previous
-          </button>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: 10 }).map((_, index) => (
-              <button
-                key={index}
-                type="button"
-                className={`flex h-9 w-9 items-center justify-center rounded-md transition ${index === 0 ? "bg-white text-black" : "hover:bg-white/10"}`}
+      {/* All Posts */}
+      <section className="pb-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPosts.map((post, i) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
               >
-                {index + 1}
-              </button>
+                <BlogCard post={post} />
+              </motion.div>
             ))}
           </div>
-          <button type="button" className="rounded-md px-3 py-2 transition hover:bg-white/10 hover:text-white">
-            Next
-          </button>
-        </nav>
-      </div>
-      <ProfessionalAlert
-        open={Boolean(alert)}
-        variant={alert?.variant ?? "info"}
-        title={alert?.title ?? ""}
-        message={alert?.message}
-        autoClose={alert?.autoClose}
-        onClose={() => setAlert(null)}
-      />
-    </main>
+        </div>
+      </section>
+
+      {/* Newsletter CTA */}
+      <section className="py-24 px-6 border-t border-black/5 dark:border-white/5">
+        <div className="max-w-xl mx-auto text-center">
+          <h2 className="text-2xl md:text-3xl font-semibold mb-4">
+            Stay in the loop
+          </h2>
+          <p className="text-black/50 dark:text-white/50 mb-8">
+            Get the latest articles and product updates delivered to your inbox.
+          </p>
+          <form className="flex gap-3">
+            <input
+              type="email"
+              placeholder="you@example.com"
+              className="flex-1 px-4 py-3 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+            <button
+              type="submit"
+              className="px-6 py-3 rounded-xl bg-[#0a0a0f] dark:bg-white text-white dark:text-black text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              Subscribe
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
   );
 }
-

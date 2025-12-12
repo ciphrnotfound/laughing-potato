@@ -1,26 +1,25 @@
 import type { Metadata } from "next";
-import { DM_Sans, Harmattan } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme-context";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AppSessionProvider } from "@/lib/app-session-context";
 
 import "./globals.css";
-import {devToolsConfigMiddleware} from "next/dist/next-devtools/server/devtools-config-middleware";
 
-const dmSans = DM_Sans({
-  variable: "--font-dmsans",
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
+  weight: ["200", "300", "400", "500", "600", "700", "800"],
+  variable: "--font-inter",
 });
 
-
 export const metadata: Metadata = {
-  title: "Bothive — The Digital Hive Where AI Agents Collaborate",
+  title: "Bothive — The Operating System for AI Agents",
   description:
-    "Build a collaborative ecosystem of AI bots that communicate, think, and evolve together. Create, connect, and monetize intelligent agents that solve problems as a unified swarm.",
-    icons:{
-      icon:"/colored-logo (2).png"
-    },
+    "Build, deploy, and scale autonomous AI agents. Connect them into workflows that work while you sleep.",
+  icons: {
+    icon: "/colored-logo (2).png"
+  },
   metadataBase: new URL("https://bothive.example"),
 };
 
@@ -30,31 +29,40 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              try {
-                const theme = localStorage.getItem('theme') || 'dark';
-                if (theme === 'light') {
-                  document.documentElement.classList.remove('dark');
-                } else {
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (!theme) {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                  document.documentElement.classList.remove('light', 'dark');
+                  document.documentElement.classList.add(theme);
+                  document.documentElement.setAttribute('data-theme', theme);
+                  document.documentElement.style.colorScheme = theme;
+                } catch (e) {
                   document.documentElement.classList.add('dark');
                 }
-              } catch (e) {}
+              })();
             `,
           }}
         />
       </head>
-      <body className={`${dmSans.className} antialiased bg-white dark:bg-gradient-to-br dark:from-black dark:to-violet-950 text-black dark:text-white transition-colors duration-300`}>
+      <body className={`${inter.className} ${inter.variable} antialiased transition-colors duration-300
+        bg-[#fafafa] text-[#0a0a0f]
+        dark:bg-[#08080c] dark:text-white
+      `}>
         <ThemeProvider>
           <AppSessionProvider>
-            {/*<NavBar />*/}
             {children}
-            <div className="fixed bottom-4 right-4 z-50">
+            {/* Floating Theme Toggle */}
+            {/* <div className="fixed bottom-6 right-6 z-[100]">
               <ThemeToggle />
-            </div>
+            </div> */}
           </AppSessionProvider>
         </ThemeProvider>
       </body>
