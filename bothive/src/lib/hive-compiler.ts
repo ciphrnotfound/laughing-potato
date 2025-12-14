@@ -61,6 +61,39 @@ interface HiveSetNode {
     value: string;
 }
 
+// Hivelang v2 - New AST Node Types
+interface HiveTryNode {
+    type: "try";
+    trySteps: HiveStep[];
+    catchSteps: HiveStep[];
+}
+
+interface HiveParallelNode {
+    type: "parallel";
+    steps: HiveStep[];
+}
+
+interface HiveUseNode {
+    type: "use";
+    path: string;
+    alias: string;
+}
+
+interface HiveReturnNode {
+    type: "return";
+}
+
+interface HiveEmitNode {
+    type: "emit";
+    event: string;
+    data: Record<string, string>;
+}
+
+interface HiveWaitNode {
+    type: "wait";
+    duration: string;
+}
+
 export type HiveStep =
     | HiveIfNode
     | HiveLoopNode
@@ -69,7 +102,14 @@ export type HiveStep =
     | HiveMemoryNode
     | HiveCallNode
     | HiveRememberNode
-    | HiveSetNode;
+    | HiveSetNode
+    // Hivelang v2
+    | HiveTryNode
+    | HiveParallelNode
+    | HiveUseNode
+    | HiveReturnNode
+    | HiveEmitNode
+    | HiveWaitNode;
 
 export interface HiveAst {
     name: string;
@@ -99,20 +139,30 @@ const SAY_MULTILINE_START = /^say\s+"""$/i;
 const SAY_MULTILINE_END = /^"""$/;
 const TOOLS_STATEMENT = /^tools\(([^)]*)\)$/i;
 const MEMORY_STATEMENT = /^memory\[([^\]]*)\]$/i;
+const MEMORY_SPACE_STATEMENT = /^memory\s+([A-Za-z0-9_,\s]+)$/i;
 const CALL_STATEMENT = /^call\s+([A-Za-z0-9._-]+)(?:\s+with\s+(.+))?$/i;
 const REMEMBER_STATEMENT = /^remember\s+([A-Za-z0-9._-]+)\s+"([^"]*)"$/i;
 const IF_STATEMENT = /^if\s+(.+)$/i;
 const ELSE_STATEMENT = /^else$/i;
 const LOOP_STATEMENT = /^loop\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s+in\s+(.+))?$/i;
 const END_STATEMENT = /^end$/i;
-const COMMENT_STATEMENT = /^--/;
+const COMMENT_STATEMENT = /^(--|#)/;
 const MACRO_STATEMENT = /^use\s+macro\s+([A-Za-z0-9_-]+)$/i;
 const SET_STATEMENT = /^set\s+([A-Za-z0-9_.-]+)\s+(?:"([^"]*)"|([A-Za-z0-9_.-]+))$/i;
+
+// Hivelang v2 - New regex patterns
+const USE_STATEMENT = /^use\s+"([^"]+)"\s+as\s+([A-Za-z][A-Za-z0-9_]*)$/i;
+const TRY_STATEMENT = /^try$/i;
+const ONERROR_STATEMENT = /^onerror$/i;
+const PARALLEL_STATEMENT = /^parallel$/i;
+const RETURN_STATEMENT = /^return(?:\s+(.+))?$/i;
+const EMIT_STATEMENT = /^emit\s+"([^"]+)"(?:\s+with\s+(.+))?$/i;
+const WAIT_STATEMENT = /^wait\s+(\d+)(ms|s|m)$/i;
 
 interface ParseContext {
     ast: HiveAst;
     diagnostics: HiveDiagnostic[];
-    stack: Array<{ type: "root" | "if" | "loop" | "agent", node: HiveStep | { steps: HiveStep[]; elseSteps?: HiveStep[] } | { ast: HiveAst } } & Record<string, unknown>>;
+    stack: Array<{ type: "root" | "if" | "loop" | "agent" | "try" | "parallel" | "onInput", node: HiveStep | { steps: HiveStep[]; elseSteps?: HiveStep[]; catchSteps?: HiveStep[] } | { ast: HiveAst } } & Record<string, unknown>>;
     currentSteps: HiveStep[];
     captureMultiline?: {
         buffer: string[];
@@ -236,11 +286,12 @@ export async function compileHive(source: string, options: HiveCompileOptions = 
                 // We can start a new "scope" for the agent.
                 // Pushing to stack with a custom type that holds the sub-agent AST.
 
-                const agentNode = {
-                    type: "agent_scope",
-                    ast: subAgent
-                };
-                // We cast to any to bypass strict type check for this quick implementation, 
+                // Push a special stack frame for the agent
+                // We reuse the 'agent' type for the stack.
+                // We need to cast to any because strict implementation would require updating types which is hard in chunks.
+                ctx.stack.push({ type: "agent", node: { ast: subAgent } as any, steps: subAgent.steps });
+                ctx.currentSteps = subAgent.steps;
+                continue;
                 // or we update the ParseContext definition (better).
                 // Since I cannot update ParseContext definition easily in this chunks approach without replacing huge blocks,
                 // I will assume the stack can hold this custom object if I handle it in END_STATEMENT.
@@ -273,7 +324,14 @@ export async function compileHive(source: string, options: HiveCompileOptions = 
                     ctx.currentSteps = ctx.ast.steps;
                 }
 
+                if (top?.type === "agent") {
+                    ctx.currentSteps = (top.node as any).ast.steps;
+                } else if (top?.type === "root") {
+                    ctx.currentSteps = ctx.ast.steps;
+                }
+
                 ctx.insideOnBlock = true;
+                ctx.stack.push({ type: "onInput", node: {} as any, steps: ctx.currentSteps });
                 continue;
             }
 
@@ -282,8 +340,13 @@ export async function compileHive(source: string, options: HiveCompileOptions = 
                     ctx.expectingBotEnd = false;
                     break;
                 }
-                // If stack > 1, this 'end' belongs to a nested structure (like agent).
-                // Fall through to the main END_STATEMENT handler (outside this !insideOnBlock block).
+                // Handle closing nested agent
+                const top = ctx.stack[ctx.stack.length - 1];
+                if (top?.type === "agent") {
+                    ctx.stack.pop();
+                    ctx.currentSteps = ctx.ast.steps; // Return to root steps
+                    continue;
+                }
             }
 
             diagnostics.push(makeDiagnostic(lineNumber, 1, 'warning', `Unexpected statement outside 'on input' block: ${line}`));
@@ -325,6 +388,21 @@ export async function compileHive(source: string, options: HiveCompileOptions = 
                 .filter(Boolean);
             if (!keys || keys.length === 0) {
                 diagnostics.push(makeDiagnostic(lineNumber, 1, 'warning', "memory[] requires at least one key"));
+                continue;
+            }
+            keys.forEach((key) => ctx.ast.memory.add(key));
+            appendStep(ctx, { type: "memory", keys });
+            continue;
+        }
+
+        if (MEMORY_SPACE_STATEMENT.test(line)) {
+            const [, memoryRaw] = line.match(MEMORY_SPACE_STATEMENT) ?? [];
+            const keys = memoryRaw
+                ?.split(",")
+                .map((entry) => entry.trim())
+                .filter(Boolean);
+            if (!keys || keys.length === 0) {
+                diagnostics.push(makeDiagnostic(lineNumber, 1, 'warning', "memory requires at least one key"));
                 continue;
             }
             keys.forEach((key) => ctx.ast.memory.add(key));
@@ -422,15 +500,15 @@ export async function compileHive(source: string, options: HiveCompileOptions = 
 
         if (END_STATEMENT.test(line)) {
             const top = ctx.stack.pop();
-            
+
             // Special handling: 'end' closing an 'on input' block (root or agent)
             // If we popped a root/agent, it means we weren't in a sub-block (if/loop),
             // so this 'end' must be for the 'on input'.
             if ((!top || top.type === "root" || top.type === "agent") && ctx.insideOnBlock) {
-                 // We are just closing the 'on input' section, not the agent/root itself.
-                 if (top) ctx.stack.push(top);
-                 ctx.insideOnBlock = false;
-                 continue;
+                // We are just closing the 'on input' section, not the agent/root itself.
+                if (top) ctx.stack.push(top);
+                ctx.insideOnBlock = false;
+                continue;
             }
 
             if (!top || top.type === "root") {
@@ -447,22 +525,100 @@ export async function compileHive(source: string, options: HiveCompileOptions = 
                 ctx.insideOnBlock = false;
                 continue;
             }
+            if (top?.type === "try") {
+                // Closing a try block
+                ctx.currentSteps = (ctx.stack.at(-1)?.steps as HiveStep[]) ?? ctx.ast.steps;
+                continue;
+            }
 
-            if (top?.type === "agent") {
-                 // Return to parent context
-                 const parent = ctx.stack.at(-1);
-                 // If parent is root, accessing ast.steps via 'steps' property we hacked onto the stack frame, or fallback
-                 // Actually, simpler: just look at the stack top.
-                 if (parent) {
-                    if (parent.type === "root") ctx.currentSteps = ctx.ast.steps; // Safe fallback for root
-                    else if ('steps' in parent) ctx.currentSteps = parent.steps as HiveStep[]; 
-                    else ctx.currentSteps = (parent.node as any).steps;
-                 }
-                 ctx.insideOnBlock = false; 
-                 continue;
+            if (top?.type === "parallel") {
+                // Closing a parallel block
+                ctx.currentSteps = (ctx.stack.at(-1)?.steps as HiveStep[]) ?? ctx.ast.steps;
+                continue;
+            }
+
+            if (top?.type === "onInput") {
+                // Closing on input block
+                ctx.currentSteps = (ctx.stack.at(-1)?.steps as HiveStep[]) ?? ctx.ast.steps;
+                ctx.insideOnBlock = false;
+                continue;
             }
 
             ctx.currentSteps = (ctx.stack.at(-1)?.steps as HiveStep[]) ?? ctx.ast.steps;
+            continue;
+        }
+
+        // Hivelang v2 - USE statement (file imports)
+        if (USE_STATEMENT.test(line)) {
+            const [, path, alias] = line.match(USE_STATEMENT) ?? [];
+            if (path && alias) {
+                appendStep(ctx, { type: "use", path, alias });
+            }
+            continue;
+        }
+
+        // Hivelang v2 - TRY statement
+        if (TRY_STATEMENT.test(line)) {
+            const node: HiveTryNode = { type: "try", trySteps: [], catchSteps: [] };
+            appendStep(ctx, node);
+            ctx.stack.push({ type: "try", node, steps: node.trySteps, catchSteps: node.catchSteps });
+            ctx.currentSteps = node.trySteps;
+            continue;
+        }
+
+        // Hivelang v2 - ONERROR statement
+        if (ONERROR_STATEMENT.test(line)) {
+            const top = ctx.stack.at(-1);
+            if (!top || top.type !== "try") {
+                diagnostics.push(makeDiagnostic(lineNumber, 1, 'error', "'onerror' without matching 'try'"));
+                continue;
+            }
+            const node = top.node as HiveTryNode;
+            ctx.currentSteps = node.catchSteps;
+            continue;
+        }
+
+        // Hivelang v2 - PARALLEL statement
+        if (PARALLEL_STATEMENT.test(line)) {
+            const node: HiveParallelNode = { type: "parallel", steps: [] };
+            appendStep(ctx, node);
+            ctx.stack.push({ type: "parallel", node, steps: node.steps });
+            ctx.currentSteps = node.steps;
+            continue;
+        }
+
+        // Hivelang v2 - RETURN statement
+        if (RETURN_STATEMENT.test(line)) {
+            const [, returnValue] = line.match(RETURN_STATEMENT) ?? [];
+            appendStep(ctx, { type: "return", value: returnValue || undefined } as any);
+            continue;
+        }
+
+        // Hivelang v2 - EMIT statement
+        if (EMIT_STATEMENT.test(line)) {
+            const [, event, dataRaw] = line.match(EMIT_STATEMENT) ?? [];
+            const data: Record<string, string> = {};
+            if (dataRaw) {
+                dataRaw
+                    .split(/,(?![^"]*")/)
+                    .map((seg) => seg.trim())
+                    .filter(Boolean)
+                    .forEach((seg) => {
+                        const [key, value] = seg.split(":").map((t) => t.trim());
+                        if (key) {
+                            data[key] = value?.replace(/^"|"$/g, "") ?? "";
+                        }
+                    });
+            }
+            appendStep(ctx, { type: "emit", event: event ?? "", data });
+            continue;
+        }
+
+        // Hivelang v2 - WAIT statement
+        if (WAIT_STATEMENT.test(line)) {
+            const [, amount, unit] = line.match(WAIT_STATEMENT) ?? [];
+            const duration = `${amount}${unit}`;
+            appendStep(ctx, { type: "wait", duration });
             continue;
         }
 
@@ -509,7 +665,7 @@ function buildJavaScript(ast: HiveAst, options: HiveCompileOptions, diagnostics:
         // That's designed for file output.
         // We need a way to get just the object.
         // Let's refactor slightly to separate "program object creation" from "file wrapping".
-        
+
         // For now, let's just serialize the AST steps for the agent and reconstruct a simpler object.
         return {
             name: subAgent.name,
@@ -642,7 +798,57 @@ const executeSteps = async (steps, ctx, transcript) => {
             input: { ...ctx.input, [step.iterator ?? 'item']: item },
             locals: ctx.locals,
           };
-          await executeSteps(step.steps, childScope, transcript);
+          const shouldReturn = await executeSteps(step.steps, childScope, transcript);
+          if (shouldReturn) return true;
+        }
+        break;
+      }
+      // Hivelang v2 - Try/Error Handling
+      case 'try': {
+        try {
+          await executeSteps(step.trySteps ?? [], ctx, transcript);
+        } catch (error) {
+          const catchScope = {
+            ...ctx,
+            locals: { ...(ctx.locals ?? {}), error: error?.message ?? String(error) },
+          };
+          await executeSteps(step.catchSteps ?? [], catchScope, transcript);
+        }
+        break;
+      }
+      // Hivelang v2 - Parallel Execution
+      case 'parallel': {
+        const parallelPromises = (step.steps ?? []).map(s => executeSteps([s], ctx, transcript));
+        await Promise.all(parallelPromises);
+        break;
+      }
+      // Hivelang v2 - Module Use (runtime no-op, handled at compile time)
+      case 'use': {
+        transcript.push({ type: 'use', path: step.path, alias: step.alias });
+        break;
+      }
+      // Hivelang v2 - Early Return
+      case 'return': {
+        transcript.push({ type: 'return' });
+        return true; // Signal to stop execution
+      }
+      // Hivelang v2 - Event Emission
+      case 'emit': {
+        const eventData = Object.fromEntries(
+          Object.entries(step.data ?? {}).map(([k, v]) => [k, interpolate(v, { ...(ctx.input ?? {}), ...(ctx.locals ?? {}) })])
+        );
+        ctx.emit?.({ type: 'event', event: step.event, data: eventData });
+        transcript.push({ type: 'emit', event: step.event, data: eventData });
+        break;
+      }
+      // Hivelang v2 - Wait/Delay
+      case 'wait': {
+        const match = String(step.duration).match(/(\\d+)(ms|s|m)/);
+        if (match) {
+          const [, amount, unit] = match;
+          const ms = unit === 's' ? Number(amount) * 1000 : unit === 'm' ? Number(amount) * 60000 : Number(amount);
+          await new Promise(r => setTimeout(r, ms));
+          transcript.push({ type: 'wait', duration: step.duration, ms });
         }
         break;
       }
@@ -724,6 +930,14 @@ interface SerializableStep {
     steps?: SerializableStep[];
     iterator?: string;
     source?: string;
+    // Hivelang v2
+    trySteps?: SerializableStep[];
+    catchSteps?: SerializableStep[];
+    path?: string;
+    alias?: string;
+    event?: string;
+    data?: Record<string, string>;
+    duration?: string;
 }
 
 function convertSteps(steps: HiveStep[]): SerializableStep[] {
@@ -755,6 +969,26 @@ function convertSteps(steps: HiveStep[]): SerializableStep[] {
                     source: step.target,
                     steps: convertSteps(step.steps),
                 };
+            // Hivelang v2
+            case "try":
+                return {
+                    type: "try",
+                    trySteps: convertSteps(step.trySteps),
+                    catchSteps: convertSteps(step.catchSteps),
+                };
+            case "parallel":
+                return {
+                    type: "parallel",
+                    steps: convertSteps(step.steps),
+                };
+            case "use":
+                return { type: "use", path: step.path, alias: step.alias };
+            case "return":
+                return { type: "return" };
+            case "emit":
+                return { type: "emit", event: step.event, data: step.data };
+            case "wait":
+                return { type: "wait", duration: step.duration };
             default:
                 return { type: "unknown" };
         }

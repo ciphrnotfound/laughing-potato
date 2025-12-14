@@ -64,9 +64,9 @@ export default function SettingsPage() {
         // We can trust useAppSession for initial load, but maybe fetch fresh to be safe?
         // Actually useAppSession is live enough.
         setProfileForm({
-          fullName: profile.full_name || '',
+          fullName: profile.fullName || '',
           email: profile.email || '',
-          avatarUrl: profile.avatar_url || ''
+          avatarUrl: profile.avatarUrl || ''
         });
 
         // 2. Security Data (API Keys)

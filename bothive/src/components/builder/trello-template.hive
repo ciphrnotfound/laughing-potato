@@ -1,0 +1,80 @@
+bot TrelloManager
+  description "Automates Trello boards and manages project workflows"
+  
+  memory session
+    var currentBoard string
+    var activeList string
+    var lastCard string
+  end
+  
+  on input when input.action == "create_board"
+    call trello.createBoard with {
+      name: input.boardName,
+      description: input.description ?? "Managed by Trello Manager Bot"
+    } as board
+    
+    set $currentBoard to board.id
+    say "✅ Created Trello board: " + board.name
+    say "🔗 Board URL: " + board.url
+  end
+  
+  on input when input.action == "create_card"
+    call trello.createCard with {
+      boardId: $currentBoard ?? input.boardId,
+      listId: input.listId ?? $activeList,
+      title: input.title,
+      description: input.description ?? "",
+      dueDate: input.dueDate ?? null
+    } as card
+    
+    set $lastCard to card.id
+    say "📝 Created card: " + card.title
+    say "📋 Card ID: " + card.id
+  end
+  
+  on input when input.action == "move_card"
+    call trello.moveCard with {
+      cardId: input.cardId ?? $lastCard,
+      targetListId: input.targetListId
+    } as result
+    
+    say "🚀 Moved card to new list"
+    say "📍 New position: " + result.position
+  end
+  
+  on input when input.action == "get_lists"
+    call trello.getLists with {
+      boardId: $currentBoard ?? input.boardId
+    } as lists
+    
+    set $activeList to lists[0].id
+    say "📋 Board lists:"
+    for list in lists
+      say "• " + list.name + " (" + list.cardCount + " cards)"
+    end
+  end
+  
+  on input when input.action == "add_comment"
+    call trello.addComment with {
+      cardId: input.cardId ?? $lastCard,
+      text: input.comment
+    } as comment
+    
+    say "💬 Added comment to card"
+  end
+  
+  on input
+    call general.respond with {
+      prompt: """
+        You are Trello Manager Bot. Help users manage their Trello boards and workflows.
+        Available actions: create_board, create_card, move_card, get_lists, add_comment
+        
+        Current board: """ + ($currentBoard ?? "not set") + """
+        Current list: """ + ($activeList ?? "not set") + """
+        
+        User input: """ + input.message
+    } as response
+    
+    say response.output
+  end
+end

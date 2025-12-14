@@ -1,29 +1,11 @@
 {
-  "akinlorinjeremiah165@gmail.com": {
-    "id": "0b36580f-73cb-4734-bc14-479b9da7251b",
-    "email": "akinlorinjeremiah165@gmail.com",
-    "name": "Akinlorin Jeremiah",
-    "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocLWb4_0ptU01u6FADpN4XnwQKJkZh-7LYfEbIMNjAYYD90QYQ=s96-c",
-    "provider": "supabase",
-    "createdAt": "2025-12-10T12:04:16.743Z",
-    "updatedAt": "2025-12-10T12:08:19.782Z"
-  },
-  "kingwinston697@gmail.com": {
-    "id": "68f60408-4f06-457a-a883-c42041b78fa1",
-    "email": "kingwinston697@gmail.com",
-    "name": "King Winston",
-    "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocJQ8Uzbby1i162rQ-1tlMeQyfy-64AgBgEXYi1BRA31jmDgxw=s96-c",
-    "provider": "supabase",
-    "createdAt": "2025-12-10T12:09:09.910Z",
-    "updatedAt": "2025-12-10T14:52:39.565Z"
-  },
   "akinlorinjeremiah@gmail.com": {
     "id": "636f29af-f88f-4cd4-8eba-0047f6bb5bbb",
     "email": "akinlorinjeremiah@gmail.com",
     "name": "Akinlorin Jeremiah",
     "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocL_sbcfExGBTsKie19apwIZ2SMPmoOpIX3Lw2UMckTyhiGxn9o=s96-c",
     "provider": "supabase",
-    "createdAt": "2025-12-10T14:52:56.121Z",
-    "updatedAt": "2025-12-12T09:08:15.571Z"
+    "createdAt": "2025-12-12T20:27:57.904Z",
+    "updatedAt": "2025-12-14T16:48:46.004Z"
   }
 }

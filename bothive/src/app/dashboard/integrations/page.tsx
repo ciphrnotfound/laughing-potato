@@ -195,6 +195,51 @@ const AVAILABLE_INTEGRATIONS: Integration[] = [
     lastSync: '2024-11-20T12:00:00Z',
     errorCount: 0,
     usageCount: 1543
+  },
+  {
+    id: 'trello',
+    name: 'Trello',
+    description: 'Visual project management with Kanban boards, cards, and team collaboration features.',
+    category: 'productivity',
+    type: 'oauth',
+    status: 'disconnected',
+    icon: <Calendar className="w-6 h-6" />,
+    features: ['Board creation and management', 'Card automation', 'List organization', 'Team collaboration', 'Due date tracking'],
+    pricing: 'freemium',
+    documentation: 'https://developer.atlassian.com/cloud/trello',
+    setupTime: '3 minutes',
+    errorCount: 0,
+    usageCount: 0
+  },
+  {
+    id: 'notion',
+    name: 'Notion',
+    description: 'All-in-one workspace with notes, databases, wikis, and project management capabilities.',
+    category: 'productivity',
+    type: 'oauth',
+    status: 'disconnected',
+    icon: <FileText className="w-6 h-6" />,
+    features: ['Page creation and editing', 'Database queries', 'Block management', 'Workspace organization', 'Real-time collaboration'],
+    pricing: 'freemium',
+    documentation: 'https://developers.notion.com',
+    setupTime: '2 minutes',
+    errorCount: 0,
+    usageCount: 0
+  },
+  {
+    id: 'whatsapp-business',
+    name: 'WhatsApp Business',
+    description: 'Business messaging platform with automated responses, customer support, and broadcast capabilities.',
+    category: 'communication',
+    type: 'api_key',
+    status: 'disconnected',
+    icon: <MessageSquare className="w-6 h-6" />,
+    features: ['Automated messaging', 'Customer support', 'Broadcast messages', 'Message templates', 'Business profile management'],
+    pricing: 'paid',
+    documentation: 'https://developers.facebook.com/docs/whatsapp',
+    setupTime: '5 minutes',
+    errorCount: 0,
+    usageCount: 0
   }
 ];
 

@@ -25,7 +25,8 @@ import {
   IconPlug,
   IconRosetteDiscountCheckFilled,
   IconBriefcase,
-  IconClipboardList
+  IconClipboardList,
+  IconRocket
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -94,6 +95,15 @@ const ROLE_CONFIG: Record<string, SidebarItem[]> = {
     ...BASE_ITEMS,
     INTEGRATIONS_ITEM,
     { id: "system-logs", label: "System Logs", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/logs" },
+  ],
+  teams: [
+    { id: "startup-overview", label: "Command Center", icon: <IconActivity className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard" },
+    { id: "swarms", label: "Bot Swarms", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/swarms" },
+    { id: "team", label: "Team & Roles", icon: <IconUsers className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/team" },
+    { id: "funding", label: "Capital & Credits", icon: <IconChartBar className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/funding" },
+    { id: "deployments", label: "Deployments", icon: <IconRocket className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/deployments" },
+    INTEGRATIONS_ITEM,
+    { id: "settings", label: "Startup Settings", icon: <IconSettings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/settings" },
   ]
 };
 
@@ -109,6 +119,14 @@ export default function DashboardSidebar() {
 
       if (user) {
         setUserEmail(user.email || "");
+
+        // TEMPORARY: For Development/Demo, checking if user wants to see teams view (e.g. strict email check or local storage)
+        // In production, this comes from the DB profile.
+        // I will add a manual toggle in the UI later, but for now defaulting 'teams' if email contains 'founder'.
+        if (user.email?.includes("founder") || localStorage.getItem("bothive_role_override") === "teams") {
+          setRole("teams");
+          return;
+        }
 
         // Strict Admin Check
         if (user.email === "akinlorinjeremiah@gmail.com") {

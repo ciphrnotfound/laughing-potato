@@ -7,8 +7,8 @@
     "build": "next build",
     "test": "vitest",
     "start": "next start",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "publish-scheduled": "node scripts/run-scheduled-posts.js",
     "auto-cron": "node scripts/auto-cron.js",
     "smart-cron": "node scripts/smart-cron.js",
@@ -58,6 +58,10 @@
     "stripe": "^20.0.0",
     "tailwind-merge": "^3.4.0",
     "youtube-transcript": "^1.2.1"
+  },
+  "overrides": {
+    "react": "$react",
+    "react-dom": "$react-dom"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

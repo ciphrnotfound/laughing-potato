@@ -42,7 +42,7 @@ export default function Dashboard() {
   });
 
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [userMode, setUserMode] = useState<'simple' | 'developer' | 'admin'>('simple');
+  const [userMode, setUserMode] = useState<'simple' | 'developer' | 'admin' | 'teams'>('simple');
   const [greeting, setGreeting] = useState('');
   const [showAiAssistant, setShowAiAssistant] = useState(false);
 
@@ -57,6 +57,7 @@ export default function Dashboard() {
     if (!profile) return;
 
     async function fetchDashboardData() {
+      if (!profile) return;
       try {
         // Fetch basic stats
         const [{ count: botCount }, { count: keyCount }, { count: deploymentsCount }] = await Promise.all([
@@ -74,8 +75,14 @@ export default function Dashboard() {
           .limit(5);
 
         // Determine user mode/role
-        let mode: 'simple' | 'developer' | 'admin' = 'simple';
-        if (profile.role === 'admin') mode = 'admin';
+        let mode: 'simple' | 'developer' | 'admin' | 'teams' = 'simple';
+
+        // TEMPORARY: Check for Teams Override
+        if (typeof window !== 'undefined' && window.localStorage.getItem("bothive_role_override") === "teams") {
+          mode = 'teams';
+        }
+        else if (profile.email?.includes("founder")) mode = 'teams';
+        else if (profile.role === 'admin') mode = 'admin';
         else if ((keyCount || 0) > 0 || (botCount || 0) > 0) mode = 'developer';
 
         setUserMode(mode);
@@ -118,6 +125,43 @@ export default function Dashboard() {
         delay: 0.2
       }
     ];
+
+    if (userMode === 'teams') {
+      return [
+        {
+          title: "Bot Swarms",
+          description: "Manage autonomous clusters",
+          icon: Users,
+          href: "/dashboard/swarms",
+          color: "text-cyan-400",
+          delay: 0
+        },
+        {
+          title: "Capital & Funding",
+          description: "$125,000 Credits Available",
+          icon: Gift, // Placeholder for Funding icon
+          href: "/dashboard/funding",
+          color: "text-emerald-400",
+          delay: 0.1
+        },
+        {
+          title: "Deployments",
+          description: "Live production environments",
+          icon: Rocket,
+          href: "/dashboard/deployments",
+          color: "text-purple-400",
+          delay: 0.2
+        },
+        {
+          title: "Team Settings",
+          description: "Roles, Permissions, API",
+          icon: Key,
+          href: "/dashboard/settings",
+          color: "text-rose-400",
+          delay: 0.3
+        }
+      ];
+    }
 
     if (userMode === 'developer' || userMode === 'admin') {
       return [
@@ -172,23 +216,41 @@ export default function Dashboard() {
 
   return (
     <DashboardPageShell
-      title="Overview"
+      title={userMode === 'teams' ? "Command Center" : "Overview"}
       headerAction={<ThemeToggle />}
+      className={userMode === 'teams' ? "font-mono tracking-tight" : ""} // Subtle font change for Teams
     >
       <div className="max-w-7xl mx-auto space-y-8">
 
         {/* Personalized Welcome Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600/10 to-indigo-600/10 dark:from-violet-900/20 dark:to-indigo-900/20 p-8 md:p-10">
+        <div className={cn(
+          "relative overflow-hidden rounded-3xl p-8 md:p-10 transition-all duration-500",
+          userMode === 'teams'
+            ? "bg-slate-950 border border-slate-800 shadow-[0_0_50px_rgba(6,182,212,0.1)]" // Cyber/Dark Theme
+            : "bg-gradient-to-r from-violet-600/10 to-indigo-600/10 dark:from-violet-900/20 dark:to-indigo-900/20"
+        )}>
+          {/* Teams Mode Specific Background Effects */}
+          {userMode === 'teams' && (
+            <>
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[length:40px_40px] opacity-20" />
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+            </>
+          )}
+
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
               <motion.h2
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-2"
+                className={cn(
+                  "text-3xl md:text-4xl font-bold mb-2",
+                  userMode === 'teams' ? "text-cyan-500" : "text-neutral-900 dark:text-white"
+                )}
               >
-                {greeting}, <span className="text-[#6C43FF]">
-                  {profile.team_name || profile.preferred_name || profile.name || profile.full_name || 'User'}
-                </span>.
+                {userMode === 'teams' ? "SYSTEM ONLINE" : `${greeting},`} <span className={userMode === 'teams' ? "text-white" : "text-[#6C43FF]"}>
+                  {userMode === 'teams' ? (profile.fullName || 'FOUNDER') : (profile.fullName || profile.email || 'User')}
+                </span>
+                {userMode !== 'teams' && "."}
               </motion.h2>
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
@@ -196,39 +258,50 @@ export default function Dashboard() {
                 transition={{ delay: 0.1 }}
                 className="text-neutral-500 dark:text-neutral-400 max-w-xl text-lg"
               >
-                {userMode === 'developer'
-                  ? "Your bots have been busy. Here's what's happening with your swarms today."
-                  : "Ready to supercharge your workflow? Let's build something amazing."}
+                {userMode === 'teams'
+                  ? "Startup metrics nominal. Swarm efficiency at 98%. Ready for scale."
+                  : userMode === 'developer'
+                    ? "Your bots have been busy. Here's what's happening with your swarms today."
+                    : "Ready to supercharge your workflow? Let's build something amazing."}
               </motion.p>
             </div>
 
-            {/* Conditional AI Assistant Feature - Only for Devs/Admins or Paid */}
-            {(userMode === 'developer' || userMode === 'admin') && (
+            {/* Conditional AI Assistant Feature */}
+            {(userMode === 'developer' || userMode === 'admin' || userMode === 'teams') && (
               <motion.button
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowAiAssistant(!showAiAssistant)}
-                className="flex items-center gap-2 px-5 py-3 bg-[#6C43FF] text-white rounded-xl font-medium shadow-lg shadow-violet-500/20"
+                className={cn(
+                  "flex items-center gap-2 px-5 py-3 rounded-xl font-medium shadow-lg transition-all",
+                  userMode === 'teams'
+                    ? "bg-cyan-950 border border-cyan-800 text-cyan-400 shadow-cyan-500/10 hover:bg-cyan-900"
+                    : "bg-[#6C43FF] text-white shadow-violet-500/20"
+                )}
               >
                 <Sparkles className="w-5 h-5" />
-                AI Assistant
+                {userMode === 'teams' ? "AI ADVISOR" : "AI Assistant"}
               </motion.button>
             )}
           </div>
 
-          {/* Decorative circles */}
-          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          {/* Decorative circles for standard mode */}
+          {userMode !== 'teams' && (
+            <>
+              <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            </>
+          )}
         </div>
 
         {/* Quick Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatBox label="Total Bots" value={stats.botCount} icon={<Bot className="w-5 h-5" />} delay={0} />
-          <StatBox label="Deployments" value={stats.deployments} icon={<Rocket className="w-5 h-5" />} delay={0.1} />
-          <StatBox label="API Keys" value={stats.keyCount} icon={<Key className="w-5 h-5" />} delay={0.2} />
-          <StatBox label="Credits" value="2,500" icon={<Gift className="w-5 h-5" />} delay={0.3} link="/dashboard/settings" />
+          <StatBox label="Active Swarms" value={stats.botCount} icon={<Bot className="w-5 h-5" />} delay={0} teamMode={userMode === 'teams'} />
+          <StatBox label="Deployments" value={stats.deployments} icon={<Rocket className="w-5 h-5" />} delay={0.1} teamMode={userMode === 'teams'} />
+          <StatBox label={userMode === 'teams' ? "Burn Rate" : "API Keys"} value={userMode === 'teams' ? "$2.4k/mo" : stats.keyCount} icon={<Activity className="w-5 h-5" />} delay={0.2} teamMode={userMode === 'teams'} />
+          <StatBox label="Credits" value={userMode === 'teams' ? "$125k" : "2,500"} icon={<Gift className="w-5 h-5" />} delay={0.3} link="/dashboard/settings" teamMode={userMode === 'teams'} />
         </div>
 
         {/* Main Action Cards */}
@@ -244,22 +317,30 @@ export default function Dashboard() {
                 href={card.href}
                 className={cn(
                   "group relative block p-6 h-full rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
-                  isDark
-                    ? "bg-white/[0.02] border-white/10 hover:bg-white/[0.05]"
-                    : "bg-white border-neutral-100 shadow-sm hover:shadow-md"
+                  userMode === 'teams'
+                    ? "bg-slate-900/50 border-slate-800 hover:border-cyan-700/50 hover:shadow-cyan-500/10" // Teams Card Style
+                    : isDark
+                      ? "bg-white/[0.02] border-white/10 hover:bg-white/[0.05]"
+                      : "bg-white border-neutral-100 shadow-sm hover:shadow-md"
                 )}
               >
                 <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110",
-                  isDark ? "bg-white/10" : "bg-neutral-100",
-                  card.color
+                  userMode === 'teams' ? "bg-slate-800 text-cyan-400" : isDark ? "bg-white/10" : "bg-neutral-100",
+                  userMode !== 'teams' && card.color
                 )}>
-                  <card.icon className="w-6 h-6" />
+                  <card.icon className={cn("w-6 h-6", userMode === 'teams' && card.color)} />
                 </div>
-                <h3 className="text-xl font-bold mb-2 text-neutral-900 dark:text-white">{card.title}</h3>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">{card.description}</p>
+                <h3 className={cn(
+                  "text-xl font-bold mb-2",
+                  userMode === 'teams' ? "text-slate-100" : "text-neutral-900 dark:text-white"
+                )}>{card.title}</h3>
+                <p className={cn(
+                  "text-sm mb-4",
+                  userMode === 'teams' ? "text-slate-400" : "text-neutral-500 dark:text-neutral-400"
+                )}>{card.description}</p>
 
                 <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
-                  <ArrowUpRight className="w-5 h-5 text-neutral-400" />
+                  <ArrowUpRight className={cn("w-5 h-5", userMode === 'teams' ? "text-cyan-500" : "text-neutral-400")} />
                 </div>
               </Link>
             </motion.div>
@@ -270,25 +351,36 @@ export default function Dashboard() {
           {/* Recent Activity */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-neutral-900 dark:text-white">Recent Activity</h3>
-              <Link href="/dashboard/profile" className="text-sm text-[#6C43FF] hover:underline">View All</Link>
+              <h3 className={cn("text-xl font-bold", userMode === 'teams' ? "text-white" : "text-neutral-900 dark:text-white")}>
+                {userMode === 'teams' ? "System Logs" : "Recent Activity"}
+              </h3>
+              <Link href="/dashboard/profile" className={cn("text-sm hover:underline", userMode === 'teams' ? "text-cyan-500" : "text-[#6C43FF]")}>View All</Link>
             </div>
             <div className={cn(
               "rounded-2xl border min-h-[300px]",
-              isDark ? "bg-white/[0.02] border-white/10" : "bg-white border-neutral-100"
+              userMode === 'teams' ? "bg-slate-900/50 border-slate-800 font-mono text-sm" : isDark ? "bg-white/[0.02] border-white/10" : "bg-white border-neutral-100"
             )}>
-              {recentActivity.length > 0 ? (
-                <div className="divide-y divide-neutral-100 dark:divide-white/5">
-                  {recentActivity.map((activity, i) => (
-                    <div key={i} className="p-4 flex items-center gap-4 hover:bg-neutral-50 dark:hover:bg-white/[0.02] transition-colors">
-                      <div className="p-2 rounded-full bg-blue-500/10 text-blue-500">
+              {recentActivity.length > 0 || userMode === 'teams' ? ( // Always show fake logs for teams mode default
+                <div className={cn("divide-y", userMode === 'teams' ? "divide-slate-800" : "divide-neutral-100 dark:divide-white/5")}>
+                  {(userMode === 'teams' ? [
+                    { action: "Swarm 'Alpha' initialized", time: "2m ago", status: "success" },
+                    { action: "Deployment #424 deployed to edge", time: "15m ago", status: "success" },
+                    { action: "Funding round A closed", time: "1h ago", status: "info" },
+                    { action: "New member 'Sarah' joined team", time: "3h ago", status: "info" }
+                  ] : recentActivity).map((activity, i) => (
+                    <div key={i} className={cn("p-4 flex items-center gap-4 transition-colors", userMode === 'teams' ? "hover:bg-slate-800/50 text-slate-300" : "hover:bg-neutral-50 dark:hover:bg-white/[0.02]")}>
+                      <div className={cn("p-2 rounded-full", userMode === 'teams' ? "bg-cyan-500/10 text-cyan-500" : "bg-blue-500/10 text-blue-500")}>
                         <Activity className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-neutral-900 dark:text-white">Bot Execution</p>
-                        <p className="text-xs text-neutral-500">Completed 2 tasks successfully</p>
+                        <p className={cn("font-medium", userMode === 'teams' ? "text-slate-200" : "text-neutral-900 dark:text-white")}>
+                          {userMode === 'teams' ? (activity as any).action : "Bot Execution"}
+                        </p>
+                        <p className={cn("text-xs", userMode === 'teams' ? "text-slate-500" : "text-neutral-500")}>
+                          {userMode === 'teams' ? "System verified" : "Completed 2 tasks successfully"}
+                        </p>
                       </div>
-                      <span className="text-xs text-neutral-400">2h ago</span>
+                      <span className={cn("text-xs", userMode === 'teams' ? "text-slate-600" : "text-neutral-400")}>{(activity as any).time || "2h ago"}</span>
                     </div>
                   ))}
                 </div>
@@ -304,27 +396,38 @@ export default function Dashboard() {
 
           {/* Quick Tips / Announcements */}
           <div>
-            <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-6">Did you know?</h3>
+            <h3 className={cn("text-xl font-bold mb-6", userMode === 'teams' ? "text-white" : "text-neutral-900 dark:text-white")}>
+              {userMode === 'teams' ? "Investor Updates" : "Did you know?"}
+            </h3>
             <div className={cn(
               "rounded-2xl border p-6 space-y-4",
-              isDark ? "bg-gradient-to-br from-[#6C43FF]/20 to-purple-900/20 border-[#6C43FF]/20" : "bg-gradient-to-br from-violet-50 to-fuchsia-50 border-violet-100"
+              userMode === 'teams'
+                ? "bg-slate-900 border-slate-800"
+                : isDark ? "bg-gradient-to-br from-[#6C43FF]/20 to-purple-900/20 border-[#6C43FF]/20" : "bg-gradient-to-br from-violet-50 to-fuchsia-50 border-violet-100"
             )}>
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-[#6C43FF] text-white rounded-lg mt-1">
-                  <Sparkles className="w-4 h-4" />
+                <div className={cn("p-2 rounded-lg mt-1", userMode === 'teams' ? "bg-emerald-500/20 text-emerald-400" : "bg-[#6C43FF] text-white")}>
+                  {userMode === 'teams' ? <Gift className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                 </div>
                 <div>
-                  <h4 className="font-bold text-neutral-900 dark:text-white mb-1">New Integrations Available</h4>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                    You can now connect Slack and GitHub directly to your bot swarms.
+                  <h4 className={cn("font-bold mb-1", userMode === 'teams' ? "text-white" : "text-neutral-900 dark:text-white")}>
+                    {userMode === 'teams' ? "Series B Funding Open" : "New Integrations Available"}
+                  </h4>
+                  <p className={cn("text-sm", userMode === 'teams' ? "text-slate-400" : "text-neutral-600 dark:text-neutral-300")}>
+                    {userMode === 'teams'
+                      ? "Your startup metrics classify you for our accelerator program. Apply now."
+                      : "You can now connect Slack and GitHub directly to your bot swarms."}
                   </p>
                 </div>
               </div>
               <Link
-                href="/dashboard/integrations"
-                className="block w-full py-3 text-center rounded-xl bg-[#6C43FF] text-white font-medium hover:opacity-90 transition-opacity"
+                href={userMode === 'teams' ? "/dashboard/funding" : "/dashboard/integrations"}
+                className={cn(
+                  "block w-full py-3 text-center rounded-xl font-medium hover:opacity-90 transition-opacity",
+                  userMode === 'teams' ? "bg-emerald-600 text-white" : "bg-[#6C43FF] text-white"
+                )}
               >
-                Check it out
+                {userMode === 'teams' ? "View Offer" : "Check it out"}
               </Link>
             </div>
           </div>
@@ -336,30 +439,45 @@ export default function Dashboard() {
         <div className="fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-3rem)]">
           <div className={cn(
             "rounded-2xl border shadow-2xl overflow-hidden",
-            isDark ? "bg-neutral-900 border-white/10" : "bg-white border-neutral-200"
+            userMode === 'teams' ? "bg-slate-900 border-slate-700" : isDark ? "bg-neutral-900 border-white/10" : "bg-white border-neutral-200"
           )}>
-            <div className="p-4 bg-linear-to-r from-[#6C43FF] to-[#8A63FF] text-white flex justify-between items-center">
+            <div className={cn(
+              "p-4 flex justify-between items-center text-white",
+              userMode === 'teams' ? "bg-cyan-900" : "bg-linear-to-r from-[#6C43FF] to-[#8A63FF]"
+            )}>
               <div className="flex items-center gap-2">
                 <Bot className="w-5 h-5" />
-                <span className="font-bold">Antigravity AI</span>
+                <span className="font-bold">{userMode === 'teams' ? "Startup Advisor" : "BotHive"}</span>
               </div>
               <button onClick={() => setShowAiAssistant(false)} className="hover:bg-white/20 p-1 rounded-full"><Users className="w-4 h-4" /></button>
             </div>
             <div className="h-80 p-4 overflow-y-auto">
               <div className="flex gap-3 mb-4">
-                <div className="w-8 h-8 rounded-full bg-[#6C43FF]/20 flex items-center justify-center text-[#6C43FF] shrink-0">
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                  userMode === 'teams' ? "bg-cyan-900/50 text-cyan-400" : "bg-[#6C43FF]/20 text-[#6C43FF]"
+                )}>
                   <Bot className="w-4 h-4" />
                 </div>
-                <div className={cn("p-3 rounded-2xl rounded-tl-none text-sm", isDark ? "bg-white/10" : "bg-neutral-100")}>
-                  Hello {profile.name.split(' ')[0]}! How can I help you optimize your bots today?
+                <div className={cn("p-3 rounded-2xl rounded-tl-none text-sm",
+                  userMode === 'teams' ? "bg-slate-800 text-slate-200 border border-slate-700" : isDark ? "bg-white/10" : "bg-neutral-100"
+                )}>
+                  {userMode === 'teams'
+                    ? "Greetings, Founder. I've analyzed your burn rate. Shall we optimize server costs?"
+                    : `Hello ${(profile.fullName || profile.email || 'User').split(' ')[0]}! How can I help you optimize your bots today?`}
                 </div>
               </div>
             </div>
-            <div className="p-3 border-t border-neutral-200 dark:border-white/10">
+            <div className={cn("p-3 border-t", userMode === 'teams' ? "border-slate-800" : "border-neutral-200 dark:border-white/10")}>
               <input
                 type="text"
                 placeholder="Type a message..."
-                className="w-full px-4 py-2 rounded-xl bg-neutral-100 dark:bg-white/5 outline-none border border-transparent focus:border-[#6C43FF] transition-colors"
+                className={cn(
+                  "w-full px-4 py-2 rounded-xl outline-none border border-transparent transition-colors",
+                  userMode === 'teams'
+                    ? "bg-slate-950 text-white focus:border-cyan-500 placeholder:text-slate-600"
+                    : "bg-neutral-100 dark:bg-white/5 focus:border-[#6C43FF]"
+                )}
               />
             </div>
           </div>
@@ -369,22 +487,26 @@ export default function Dashboard() {
   );
 }
 
-function StatBox({ label, value, icon, delay, link }: { label: string, value: string | number, icon: React.ReactNode, delay: number, link?: string }) {
+function StatBox({ label, value, icon, delay, link, teamMode }: { label: string, value: string | number, icon: React.ReactNode, delay: number, link?: string, teamMode?: boolean }) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   const Content = (
     <div className={cn(
       "p-5 rounded-2xl border transition-all duration-200 hover:shadow-md",
-      isDark ? "bg-white/[0.02] border-white/10" : "bg-white border-neutral-100"
+      teamMode
+        ? "bg-slate-900/50 border-slate-800 hover:border-cyan-500/30" // Teams Style
+        : isDark ? "bg-white/[0.02] border-white/10" : "bg-white border-neutral-100"
     )}>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-neutral-500 dark:text-neutral-400 text-sm font-medium">{label}</span>
-        <div className={cn("p-2 rounded-lg", isDark ? "bg-white/5" : "bg-neutral-100")}>
+        <span className={cn("text-sm font-medium", teamMode ? "text-slate-400" : "text-neutral-500 dark:text-neutral-400")}>{label}</span>
+        <div className={cn("p-2 rounded-lg",
+          teamMode ? "bg-slate-800 text-cyan-400" : isDark ? "bg-white/5" : "bg-neutral-100"
+        )}>
           {icon}
         </div>
       </div>
-      <div className="text-2xl font-bold text-neutral-900 dark:text-white">
+      <div className={cn("text-2xl font-bold", teamMode ? "text-white font-mono" : "text-neutral-900 dark:text-white")}>
         {value}
       </div>
     </div>

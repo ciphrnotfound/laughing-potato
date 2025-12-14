@@ -32,7 +32,8 @@ import {
   Rocket,
   Save,
   Share2,
-  QrCode
+  QrCode,
+  Zap
 } from "lucide-react";
 import { DashboardPageShell } from "@/components/DashboardPageShell";
 
@@ -173,27 +174,27 @@ export default function ProfilePage() {
         })) || [];
 
         setUserProfile({
-          id: profile.id,
-          name: profile.full_name || 'User',
+          id: profile.id!,
+          name: profile.fullName || 'User',
           username: profile.email?.split('@')[0] || 'user',
           email: profile.email || '',
-          avatar: profile.avatar_url || '',
+          avatar: profile.avatarUrl || '',
           bio: 'AI enthusiast and developer.', // Placeholder as bio isn't in public.users yet
           location: 'Earth', // Placeholder
           website: '',
-          joinedDate: profile.created_at || new Date().toISOString(),
+          joinedDate: new Date().toISOString(), // profile.created_at not in type
           status: 'online',
           social: {},
           stats,
           achievements,
           badges: [ // Static badges for now based on stats
-            { id: 'early', name: 'Early Adopter', description: 'Joined early', icon: <Rocket className="w-6 h-6" />, earned: true, earnedAt: profile.created_at },
+            { id: 'early', name: 'Early Adopter', description: 'Joined early', icon: <Rocket className="w-6 h-6" />, earned: true, earnedAt: new Date().toISOString() },
             { id: 'builder', name: 'Bot Builder', description: 'Created a bot', icon: <Bot className="w-6 h-6" />, earned: (stats.botsCreated > 0) }
           ]
         });
 
         setEditForm({
-          name: profile.full_name || '',
+          name: profile.fullName || '',
           bio: 'AI enthusiast and developer.',
           location: 'Earth',
           website: '',

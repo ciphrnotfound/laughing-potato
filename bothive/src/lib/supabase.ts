@@ -30,9 +30,12 @@ export function getSupabaseClient(): SupabaseClient {
 }
 
 export const supabase = new Proxy({} as SupabaseClient, {
-    get(_target, prop, receiver) {
+    get(_target, prop) {
         const client = ensureClient();
-        const value = Reflect.get(client as unknown as object, prop, receiver);
+        // Access directly to ensure 'this' context of getters is the client, not the proxy
+        const value = client[prop as keyof SupabaseClient];
+
+        // Bind methods to the client
         return typeof value === "function" ? value.bind(client) : value;
     },
 });

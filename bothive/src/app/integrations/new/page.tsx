@@ -397,6 +397,10 @@ function my_capability(param1, param2):
                                     stripe: "Stripe Payments",
                                     sendgrid: "SendGrid Email",
                                     github: "GitHub API",
+                                    youtube: "📺 YouTube Search",
+                                    gmail: "📧 Gmail",
+                                    google: "🔍 Google Search",
+                                    calendar: "📅 Calendar",
                                 }).map(([key, label]) => (
                                     <button
                                         key={key}

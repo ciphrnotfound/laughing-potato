@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Bricolage_Grotesque } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme-context";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AppSessionProvider } from "@/lib/app-session-context";
 
 import "./globals.css";
 
-const inter = Inter({
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   display: "swap",
   weight: ["200", "300", "400", "500", "600", "700", "800"],
-  variable: "--font-inter",
+  variable: "--font-bricolage",
 });
 
 export const metadata: Metadata = {
@@ -52,7 +52,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} ${inter.variable} antialiased transition-colors duration-300
+      <body className={`${bricolage.className} ${bricolage.variable} antialiased transition-colors duration-300
         bg-[#fafafa] text-[#0a0a0f]
         dark:bg-[#08080c] dark:text-white
       `}>

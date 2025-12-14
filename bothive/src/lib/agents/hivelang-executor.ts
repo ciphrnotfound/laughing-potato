@@ -1,19 +1,122 @@
 import { compileHive, HiveCompileResult } from "../hive-compiler";
-import { executeReAct, ReActStep } from "./react-engine";
 import { ToolDescriptor, ToolContext } from "@/lib/agentTypes";
-import { getAgentPrompt } from "./prompts";
+import { HiveLangRuntime, integrationCache } from "@/lib/hivelang/runtime";
+import { createClient } from "@supabase/supabase-js";
 
 export interface HiveLangExecutionResult {
     output: string;
     transcript: any[];
-    steps: ReActStep[];
+    steps: any[];
     success: boolean;
     error?: string;
 }
 
+// Initialize Supabase client for server-side usage
+const getSupabaseAdmin = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+        return null;
+    }
+
+    return createClient(supabaseUrl, supabaseServiceKey);
+};
+
 /**
- * Execute a HiveLang program using the ReAct pattern
- * This bridges compiled HiveLang to agentic execution
+ * Integration Bridge - Resolves tool calls to community integrations
+ * Format: integration_slug.capability_name (e.g., "instagram.post_image")
+ */
+async function resolveIntegrationTool(
+    toolName: string,
+    args: Record<string, any>,
+    userId?: string
+): Promise<{ found: boolean; result?: any; error?: string }> {
+    // Parse tool name: "integration.capability"
+    const parts = toolName.split(".");
+    if (parts.length !== 2) {
+        return { found: false };
+    }
+
+    const [integrationSlug, capabilityName] = parts;
+
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+        return { found: false, error: "Database not configured" };
+    }
+
+    // Look up integration by slug
+    const { data: integration, error: integrationError } = await supabase
+        .from("integrations")
+        .select("id, name, slug, hivelang_code, capabilities")
+        .eq("slug", integrationSlug)
+        .single();
+
+    if (integrationError || !integration) {
+        // Not a community integration, return not found so fallback to built-ins
+        return { found: false };
+    }
+
+    // Check if this integration has HiveLang code
+    if (!integration.hivelang_code) {
+        return { found: false, error: `Integration ${integrationSlug} is not HiveLang-based` };
+    }
+
+    // If user is executing, get their credentials
+    let userCredentials: Record<string, any> = {};
+    if (userId) {
+        const { data: userIntegration } = await supabase
+            .from("user_integrations")
+            .select("*")
+            .eq("user_id", userId)
+            .eq("integration_id", integration.id)
+            .eq("status", "active")
+            .single();
+
+        if (userIntegration) {
+            userCredentials = {
+                access_token: userIntegration.access_token,
+                refresh_token: userIntegration.refresh_token,
+                api_key: userIntegration.additional_config?.api_key,
+                ...userIntegration.additional_config,
+            };
+        }
+    }
+
+    // Get or create runtime from cache
+    let runtime = integrationCache.get(integration.id);
+    if (!runtime) {
+        runtime = new HiveLangRuntime();
+        runtime.loadCode(integration.hivelang_code);
+        integrationCache.set(integration.id, runtime);
+    }
+
+    // Set context with user credentials
+    runtime.setContext({
+        user: {
+            id: userId ?? "anonymous",
+            ...userCredentials,
+        },
+        integration: {
+            id: integration.id,
+            name: integration.name,
+            slug: integration.slug,
+        },
+    });
+
+    // Execute the capability
+    try {
+        const result = await runtime.executeCapability(capabilityName, args);
+        return { found: true, result };
+    } catch (err: any) {
+        return { found: true, error: err.message ?? String(err) };
+    }
+}
+
+/**
+ * Execute a HiveLang program using DETERMINISTIC compiled code execution
+ * This runs the actual compiled logic instead of prompting an LLM
+ * Now with Integration Bridge for community-created integrations!
  */
 export async function executeHiveLangProgram(
     hiveLangSource: string,
@@ -40,90 +143,127 @@ export async function executeHiveLangProgram(
             };
         }
 
-        // Step 2: Create execution context
-        const metadata = compiled.metadata;
+        // Step 2: Evaluate the compiled JavaScript to get the program object
+        // NOTE: We strip 'export default program;' because 'export' is not valid in new Function()
+        const cleanCode = compiled.code.replace(/export default program;/, "");
+        const programFactory = new Function(cleanCode + "\nreturn program;");
+        const program = programFactory();
+
+        // Step 3: Create execution context with tool bindings
         const transcript: any[] = [];
+        const outputs: string[] = [];
 
-        // Add metadata to transcript
-        transcript.push({
-            type: "metadata",
-            bot: metadata.name,
-            description: metadata.description,
-            tools: metadata.tools,
-            memory: metadata.memory,
-            timestamp: Date.now(),
-        });
-
-        // Step 3: Execute the compiled program with ReAct
-        // The compiled program contains instructions that may include tool calls
-        // We'll execute these through the ReAct pattern for agentic behavior
-
-        const executionTask = buildExecutionTask(metadata, input);
-
-        // Filter tools to only those declared in HiveLang
-        const declaredTools = availableTools.filter((tool) =>
-            metadata.tools.includes(tool.name) ||
-            metadata.tools.includes(tool.capability)
-        );
-
-        // Execute with ReAct pattern
-        const reactResult = await executeReAct(
-            executionTask,
-            declaredTools,
-            toolContext,
-            {
-                maxSteps: 10,
-                systemPrompt: toolContext.metadata?.botSystemPrompt
-                    ? `${toolContext.metadata.botSystemPrompt}\n\n${getAgentPrompt("react")}`
-                    : getAgentPrompt("react"),
+        // Build tool lookup map for built-in tools
+        const toolMap = new Map<string, ToolDescriptor>();
+        for (const tool of availableTools) {
+            toolMap.set(tool.name, tool);
+            if (tool.capability) {
+                toolMap.set(tool.capability, tool);
             }
-        );
+        }
 
-        // Step 4: Combine results
-        transcript.push({
-            type: "execution",
-            steps: reactResult.steps,
-            finalAnswer: reactResult.finalAnswer,
-            timestamp: Date.now(),
-        });
+        // Get user ID from context for integration credentials
+        const userId = toolContext.userId ?? toolContext.metadata?.userId;
 
-        return {
-            output: reactResult.finalAnswer,
-            transcript,
-            steps: reactResult.steps,
-            success: reactResult.success,
-            error: reactResult.error,
+        // Create the runtime context for program.run()
+        const runtimeContext = {
+            input,
+            locals: {},
+            emit: (event: any) => {
+                if (event.type === "say") {
+                    outputs.push(event.payload);
+                }
+                transcript.push({ ...event, timestamp: Date.now() });
+            },
+            callTool: async (toolName: string, ctx: any) => {
+                // First, try built-in tools
+                const tool = toolMap.get(toolName);
+                if (tool) {
+                    try {
+                        const result = await tool.run(ctx.args ?? {}, toolContext);
+                        return result;
+                    } catch (err: any) {
+                        return { error: err.message ?? String(err) };
+                    }
+                }
+
+                // If not found, try community integrations!
+                const integrationResult = await resolveIntegrationTool(
+                    toolName,
+                    ctx.args ?? {},
+                    userId
+                );
+
+                if (integrationResult.found) {
+                    if (integrationResult.error) {
+                        return { error: integrationResult.error };
+                    }
+                    return integrationResult.result;
+                }
+
+                // Tool not found anywhere
+                return { error: `Tool not found: ${toolName}` };
+            },
+            memory: toolContext.sharedMemory ?? {
+                get: async () => undefined,
+                set: async () => { },
+                append: async () => { },
+            },
+            evaluate: async (condition: string, ctx: any) => {
+                const scope = { ...ctx.input, ...ctx.locals };
+                console.log("[Hivelang Evaluate]", { condition, scopeKeys: Object.keys(scope), inputVal: scope.input });
+                try {
+                    // Preprocess 'contains' to JS '.includes()'
+                    // Handle: variable contains "string"
+                    // Regex: ([a-zA-Z0-9_.]+) contains "([^"]+)"
+                    // Global replacement to handle multiple 'contains'
+                    const jsCondition = condition.replace(/([a-zA-Z0-9_.]+)\s+contains\s+"([^"]+)"/g, (_, varName, stringVal) => {
+                        return `${varName}?.toLowerCase().includes("${stringVal}".toLowerCase())`;
+                    });
+
+                    // Evaluate using Function
+                    const result = new Function(...Object.keys(scope), `return ${jsCondition}`)(...Object.values(scope));
+                    return Boolean(result);
+                } catch (err) {
+                    console.error("[Hivelang Evaluate Error]", err);
+                    return false;
+                }
+            },
+            resolveCollection: async (key: string) => {
+                const parts = key.split(".");
+                let value: any = { ...input, ...runtimeContext.locals };
+                for (const part of parts) {
+                    value = value?.[part];
+                }
+                return Array.isArray(value) ? value : [];
+            }
         };
+
+// Step 4: Execute the program deterministically
+const result = await program.run(runtimeContext);
+
+// Merge transcripts
+const combinedTranscript = [
+    { type: "metadata", bot: compiled.metadata.name, timestamp: Date.now() },
+    ...transcript,
+    ...(result?.transcript ?? []),
+];
+
+return {
+    output: outputs.join("\n"),
+    transcript: combinedTranscript,
+    steps: result?.transcript ?? [],
+    success: true,
+};
     } catch (error) {
-        return {
-            output: "",
-            transcript: [],
-            steps: [],
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-        };
-    }
+    return {
+        output: "",
+        transcript: [],
+        steps: [],
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+    };
 }
-
-/**
- * Build execution task from HiveLang metadata and input
- */
-function buildExecutionTask(
-    metadata: { name: string; description?: string; tools: string[]; memory: string[] },
-    input: Record<string, any>
-): string {
-    const description = metadata.description || "Execute bot task";
-    const inputStr = JSON.stringify(input, null, 2);
-
-    return `You are ${metadata.name}, ${description}.
-
-Input:
-${inputStr}
-
-Available tools: ${metadata.tools.join(", ")}
-${metadata.memory.length > 0 ? `Memory keys: ${metadata.memory.join(", ")}` : ""}
-
-Execute the task using the available tools. Show your reasoning at each step.`;
 }
 
 /**
@@ -134,10 +274,8 @@ export async function executeHiveLangProgramStreaming(
     input: Record<string, any>,
     availableTools: ToolDescriptor[],
     toolContext: ToolContext,
-    onStep: (step: ReActStep) => void
+    onStep: (step: any) => void
 ): Promise<HiveLangExecutionResult> {
-    // For now, execute normally and emit steps after
-    // TODO: Implement true streaming with SSE/WebSocket
     const result = await executeHiveLangProgram(
         hiveLangSource,
         input,
@@ -166,7 +304,6 @@ export async function validateHiveLangProgram(
         .filter((d) => d.severity === "warning")
         .map((d) => `Line ${d.line}: ${d.message}`);
 
-    // Check if declared tools are available
     const toolNames = availableTools.map((t) => t.name);
     const toolCapabilities = availableTools.map((t) => t.capability);
 
@@ -175,8 +312,9 @@ export async function validateHiveLangProgram(
     );
 
     if (missingTools.length > 0) {
+        // Note: These might be community integrations, not necessarily missing
         warnings.push(
-            `Tools declared but not available: ${missingTools.join(", ")}`
+            `Tools not in built-ins (may be community integrations): ${missingTools.join(", ")}`
         );
     }
 

@@ -3,6 +3,9 @@ import { aiClient, AI_MODEL, FALLBACK_MODELS } from "@/lib/ai-client";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { TIER_CONFIG, SubscriptionTier } from "@/lib/subscription-tiers";
+import { executeHiveLangProgram } from "@/lib/agents/hivelang-executor";
+import { allTools as ALL_TOOLS } from "@/lib/tools";
+import { ToolContext } from "@/lib/agentTypes";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -11,6 +14,7 @@ interface ChatRequest {
     message: string;
     systemPrompt?: string;
     botName?: string;
+    hivelangCode?: string;
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     temperature?: number;
 }
@@ -30,11 +34,10 @@ export async function POST(request: NextRequest) {
             }
         );
 
-        // Get current user (optional for public bots, but required for usage tracking)
         const { data: { user } } = await supabase.auth.getUser();
 
         const body = (await request.json()) as ChatRequest;
-        const { message, systemPrompt, botName, conversationHistory = [], temperature = 0.8 } = body;
+        const { message, systemPrompt, botName, hivelangCode, conversationHistory = [], temperature = 0.8 } = body;
 
         if (!message) {
             return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -43,13 +46,8 @@ export async function POST(request: NextRequest) {
         // Apply usage limits if user is logged in
         if (user) {
             const currentMonth = new Date().toISOString().slice(0, 7);
-
-            // Admin Override
             const ADMIN_EMAIL = "akinlorinjeremiah@gmail.com";
-            if (user.email === ADMIN_EMAIL) {
-                // Admin has unlimited access, skip checks
-            } else {
-                // Get tier
+            if (user.email !== ADMIN_EMAIL) {
                 const { data: userData } = await supabase
                     .from("users")
                     .select("tier")
@@ -59,7 +57,6 @@ export async function POST(request: NextRequest) {
                 const tier: SubscriptionTier = userData?.tier || 'free';
                 const limit = TIER_CONFIG[tier].aiMessagesPerMonth;
 
-                // Check usage
                 if (limit !== -1) {
                     const { data: usageData } = await supabase
                         .from("usage_tracking")
@@ -69,7 +66,6 @@ export async function POST(request: NextRequest) {
                         .single();
 
                     const used = usageData?.ai_messages_used || 0;
-
                     if (used >= limit) {
                         return NextResponse.json({
                             error: "Usage limit reached",
@@ -83,37 +79,71 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Build the messages array
+        // 1. HIVELANG EXECUTION (If code is present)
+        if (hivelangCode && hivelangCode.trim().length > 0) {
+            console.log("Chat: Executing HiveLang Code...");
+
+            // Create context
+            const toolContext: ToolContext = {
+                metadata: {
+                    botId: "ephemeral-chat-bot",
+                    runId: "chat-" + Date.now(),
+                    userId: user?.id,
+                    botSystemPrompt: systemPrompt
+                },
+                sharedMemory: {
+                    get: async () => undefined,
+                    set: async () => { },
+                    append: async () => { },
+                }
+            };
+
+            // Execute
+            const result = await executeHiveLangProgram(
+                hivelangCode,
+                // Pass input object so 'input.task' works, but ensure 'input' can be coerced to string 
+                // in 'evaluate' if user checks 'input contains'
+                { input: message, task: "chat" },
+                ALL_TOOLS,
+                toolContext
+            );
+
+            console.log("HiveLang Input:", JSON.stringify({ input: message, task: "chat" }));
+            console.log("HiveLang Result:", JSON.stringify({ success: result.success, output: result.output, error: result.error }));
+
+            // If success and has output, return it
+            if (result.success && result.output) {
+                return NextResponse.json({
+                    response: result.output,
+                    model: "HiveLang v2 (Agentic)",
+                    agentic: true,
+                    steps: result.steps // Optional: return steps if UI supports it
+                });
+            }
+
+            // If execution FAILED (e.g. tool error, missing credentials), report it!
+            if (!result.success) {
+                console.warn("HiveLang execution failed:", result.error);
+                return NextResponse.json({
+                    response: `⚠️ **Agent Execution Failed**\n\nI tried to run your Hivelang code, but encountered an error:\n> ${result.error}\n\n*Check your API credentials in the Configure Panel.*`,
+                    model: "HiveLang v2 (Error)",
+                    agentic: true
+                });
+            }
+        }
+
+        // 2. LLM FALLBACK (OpenAI/Groq)
         const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
-
-        // Add system prompt
         if (systemPrompt) {
-            messages.push({
-                role: "system",
-                content: systemPrompt,
-            });
+            messages.push({ role: "system", content: systemPrompt });
         } else {
-            messages.push({
-                role: "system",
-                content: `You are ${botName || "an AI assistant"}. Be helpful, creative, and engaging.`,
-            });
+            messages.push({ role: "system", content: `You are ${botName || "an AI assistant"}. Be helpful, creative, and engaging.` });
         }
-
-        // Add conversation history
         for (const msg of conversationHistory) {
-            messages.push({
-                role: msg.role,
-                content: msg.content,
-            });
+            messages.push({ role: msg.role, content: msg.content });
         }
+        messages.push({ role: "user", content: message });
 
-        // Add the current user message
-        messages.push({
-            role: "user",
-            content: message,
-        });
-
-        // Try models with fallback
         const models = [AI_MODEL, ...FALLBACK_MODELS];
         let lastError: Error | null = null;
         let successfulResponse: any = null;
@@ -126,48 +156,34 @@ export async function POST(request: NextRequest) {
                     temperature,
                     max_tokens: 1024,
                 });
-
                 const content = response.choices[0]?.message?.content?.trim();
-
                 if (content) {
-                    successfulResponse = {
-                        response: content,
-                        model,
-                        usage: response.usage,
-                    };
+                    successfulResponse = { response: content, model, usage: response.usage };
                     break;
                 }
             } catch (error) {
                 console.warn(`Model ${model} failed:`, error);
                 lastError = error instanceof Error ? error : new Error(String(error));
-                // Continue to next model
             }
         }
 
         if (successfulResponse) {
-            // Track usage asynchronously if user is logged in
             if (user) {
                 const currentMonth = new Date().toISOString().slice(0, 7);
                 await supabase.from("usage_tracking").upsert({
                     user_id: user.id,
                     month_year: currentMonth,
-                    // We use a raw SQL query typically for increment, but upsert with existing value logic in client is tricky
-                    // Simplest is to call the RPC we defined in migration
                 }).select().then(async () => {
-                    // Call RPC to increment safely
                     await supabase.rpc('increment_ai_usage', { p_user_id: user.id });
                 });
             }
-
             return NextResponse.json(successfulResponse);
         }
 
-        // All models failed
         throw lastError || new Error("All AI models failed to respond");
 
     } catch (error) {
         console.error("Chat API error:", error);
-        const message = error instanceof Error ? error.message : "Unknown error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
     }
 }

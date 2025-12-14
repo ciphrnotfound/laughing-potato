@@ -1,9 +1,12 @@
 import { supabase } from "@/lib/supabase";
 
+
+export type SocialPlatform = 'twitter' | 'linkedin' | 'facebook' | 'instagram';
+
 export interface SocialPostRecord {
     id: string;
     user_id: string;
-    platform: 'twitter' | 'linkedin' | 'facebook' | 'instagram';
+    platform: SocialPlatform;
     content: string;
     status: 'draft' | 'scheduled' | 'published' | 'failed';
     scheduled_for: string | null;

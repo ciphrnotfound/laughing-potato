@@ -16,12 +16,14 @@ interface Message {
 interface TestPlaygroundProps {
     botName: string;
     systemPrompt?: string;
+    hivelangCode?: string;
     onSendMessage?: (message: string) => Promise<string>;
 }
 
 export default function TestPlayground({
     botName,
     systemPrompt,
+    hivelangCode,
     onSendMessage
 }: TestPlaygroundProps) {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -52,7 +54,7 @@ export default function TestPlayground({
         setSending(true);
 
         try {
-            let responseContent: string;
+            let responseContent: string = "";
             let model: string | undefined;
 
             // If custom handler provided, use it (for backwards compatibility)
@@ -72,6 +74,7 @@ export default function TestPlayground({
                         message: messageText,
                         systemPrompt,
                         botName,
+                        hivelangCode,
                         conversationHistory,
                         temperature: 0.8,
                     }),

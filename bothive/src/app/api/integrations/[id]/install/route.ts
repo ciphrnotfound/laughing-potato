@@ -29,10 +29,16 @@ export async function POST(
             }
         );
 
-        // Get the integration
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Get the integration to return count later (or just return success)
         const { data: integration, error: fetchError } = await supabase
             .from("integrations")
-            .select("install_count")
+            .select("id, install_count")
             .eq("id", id)
             .single();
 
@@ -40,20 +46,29 @@ export async function POST(
             return NextResponse.json({ error: "Integration not found" }, { status: 404 });
         }
 
-        // Increment install count
-        const { error: updateError } = await supabase
-            .from("integrations")
-            .update({ install_count: (integration.install_count || 0) + 1 })
-            .eq("id", id);
+        // 1. Create User Integration Record
+        // Schema requires 'active' status and 'additional_config' column
+        const { error: insertError } = await supabase
+            .from("user_integrations")
+            .upsert({
+                user_id: user.id,
+                integration_id: id,
+                status: 'active',
+                additional_config: {},
+            }, { onConflict: 'user_id, integration_id' });
 
-        if (updateError) {
-            console.error("Error updating install count:", updateError);
-            return NextResponse.json({ error: updateError.message }, { status: 500 });
+        if (insertError) {
+            console.error("Error creating user integration:", insertError);
+            return NextResponse.json({ error: insertError.message }, { status: 500 });
         }
+
+        // Note: Database trigger 'trigger_increment_integration_installs' handles the count increment automatically.
 
         return NextResponse.json({
             success: true,
-            install_count: (integration.install_count || 0) + 1
+            // We return the old count + 1 safely, assuming trigger worked
+            install_count: (integration.install_count || 0) + 1,
+            installed: true
         });
     } catch (error: any) {
         console.error("Error in POST /api/integrations/[id]/install:", error);

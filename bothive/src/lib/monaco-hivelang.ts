@@ -38,6 +38,14 @@ export const HIVELANG_KEYWORDS = [
     "and",
     "or",
     "not",
+    // Hivelang v2 - New keywords
+    "use",
+    "try",
+    "onerror",
+    "parallel",
+    "return",
+    "emit",
+    "wait",
 ];
 
 export const HIVELANG_TYPES = [
@@ -106,8 +114,8 @@ export function registerHiveLangLanguage(monaco: Monaco) {
             { open: "'", close: "'" },
         ],
         indentationRules: {
-            increaseIndentPattern: /^\s*(bot|on|if|loop|memory|tools)\b.*$/,
-            decreaseIndentPattern: /^\s*end\b.*$/,
+            increaseIndentPattern: /^\s*(bot|on|if|loop|memory|tools|try|parallel)\b.*$/,
+            decreaseIndentPattern: /^\s*(end|onerror)\b.*$/,
         },
     });
 
@@ -137,7 +145,7 @@ export function registerHiveLangLanguage(monaco: Monaco) {
 
                 // Keywords
                 [
-                    /\b(bot|agent|end|on|when|call|with|as|say|ask|set|if|else|loop|in|memory|session|user|var|tools|description|type|scope|persist|remember|contains|and|or|not)\b/,
+                    /\b(bot|agent|end|on|when|call|with|as|say|ask|set|if|else|loop|in|memory|session|user|var|tools|description|type|scope|persist|remember|contains|and|or|not|use|try|onerror|parallel|return|emit|wait)\b/,
                     "keyword",
                 ],
 
@@ -306,6 +314,47 @@ export function registerHiveLangLanguage(monaco: Monaco) {
                     documentation: "Handle input with condition",
                     range,
                 },
+                // Hivelang v2 snippets
+                {
+                    label: "use-import",
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: 'use "${1:path/to/file}" as ${2:alias}',
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    documentation: "Import another .hive file",
+                    range,
+                },
+                {
+                    label: "try-onerror",
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: ["try", "  ${1:# Risky operation}", "onerror", '  say "Error: {error}"', "end"].join("\\n"),
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    documentation: "Error handling block",
+                    range,
+                },
+                {
+                    label: "parallel-block",
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: ["parallel", "  call ${1:tool1} as ${2:result1}", "  call ${3:tool2} as ${4:result2}", "end"].join("\\n"),
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    documentation: "Execute multiple calls concurrently",
+                    range,
+                },
+                {
+                    label: "wait-delay",
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: "wait ${1:2s}",
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    documentation: "Pause execution for a duration",
+                    range,
+                },
+                {
+                    label: "emit-event",
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: 'emit "${1:event_name}" with { ${2:key}: ${3:value} }',
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    documentation: "Fire an event with data",
+                    range,
+                },
             ];
 
             return { suggestions };
@@ -321,7 +370,7 @@ export function registerHiveLangLanguage(monaco: Monaco) {
             const hoverDocs: Record<string, string> = {
                 bot: "**bot** - Define a new bot with a name and behavior",
                 agent: "**agent** - Define an autonomous agent with tools and goals",
-                end: "**end** - Close a block (bot, on, if, loop, memory)",
+                end: "**end** - Close a block (bot, on, if, loop, memory, try, parallel)",
                 on: "**on** - Define an event handler (e.g., `on input`)",
                 when: "**when** - Add a condition to an event handler",
                 call: "**call** - Invoke a tool or function",
@@ -333,6 +382,14 @@ export function registerHiveLangLanguage(monaco: Monaco) {
                 memory: "**memory** - Define persistent storage for the bot",
                 tools: "**tools** - Declare available tools for the bot",
                 input: "**input** - The current user input/message",
+                // Hivelang v2 keywords
+                use: "**use** - Import another .hive file (e.g., `use \"helpers/auth\" as auth`)",
+                try: "**try** - Start an error handling block",
+                onerror: "**onerror** - Handle errors from the try block (access `error` variable)",
+                parallel: "**parallel** - Execute multiple calls concurrently",
+                return: "**return** - Exit the current handler early",
+                emit: "**emit** - Fire an event with optional data",
+                wait: "**wait** - Pause execution (e.g., `wait 2s`)",
                 // Tools
                 "general.respond": "**general.respond** - Generate a conversational AI response",
                 "agent.analyze": "**agent.analyze** - Analyze data or context",

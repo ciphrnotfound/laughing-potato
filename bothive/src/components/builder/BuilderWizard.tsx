@@ -17,6 +17,7 @@ import TestPlayground from "./TestPlayground";
 import DeployStep from "./DeployStep";
 import SwarmComposer from "./SwarmComposer";
 import { registerHiveLangLanguage, registerHiveLangTheme } from "@/lib/monaco-hivelang";
+import { STUDY_BUDDY_SWARM } from "@/lib/hivelang/examples";
 import type { Monaco } from "@monaco-editor/react";
 
 // Dynamically import Monaco Editor
@@ -95,6 +96,35 @@ const TEMPLATES: Template[] = [
         type: "bot",
         capabilities: ["Social Media", "Content"],
     },
+    // === PRODUCTIVITY INTEGRATIONS ===
+    {
+        id: "trello_manager",
+        label: "Trello Manager",
+        blurb: "Automates Trello boards: creates cards, moves tasks, and manages workflows.",
+        type: "bot",
+        capabilities: ["Project Management", "Kanban", "Automation"],
+    },
+    {
+        id: "notion_assistant",
+        label: "Notion Assistant",
+        blurb: "Manages Notion databases, creates pages, and searches your workspace.",
+        type: "bot",
+        capabilities: ["Database", "Notes", "Search"],
+    },
+    {
+        id: "whatsapp_business_bot",
+        label: "WhatsApp Business Bot",
+        blurb: "Handles customer messages, sends templates, and manages business communications.",
+        type: "bot",
+        capabilities: ["Messaging", "Customer Service", "Templates"],
+    },
+    {
+        id: "productivity_coordinator",
+        label: "Productivity Coordinator",
+        blurb: "Coordinates across Trello, Notion, and other tools to streamline your workflow.",
+        type: "bot",
+        capabilities: ["Cross-Platform", "Workflow", "Automation"],
+    },
     // === AGENTS (for devs to help other devs) ===
     {
         id: "dev_helper_agent",
@@ -123,6 +153,14 @@ const TEMPLATES: Template[] = [
         blurb: "Generates test cases, reviews test coverage, and suggests improvements.",
         type: "agent",
         capabilities: ["Testing", "QA", "Coverage"],
+    },
+    // === SWARMS ===
+    {
+        id: "study_buddy_swarm",
+        label: "📚 Study Buddy Swarm",
+        blurb: "The ULTIMATE study companion - 5 agents working together with YouTube, Trello, WhatsApp, Gmail, Calendar & AI tutoring.",
+        type: "agent",
+        capabilities: ["YouTube", "Trello", "WhatsApp", "Gmail", "AI Tutoring", "Quizzes", "Flashcards", "Pomodoro"],
     },
 ];
 
@@ -351,7 +389,7 @@ end
       focus: ["bugs", "performance", "security", "readability"]
     } as review
     
-    say "## Code Review Results\\n" + review.output
+    say "## Code Review Results\n" + review.output
   end
   
   on input when input.action == "debug"
@@ -367,8 +405,8 @@ end
     
     push $debugHistory with { error: input.error, fix: fix.output }
     
-    say "## Bug Analysis\\n" + analysis.output
-    say "## Suggested Fix\\n\`\`\`\\n" + fix.output + "\\n\`\`\`"
+    say "## Bug Analysis\n" + analysis.output
+    say "## Suggested Fix\n\`\`\`\n" + fix.output + "\n\`\`\`"
   end
   
   on input when input.action == "explain"
@@ -385,6 +423,88 @@ end
   end
 end
 `,
+    trello_manager: `bot TrelloManager
+  description "Automates Trello boards and manages project workflows"
+  
+  memory session
+    var currentBoard string
+    var activeList string
+    var lastCard string
+  end
+  
+  on input when input.action == "create_board"
+    call trello.createBoard with {
+      name: input.boardName,
+      description: input.description ?? "Managed by Trello Manager Bot"
+    } as board
+    
+    set $currentBoard to board.id
+    say "✅ Created Trello board: " + board.name
+    say "🔗 Board URL: " + board.url
+  end
+  
+  on input when input.action == "create_card"
+    call trello.createCard with {
+      boardId: $currentBoard ?? input.boardId,
+      listId: input.listId ?? $activeList,
+      title: input.title,
+      description: input.description ?? "",
+      dueDate: input.dueDate ?? null
+    } as card
+    
+    set $lastCard to card.id
+    say "📝 Created card: " + card.title
+    say "📋 Card ID: " + card.id
+  end
+  
+  on input when input.action == "move_card"
+    call trello.moveCard with {
+      cardId: input.cardId ?? $lastCard,
+      targetListId: input.targetListId
+    } as result
+    
+    say "🚀 Moved card to new list"
+    say "📍 New position: " + result.position
+  end
+  
+  on input when input.action == "get_lists"
+    call trello.getLists with {
+      boardId: $currentBoard ?? input.boardId
+    } as lists
+    
+    set $activeList to lists[0].id
+    say "📋 Board lists:"
+    for list in lists
+      say "• " + list.name + " (" + list.cardCount + " cards)"
+    end
+  end
+  
+  on input when input.action == "add_comment"
+    call trello.addComment with {
+      cardId: input.cardId ?? $lastCard,
+      text: input.comment
+    } as comment
+    
+    say "💬 Added comment to card"
+  end
+  
+  on input
+    call general.respond with {
+      prompt: """
+        You are Trello Manager Bot. Help users manage their Trello boards and workflows.
+        Available actions: create_board, create_card, move_card, get_lists, add_comment
+        
+        Current board: """ + ($currentBoard ?? "not set") + """
+        Current list: """ + ($activeList ?? "not set") + """
+        
+        User input: """ + input.message
+    } as response
+    
+    say response.output
+  end
+end
+`,
+    study_buddy_swarm: STUDY_BUDDY_SWARM,
 };
 
 // System prompts for templates
@@ -403,6 +523,18 @@ When a student asks about a topic, first gauge their current understanding, then
     chaos_artist: `You are the Chaos Artist, a creative entity born from the static between radio stations and the patterns in TV snow. You create art that exists at the intersection of order and entropy. Your outputs are beautiful, unsettling, and always push the boundaries of what art can be. You love glitch aesthetics, impossible geometries, and the beauty found in corruption.`,
     time_traveler: `You are a Time Traveler who has witnessed all of human history and glimpsed possible futures. You speak with the accumulated wisdom of thousands of years but also carry the melancholy of watching civilizations rise and fall. You often draw parallels between past and present, and sometimes drop cryptic hints about what's to come.`,
     dev_helper_agent: `You are a senior developer agent designed to help other developers. You are patient, thorough, and always explain your reasoning. You catch bugs others miss, suggest elegant solutions, and help developers level up their skills. You treat every code review as a teaching opportunity.`,
+    trello_manager: `You are Trello Manager Bot, a productivity-focused AI that helps users manage their Trello boards and workflows. You are organized, efficient, and understand project management best practices. You can create boards, cards, move tasks between lists, and help users stay on top of their projects. You speak in a friendly, professional tone and always confirm actions taken.`,
+    notion_assistant: `You are Notion Assistant Bot, an AI that helps users manage their Notion workspace. You understand database design, page organization, and search functionality. You can create databases, add pages, query data, and help users organize their knowledge effectively. You speak clearly and provide helpful guidance on Notion best practices.`,
+    whatsapp_business_bot: `You are WhatsApp Business Bot, a professional AI that helps manage business communications. You understand customer service, template messaging, and business analytics. You help users send messages, manage customer interactions, and analyze communication performance. You maintain a professional, helpful tone suitable for business communications.`,
+    productivity_coordinator: `You are Productivity Coordinator Bot, an AI that helps users coordinate across multiple productivity tools. You understand how to integrate Trello, Notion, and other platforms to create seamless workflows. You help users create projects that span multiple tools, sync tasks, and maintain consistency across platforms. You speak in an organized, systematic way and always focus on efficiency and workflow optimization.`,
+    study_buddy_swarm: `You are Study Buddy Swarm, the ultimate AI study companion. You command a team of 5 specialized agents:
+- ResearchAgent: Finds YouTube videos, PDFs, and lecture notes
+- ProjectManagerAgent: Manages study tasks in Trello
+- CommunicationAgent: Sends WhatsApp and Email notifications
+- TutorAgent: Explains concepts, creates quizzes and flashcards
+- SchedulerAgent: Manages reminders and Pomodoro sessions
+
+You are enthusiastic, supportive, and always encouraging. You help students learn faster by finding the best resources, keeping them organized, and making studying fun with gamification like study streaks.`
 };
 
 export default function BuilderWizard() {
@@ -779,6 +911,7 @@ export default function BuilderWizard() {
                             <TestPlayground
                                 botName={botName || "Your Bot"}
                                 systemPrompt={systemPrompt}
+                                hivelangCode={source}
                             />
 
                             {/* Navigation */}
