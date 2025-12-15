@@ -45,6 +45,34 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, description, model, system_prompt, capabilities, is_public, source_bot_id } = body;
 
+    // Verify Payment for Paid Bots
+    if (source_bot_id) {
+      // Check if bot is paid
+      const { data: botData } = await supabase
+        .from('bots')
+        .select('price')
+        .eq('id', source_bot_id)
+        .single();
+
+      if (botData && botData.price > 0) {
+        // Check for valid purchase
+        const { data: purchase } = await supabase
+          .from('bot_purchases')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('bot_id', source_bot_id)
+          .eq('status', 'completed')
+          .maybeSingle();
+
+        if (!purchase) {
+          return NextResponse.json(
+            { error: "Payment required. Please purchase this bot from the store." },
+            { status: 402 } // Payment Required
+          );
+        }
+      }
+    }
+
     if (!name) {
       return NextResponse.json(
         { error: "Missing required field: name" },
@@ -62,11 +90,7 @@ export async function POST(req: NextRequest) {
         system_prompt,
         capabilities: capabilities || [],
         is_public: is_public || false,
-        // If your schema supports source_bot_id, include it here. 
-        // If not, we can store it in metadata if the column exists, or omit it for now if strict schema.
-        // Assuming we want to capture it if possible, but avoiding breakage if column missing:
-        // For now, let's assume standard schema doesn't have it unless we added it. 
-        // We will stick to the standard fields but ensure capabilities and defaults are robust.
+        source_bot_id: source_bot_id || null
       })
       .select()
       .single();

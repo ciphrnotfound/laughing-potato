@@ -82,7 +82,7 @@ function SignInContent() {
   if (!mounted && !isSuccess) return null;
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#fafafa] dark:bg-[#09090b] text-[#0a0a0f] dark:text-white relative overflow-hidden transition-colors duration-300">
       {/* Background Gradients */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[150px]" />
@@ -106,7 +106,7 @@ function SignInContent() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
             transition={{ type: "spring", bounce: 0.5 }}
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#09090b]"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#fafafa] dark:bg-[#09090b] transition-colors"
           >
             <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.3)]">
               <motion.svg
@@ -142,7 +142,7 @@ function SignInContent() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-3xl font-bold text-white mb-2"
+              className="text-3xl font-bold text-[#0a0a0f] dark:text-white mb-2"
             >
               Welcome Back
             </motion.h2>
@@ -151,7 +151,7 @@ function SignInContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-violet-300"
+              className="text-violet-600 dark:text-violet-300"
             >
               {userMetadata?.full_name || "Agent"}
             </motion.p>
@@ -169,7 +169,7 @@ function SignInContent() {
 
               <Link
                 href="/signup"
-                className="text-sm text-zinc-400 hover:text-white transition-colors"
+                className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
               >
                 Create account →
               </Link>
@@ -295,10 +295,10 @@ function SignInContent() {
                 {/* Divider */}
                 <div className="relative mb-8">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-zinc-800" />
+                    <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
                   </div>
                   <div className="relative flex justify-center">
-                    <span className="bg-[#09090b] px-4 text-xs text-zinc-600 uppercase tracking-widest">
+                    <span className="bg-[#fafafa] dark:bg-[#09090b] px-4 text-xs text-zinc-500 dark:text-zinc-600 uppercase tracking-widest transition-colors">
                       or continue with email
                     </span>
                   </div>
@@ -307,7 +307,7 @@ function SignInContent() {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-2" htmlFor="email">
+                    <label className="block text-sm text-zinc-600 dark:text-zinc-400 mb-2" htmlFor="email">
                       Email address
                     </label>
                     <input
@@ -318,13 +318,13 @@ function SignInContent() {
                       required
                       autoComplete="email"
                       placeholder="you@company.com"
-                      className="w-full h-11 px-4 bg-zinc-900/50 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                      className="w-full h-11 px-4 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-[#0a0a0f] dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all"
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm text-zinc-400" htmlFor="password">
+                      <label className="text-sm text-zinc-600 dark:text-zinc-400" htmlFor="password">
                         Password
                       </label>
                       <Link href="/forgot-password" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
@@ -339,7 +339,7 @@ function SignInContent() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         autoComplete="current-password"
-                        className="w-full h-11 px-4 pr-11 bg-zinc-900/50 border border-zinc-800 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                        className="w-full h-11 px-4 pr-11 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-[#0a0a0f] dark:text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all"
                       />
                       <button
                         type="button"

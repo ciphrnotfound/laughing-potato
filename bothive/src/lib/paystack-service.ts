@@ -46,6 +46,9 @@ export class PaystackService {
         currency?: string;
         callbackUrl?: string;
         metadata?: any;
+        subaccount?: string; // For split payments
+        transaction_charge?: number; // Flat fee
+        bearer?: string; // Who pays the fee?
     }): Promise<PaystackInitializeResponse['data']> {
         if (!PAYSTACK_SECRET_KEY) throw new Error("PAYSTACK_SECRET_KEY is not set");
 
@@ -61,6 +64,9 @@ export class PaystackService {
                 currency: params.currency || 'NGN',
                 callback_url: params.callbackUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/integrations/success`,
                 metadata: params.metadata,
+                subaccount: params.subaccount,
+                transaction_charge: params.transaction_charge,
+                bearer: params.bearer,
             }),
         });
 

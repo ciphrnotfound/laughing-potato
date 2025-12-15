@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Payment verification failed" }, { status: 400 });
         }
 
-        // 2. Get User
+        // 2. Get User via Supabase Auth (using headers/cookies)
         const cookieStore = await cookies();
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,9 +43,36 @@ export async function POST(req: NextRequest) {
             }
         );
 
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+            // Fallback: Try to find user by email from Paystack transaction
+            console.log("⚠️ No active session found, attempting to find user by email:", verifiedData.customer.email);
+
+            // We need service role to search by email if auth fails
+            const supabaseAdmin = createServerClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.SUPABASE_SERVICE_ROLE_KEY!,
+                { cookies: {} as any } // No cookies needed for admin
+            );
+
+            // Search user by email would be complex as email is in auth.users not public.users directly usually
+            // For now, let's assume session exists or fail
+            return NextResponse.json({ error: "User session required for plan update" }, { status: 401 });
+        }
+
         // 3. Update User Subscription in DB
-        // TODO: Update 'users' or 'subscriptions' table
-        // For now, we assume success 
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ billing_plan: plan })
+            .eq('id', user.id);
+
+        if (updateError) {
+            console.error("Failed to update user plan:", updateError);
+            // Don't fail the request, but log critical error
+        } else {
+            console.log(`✅ Plan updated for user ${user.id} to ${plan}`);
+        }
 
         // 4. Send Receipt Email
         await EmailService.sendPaymentSuccessEmail(

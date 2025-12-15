@@ -7,6 +7,9 @@ import { Check, Loader2, ShieldCheck, Zap, PartyPopper, Sparkles, ArrowRight, X 
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import { SubscriptionService } from "@/lib/services/subscription.service";
+import { supabase } from '@/lib/supabase';
+
 const PLANS = [
   {
     name: 'Starter',
@@ -211,23 +214,54 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function BillingContent() {
+const BillingContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [currentPlanName, setCurrentPlanName] = useState<string>('Starter');
+  const [fetchingPlan, setFetchingPlan] = useState(true);
+
+  // Fetch current plan on mount
+  useEffect(() => {
+    const fetchPlan = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            // Use shared service
+            const plan = await SubscriptionService.getUserSubscription(user.id);
+            setCurrentPlanName(plan);
+        }
+      } catch (e) {
+        console.error("Error fetching plan:", e);
+      } finally {
+        setFetchingPlan(false);
+      }
+    };
+
+    fetchPlan();
+  }, []);
 
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       setShowSuccess(true);
       // Clean up the URL
       window.history.replaceState({}, '', '/dashboard/billing');
+      // Refresh plan after successful payment
+      const newPlan = searchParams.get('plan');
+      if (newPlan) setCurrentPlanName(newPlan);
     }
   }, [searchParams]);
 
   const handleUpgrade = (plan: typeof PLANS[0]) => {
+    if (plan.name === currentPlanName) {
+      toast.info(`You're already on the ${plan.name} plan.`);
+      return;
+    }
+
+    // Prevent downgrading via this flow for now (or handle differently)
     if (plan.price === 0) {
-      toast.info("You're already on the Starter plan.");
+      toast.info("Please contact support to downgrade to the Starter plan.");
       return;
     }
 
@@ -249,77 +283,94 @@ function BillingContent() {
         </p>
       </div>
 
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-20">
-        {PLANS.map((plan) => (
-          <motion.div
-            key={plan.name}
-            whileHover={{ y: -5 }}
-            className={cn(
-              "relative rounded-3xl p-8 flex flex-col justify-between border transition-all",
-              plan.highlight
-                ? "bg-foreground text-background shadow-2xl scale-105 z-10 border-transparent"
-                : "bg-card border-border text-foreground hover:border-foreground/20"
-            )}
-          >
-            {plan.highlight && (
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Most Popular
-              </div>
-            )}
+      {fetchingPlan ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-20">
+          {PLANS.map((plan) => {
+            const isCurrentPlan = plan.name === currentPlanName;
 
-            <div>
-              <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-              <p className={cn("text-sm mb-6", plan.highlight ? "text-background/70" : "text-muted-foreground")}>
-                {plan.description}
-              </p>
-              <div className="flex items-baseline gap-1 mb-8">
-                <span className="text-4xl font-bold">
-                  {plan.price === 0 ? "Free" : `₦${plan.price.toLocaleString()}`}
-                </span>
-                {plan.price > 0 && <span className="text-sm opacity-60">/month</span>}
-              </div>
+            return (
+              <motion.div
+                key={plan.name}
+                whileHover={{ y: -5 }}
+                className={cn(
+                  "relative rounded-3xl p-8 flex flex-col justify-between border transition-all",
+                  plan.highlight && !isCurrentPlan
+                    ? "bg-foreground text-background shadow-2xl scale-105 z-10 border-transparent"
+                    : "bg-card border-border text-foreground hover:border-foreground/20",
+                  isCurrentPlan && "border-violet-500/50 bg-violet-500/5"
+                )}
+              >
+                {plan.highlight && !isCurrentPlan && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                    Most Popular
+                  </div>
+                )}
 
-              <ul className="space-y-4 mb-8">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-sm">
-                    <Check className={cn("w-5 h-5", plan.highlight ? "text-violet-300" : "text-violet-600")} />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                {isCurrentPlan && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-lg shadow-violet-500/20">
+                    <Check className="w-3 h-3" /> Current Plan
+                  </div>
+                )}
 
-            <button
-              onClick={() => handleUpgrade(plan)}
-              disabled={!!loading || plan.current}
-              className={cn(
-                "w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
-                plan.highlight
-                  ? "bg-background text-foreground hover:bg-neutral-200"
-                  : "bg-neutral-900 dark:bg-white text-white dark:text-black hover:opacity-90",
-                plan.current && "opacity-50 cursor-default bg-neutral-200 text-neutral-500 hover:opacity-50 hover:bg-neutral-200"
-              )}
-            >
-              {loading === plan.name ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : plan.current ? (
-                "Current Plan"
-              ) : (
-                <>
-                  Upgrade to {plan.name} <Zap className="w-4 h-4" />
-                </>
-              )}
-            </button>
+                <div>
+                  <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                  <p className={cn("text-sm mb-6", plan.highlight && !isCurrentPlan ? "text-background/70" : "text-muted-foreground")}>
+                    {plan.description}
+                  </p>
+                  <div className="flex items-baseline gap-1 mb-8">
+                    <span className="text-4xl font-bold">
+                      {plan.price === 0 ? "Free" : `₦${plan.price.toLocaleString()}`}
+                    </span>
+                    {plan.price > 0 && <span className="text-sm opacity-60">/month</span>}
+                  </div>
 
-            {plan.highlight && (
-              <div className="mt-4 flex items-center justify-center gap-2 text-xs text-background/60">
-                <ShieldCheck className="w-3 h-3" />
-                Secure payment via Paystack
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </div>
+                  <ul className="space-y-4 mb-8">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-3 text-sm">
+                        <Check className={cn("w-5 h-5", plan.highlight && !isCurrentPlan ? "text-violet-300" : "text-violet-600")} />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => handleUpgrade(plan)}
+                  disabled={!!loading || isCurrentPlan}
+                  className={cn(
+                    "w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
+                    plan.highlight && !isCurrentPlan
+                      ? "bg-background text-foreground hover:bg-neutral-200"
+                      : "bg-neutral-900 dark:bg-white text-white dark:text-black hover:opacity-90",
+                    isCurrentPlan && "opacity-50 cursor-default bg-neutral-200 dark:bg-zinc-800 text-neutral-500 hover:opacity-50 hover:bg-neutral-200 dark:hover:bg-zinc-800"
+                  )}
+                >
+                  {loading === plan.name ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isCurrentPlan ? (
+                    "Current Plan"
+                  ) : (
+                    <>
+                      Upgrade to {plan.name} <Zap className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                {plan.highlight && !isCurrentPlan && (
+                  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-background/60">
+                    <ShieldCheck className="w-3 h-3" />
+                    Secure payment via Paystack
+                  </div>
+                )}
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
     </div>
   );
 }

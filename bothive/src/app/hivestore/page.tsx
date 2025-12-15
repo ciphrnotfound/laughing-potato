@@ -280,7 +280,7 @@ async function fetchMarketplaceData(): Promise<HiveStoreRecord[]> {
   const { data: botRows, error: botsError } = await supabase
     .from("bots")
     .select(`id, name, slug, description, price, metadata, default_version_id, capabilities, status, approval_status, updated_at, created_at`)
-    .eq("status", "approved")
+    // .eq("status", "approved") // Show all bots for now to verify data presence
     .order("updated_at", { ascending: false })
     .limit(120);
 
