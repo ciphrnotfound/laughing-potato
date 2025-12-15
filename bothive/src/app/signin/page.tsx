@@ -66,7 +66,7 @@ export default function SignIn() {
     setOauthLoading(provider);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: provider as any,
         options: { redirectTo: `${window.location.origin}${nextUrl}` },
       });
       if (error) {
@@ -108,53 +108,53 @@ export default function SignIn() {
             transition={{ type: "spring", bounce: 0.5 }}
             className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#09090b]"
           >
-             <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.3)]">
-                 <motion.svg 
-                    width="50" 
-                    height="50" 
-                    viewBox="0 0 100 100" 
-                    className="text-emerald-400"
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.2, type: "spring" }}
-                 >
-                    <circle cx="30" cy="35" r="8" fill="currentColor" />
-                    <motion.ellipse 
-                        cx="70" cy="35" rx="8" ry="8" fill="currentColor"
-                        initial={{ scaleY: 1 }}
-                        animate={{ scaleY: [1, 0.1, 1] }}
-                        transition={{ delay: 0.8, duration: 0.3 }}
-                    />
-                    <motion.path 
-                       d="M 20 65 Q 50 90 80 65"
-                       fill="transparent"
-                       stroke="currentColor"
-                       strokeWidth="8"
-                       strokeLinecap="round"
-                       initial={{ pathLength: 0 }}
-                       animate={{ pathLength: 1 }}
-                       transition={{ delay: 0.4, duration: 0.6 }}
-                    />
-                 </motion.svg>
-             </div>
-             
-             <motion.h2 
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.3 }}
-               className="text-3xl font-bold text-white mb-2"
-             >
-               Welcome Back
-             </motion.h2>
-             
-             <motion.p 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-violet-300"
-             >
-               {userMetadata?.full_name || "Agent"}
-             </motion.p>
+            <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.3)]">
+              <motion.svg
+                width="50"
+                height="50"
+                viewBox="0 0 100 100"
+                className="text-emerald-400"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: "spring" }}
+              >
+                <circle cx="30" cy="35" r="8" fill="currentColor" />
+                <motion.ellipse
+                  cx="70" cy="35" rx="8" ry="8" fill="currentColor"
+                  initial={{ scaleY: 1 }}
+                  animate={{ scaleY: [1, 0.1, 1] }}
+                  transition={{ delay: 0.8, duration: 0.3 }}
+                />
+                <motion.path
+                  d="M 20 65 Q 50 90 80 65"
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ delay: 0.4, duration: 0.6 }}
+                />
+              </motion.svg>
+            </div>
+
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-3xl font-bold text-white mb-2"
+            >
+              Welcome Back
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-violet-300"
+            >
+              {userMetadata?.full_name || "Agent"}
+            </motion.p>
           </motion.div>
         ) : (
           <motion.div className="contents">
@@ -254,7 +254,7 @@ export default function SignIn() {
                     onClick={async () => {
                       try {
                         setIsLoading(true);
-                        const { data, error } = await supabase.auth.signInWithWebAuthn();
+                        const { data, error } = await (supabase.auth as any).signInWithWebAuthn();
                         if (error) throw error;
                         if (data) {
                           toast.success("Biometric verification successful");

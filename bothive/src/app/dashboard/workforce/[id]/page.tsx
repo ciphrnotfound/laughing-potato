@@ -24,6 +24,7 @@ const POLL_INTERVAL = 3000;
 
 export default function WorkforceRunPage({ params }: { params: { id: string } }) {
     const [status, setStatus] = useState<WorkforceStatusResponse | null>(null);
+    const [iterations, setIterations] = useState<WorkforceIteration[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [mode, setMode] = useState<"sse" | "polling">("sse");
@@ -103,7 +104,7 @@ export default function WorkforceRunPage({ params }: { params: { id: string } })
         };
     }, [params.id]);
 
-    const [iterations, setIterations] = useState<WorkforceIteration[]>([]);
+
 
     const memoIterations: WorkforceIteration[] = useMemo(() => iterations, [iterations]);
 

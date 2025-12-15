@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const futuristicMessages = [
   "RESOURCE_NOT_FOUND: Target path does not exist in current dimension",
@@ -18,8 +19,12 @@ const futuristicMessages = [
 ];
 
 export default function NotFound() {
-  const randomMessage =
-    futuristicMessages[Math.floor(Math.random() * futuristicMessages.length)];
+  const [randomMessage, setRandomMessage] = useState(futuristicMessages[0]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRandomMessage(futuristicMessages[Math.floor(Math.random() * futuristicMessages.length)]);
+  }, []);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-black px-4 sm:px-6 lg:px-8">

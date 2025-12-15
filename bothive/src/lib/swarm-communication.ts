@@ -17,7 +17,7 @@ export interface SwarmWorkflow {
     name: string;
     description: string;
     bots: SwarmBot[];
-    status: 'draft' | 'running' | 'completed' | 'error';
+    status: 'running' | 'draft' | 'completed' | 'error';
     createdAt: string;
     completedAt?: string;
     results?: any[];

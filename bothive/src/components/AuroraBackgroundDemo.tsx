@@ -2,8 +2,7 @@
 
 import { motion } from "motion/react";
 import React from "react";
-import { AuroraBackground } from "../ui/aurora-background";
-
+import { AuroraBackground } from "./ui/aurora-background";
 export function AuroraBackgroundDemo() {
   return (
     <AuroraBackground>

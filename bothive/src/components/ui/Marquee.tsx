@@ -68,7 +68,9 @@ export const Marquee = ({
     }
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         addAnimation();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (

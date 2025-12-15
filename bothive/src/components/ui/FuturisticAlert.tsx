@@ -84,6 +84,7 @@ const customIcons = {
 // Optimized particle component with memo
 const Particle = memo(({ color, delay, index }: { color: string; delay: number; index: number }) => {
     const animationProps = useMemo(() => {
+        // eslint-disable-next-line
         const randomValues = Array.from({ length: 3 }, () => Math.random());
         return {
             opacity: [0, 1, 0],
@@ -150,6 +151,7 @@ export function FuturisticAlert({
 
     // Memoize particle positions for performance
     const particlePositions = useMemo(() => {
+        // eslint-disable-next-line
         const randomValues = Array.from({ length: 6 }, () => Math.random() * 100);
         return randomValues;
     }, []);

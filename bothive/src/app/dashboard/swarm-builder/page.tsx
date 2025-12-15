@@ -8,7 +8,7 @@ export default function SwarmBuilderPage() {
     return (
         <DashboardPageShell
             title="Visual Swarm Builder"
-            subtitle="Design, visualize, and animate your multi-agent swarms."
+            description="Design, visualize, and animate your multi-agent swarms."
         >
             <div className="h-[calc(100vh-140px)] -mt-4">
                 <SwarmBuilder />

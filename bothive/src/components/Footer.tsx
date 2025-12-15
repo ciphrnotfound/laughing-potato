@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useInView } from "framer-motion";
 import { Github, Twitter, Linkedin, ArrowUpRight } from "lucide-react";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 
 const footerLinks = {
   product: {
@@ -57,16 +57,18 @@ function ShootingStar({ delay }: { delay: number }) {
     }, 6000 + delay * 1000);
     return () => clearInterval(interval);
   }, [delay]);
+  const starStyle = useMemo(() => ({
+    left: `${20 + Math.random() * 60}%`,
+    top: `${10 + Math.random() * 30}%`,
+    boxShadow: '0 0 6px 1px rgba(255,255,255,0.6)',
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
 
   return (
     <motion.div
       key={key}
       className="absolute w-[2px] h-[2px] bg-white rounded-full"
-      style={{
-        left: `${20 + Math.random() * 60}%`,
-        top: `${10 + Math.random() * 30}%`,
-        boxShadow: '0 0 6px 1px rgba(255,255,255,0.6)',
-      }}
+      style={starStyle}
       initial={{
         opacity: 0,
         x: 0,
@@ -97,13 +99,15 @@ function ShootingStar({ delay }: { delay: number }) {
 
 // Stars background
 function StarsBackground() {
-  const stars = Array.from({ length: 50 }, (_, i) => ({
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const stars = useMemo(() => Array.from({ length: 50 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
     size: 1 + Math.random() * 1.5,
     opacity: 0.2 + Math.random() * 0.4,
-  }));
+  })), []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
     <div className="absolute inset-0 overflow-hidden">

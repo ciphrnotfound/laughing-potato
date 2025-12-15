@@ -18,6 +18,7 @@ export default function DeadlineTicker() {
             .filter((d) => new Date(d.date) > now)
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setActiveDeadline(upcoming || null);
     }, [deadlines]);
 
@@ -48,6 +49,7 @@ export default function DeadlineTicker() {
         const distance = target - now;
         const days = Math.floor(distance / (1000 * 60 * 60 * 24));
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (days > 0) setTimeLeft(`${days}d ${hours}h left`);
         else setTimeLeft(`${hours}h ${Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))}m left`);
 

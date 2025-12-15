@@ -58,7 +58,7 @@ export default function CalendarPage() {
             days.push(new Date(year, month, i));
         }
         return days;
-    }, [year, month]);
+    }, [year, month, daysInMonth, firstDay]);
 
     const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
     const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));

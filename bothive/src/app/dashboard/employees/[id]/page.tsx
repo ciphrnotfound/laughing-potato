@@ -44,21 +44,6 @@ export default function EmployeeProfilePage() {
     const [showTaskModal, setShowTaskModal] = useState(false);
     const supabase = createClientComponentClient();
 
-    useEffect(() => {
-        fetchEmployeeDetails();
-        fetchTasks();
-        fetchMessages();
-
-        // Subscribe to realtime updates
-        const channel = supabase
-            .channel(`employee_${id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', filter: `assigned_to=eq.${id}`, table: 'employee_tasks' }, fetchTasks)
-            .on('postgres_changes', { event: '*', schema: 'public', filter: `recipient_employee_id=eq.${id}`, table: 'employee_messages' }, fetchMessages)
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
-    }, [id]);
-
     const fetchEmployeeDetails = async () => {
         const { data } = await supabase.from('employees').select('*').eq('id', id).single();
         if (data) setEmployee(data);
@@ -74,6 +59,24 @@ export default function EmployeeProfilePage() {
         const { data } = await supabase.from('employee_messages').select('*').eq('recipient_employee_id', id).order('created_at', { ascending: true });
         if (data) setMessages(data);
     };
+
+    useEffect(() => {
+        fetchEmployeeDetails();
+        fetchTasks();
+        fetchMessages();
+
+        // Subscribe to realtime updates
+        const channel = supabase
+            .channel(`employee_${id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', filter: `assigned_to=eq.${id}`, table: 'employee_tasks' }, fetchTasks)
+            .on('postgres_changes', { event: '*', schema: 'public', filter: `recipient_employee_id=eq.${id}`, table: 'employee_messages' }, fetchMessages)
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
+
+
 
     const handleAddTask = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

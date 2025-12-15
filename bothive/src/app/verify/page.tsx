@@ -41,7 +41,13 @@ export default function VerifyPage() {
 
       // 2. Browser Challenge Handling
       // We must implement the full WebAuthn flow here
-      const challenge = enrollData.challenge;
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: enrollData.id
+      });
+
+      if (challengeError) throw challengeError;
+
+      const challenge = (challengeData as any).challenge || challengeData;
 
       const attestation = await navigator.credentials.create({
         publicKey: challenge
@@ -52,9 +58,9 @@ export default function VerifyPage() {
       // 3. Verify the Attestation
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId: enrollData.id,
-        challengeId: challenge.id,
-        verification: attestation,
-      });
+        challengeId: challengeData.id,
+        assertion: attestation as any,
+      } as any);
 
       if (verifyError) throw verifyError;
 

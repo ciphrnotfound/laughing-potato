@@ -38,18 +38,6 @@ export default function TasksPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const supabase = createClientComponentClient();
 
-    useEffect(() => {
-        fetchTasks();
-        fetchEmployees();
-
-        const channel = supabase
-            .channel('tasks_board')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_tasks' }, fetchTasks)
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
-    }, []);
-
     const fetchTasks = async () => {
         // In production join with employees, simplified here
         const { data: tasksData } = await supabase.from('employee_tasks').select('*').order('created_at', { ascending: false });
@@ -76,6 +64,21 @@ export default function TasksPage() {
         const { data } = await supabase.from('employees').select('id, name');
         if (data) setEmployees(data);
     };
+
+    useEffect(() => {
+        fetchTasks();
+        fetchEmployees();
+
+        const channel = supabase
+            .channel('tasks_board')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_tasks' }, fetchTasks)
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+
 
     const handleUpdateStatus = async (taskId: string, newStatus: string) => {
         // Optimistic update

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2, ShieldCheck, Zap, PartyPopper, Sparkles, ArrowRight, X } from 'lucide-react';
@@ -32,16 +32,21 @@ const PLANS = [
 
 // Confetti component
 function Confetti() {
-  const colors = ['#8B5CF6', '#A855F7', '#D946EF', '#22C55E', '#FBBF24', '#3B82F6'];
-  const confettiPieces = Array.from({ length: 100 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    delay: Math.random() * 0.5,
-    duration: 2 + Math.random() * 2,
-    color: colors[Math.floor(Math.random() * colors.length)],
-    size: 6 + Math.random() * 8,
-    rotation: Math.random() * 360,
-  }));
+  /* eslint-disable react-hooks/exhaustive-deps */
+  const confettiPieces = useMemo(() => {
+    const colors = ['#8B5CF6', '#A855F7', '#D946EF', '#22C55E', '#FBBF24', '#3B82F6'];
+    return Array.from({ length: 100 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      delay: Math.random() * 0.5,
+      duration: 2 + Math.random() * 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: 6 + Math.random() * 8,
+      rotation: Math.random() * 360,
+      borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+    }));
+  }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
@@ -64,7 +69,7 @@ function Confetti() {
             width: piece.size,
             height: piece.size,
             backgroundColor: piece.color,
-            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            borderRadius: piece.borderRadius,
           }}
         />
       ))}

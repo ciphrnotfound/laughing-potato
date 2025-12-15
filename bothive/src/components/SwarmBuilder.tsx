@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import Editor from "@monaco-editor/react"; // REAL Monaco Editor
 import { motion } from 'framer-motion';
-import { Bot, Play, Plus, Cpu, Zap, Box, Layers, Terminal } from 'lucide-react';
+import { Bot, Play, Plus, Cpu, Zap, Box, Layers, Terminal, Code } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTheme } from '@/lib/theme-context';
@@ -46,7 +46,7 @@ const TechNode = ({ data, selected }: { data: any; selected: boolean }) => {
             {selected && (
                 <div className="absolute -inset-[2px] bg-cyan-500 rounded-lg blur-[2px] opacity-100" />
             )}
-            
+
             <div className={cn(
                 "relative min-w-[240px] bg-[#09090b] border border-[#27272a] rounded-lg overflow-hidden shadow-2xl transition-all",
                 selected ? "border-cyan-500/50" : "hover:border-white/20"
@@ -55,29 +55,29 @@ const TechNode = ({ data, selected }: { data: any; selected: boolean }) => {
                 <div className="flex items-center justify-between px-3 py-2 bg-[#18181b] border-b border-[#27272a]">
                     <div className="flex items-center gap-2">
                         <div className={cn(
-                            "w-2 h-2 rounded-full", 
+                            "w-2 h-2 rounded-full",
                             data.isActive ? "bg-emerald-500 shadow-[0_0_8px_#10b981]" : "bg-zinc-600"
                         )} />
                         <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
                             ID: {data.id?.substring(0, 4)}
                         </span>
                     </div>
-                   <Bot className="w-3 h-3 text-zinc-500" />
+                    <Bot className="w-3 h-3 text-zinc-500" />
                 </div>
 
                 {/* Content Body */}
                 <div className="p-4">
                     <div className="flex items-start gap-4 mb-3">
-                         <div className={cn(
-                             "p-2.5 rounded bg-zinc-900 border border-zinc-800",
-                              data.color || "text-cyan-400"
-                         )}>
-                             <Cpu className="w-5 h-5" />
-                         </div>
-                         <div>
-                             <h3 className="text-sm font-bold text-white font-mono tracking-tight">{data.label}</h3>
-                             <p className="text-[10px] text-zinc-500 mt-1 uppercase tracking-wide">Autonomous Agent</p>
-                         </div>
+                        <div className={cn(
+                            "p-2.5 rounded bg-zinc-900 border border-zinc-800",
+                            data.color || "text-cyan-400"
+                        )}>
+                            <Cpu className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-white font-mono tracking-tight">{data.label}</h3>
+                            <p className="text-[10px] text-zinc-500 mt-1 uppercase tracking-wide">Autonomous Agent</p>
+                        </div>
                     </div>
 
                     {/* Mini Terminal Preview */}
@@ -156,8 +156,8 @@ function SwarmBuilderInner() {
                 type: 'agentNode',
                 position: existingNode?.position || { x: 50 + (index * 280), y: 150 + (index % 2 === 0 ? 0 : 100) },
                 data: {
-                    id: agent.name, 
-                    label: agent.name, 
+                    id: agent.name,
+                    label: agent.name,
                     codeSnippet: agent.content,
                     isActive: false,
                     color: index === 0 ? "text-cyan-400" : index === 1 ? "text-purple-400" : "text-emerald-400"
@@ -165,7 +165,7 @@ function SwarmBuilderInner() {
             };
         });
         if (!newNodes.find(n => n.id === 'IvySwarm')) {
-             newNodes.unshift({
+            newNodes.unshift({
                 id: 'IvySwarm',
                 type: 'agentNode',
                 position: { x: 350, y: 0 },
@@ -173,17 +173,17 @@ function SwarmBuilderInner() {
             });
         }
         if (JSON.stringify(newNodes.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
-             setNodes(newNodes);
-             const newEdges = agents.map(a => ({
-                 id: `e-IvySwarm-${a.name}`,
-                 source: 'IvySwarm',
-                 target: a.name,
-                 animated: true,
-                 style: { stroke: '#06b6d4', strokeWidth: 1.5 },
-                 type: 'smoothstep',
-                 markerEnd: { type: MarkerType.ArrowClosed, color: '#06b6d4' }
-             }));
-             setEdges(newEdges);
+            setNodes(newNodes);
+            const newEdges = agents.map(a => ({
+                id: `e-IvySwarm-${a.name}`,
+                source: 'IvySwarm',
+                target: a.name,
+                animated: true,
+                style: { stroke: '#06b6d4', strokeWidth: 1.5 },
+                type: 'smoothstep',
+                markerEnd: { type: MarkerType.ArrowClosed, color: '#06b6d4' }
+            }));
+            setEdges(newEdges);
         }
     }, [code]);
 
@@ -200,10 +200,10 @@ function SwarmBuilderInner() {
 
     const runSimulation = async () => {
         setIsSimulating(true);
-        const sequence = ['IvySwarm', ...nodes.filter(n=>n.id!=='IvySwarm').map(n=>n.id)];
+        const sequence = ['IvySwarm', ...nodes.filter(n => n.id !== 'IvySwarm').map(n => n.id)];
         for (const id of sequence) {
-             setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, isActive: true } } : { ...n, data: { ...n.data, isActive: false } }));
-             await new Promise(r => setTimeout(r, 800));
+            setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, isActive: true } } : { ...n, data: { ...n.data, isActive: false } }));
+            await new Promise(r => setTimeout(r, 800));
         }
         setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, isActive: false } })));
         setIsSimulating(false);
@@ -220,7 +220,7 @@ function SwarmBuilderInner() {
                     <Box className="w-5 h-5 text-cyan-400" />
                     <span className="font-bold tracking-tight">Swarm Architect</span>
                 </div>
-                
+
                 <div className="flex items-center gap-1 p-1 bg-[#27272a] rounded-lg">
                     <button onClick={() => setViewMode('architect')} className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all", viewMode === 'architect' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-white")}>Architect</button>
                     <button onClick={() => setViewMode('visual')} className={cn("px-3 py-1.5 rounded-md text-xs font-medium transition-all", viewMode === 'visual' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-white")}>Visual Graph</button>
@@ -229,7 +229,7 @@ function SwarmBuilderInner() {
 
                 <div className="flex items-center gap-3">
                     <button onClick={runSimulation} className="text-xs font-mono text-emerald-400 flex items-center gap-2 hover:bg-emerald-500/10 px-3 py-1.5 rounded-md transition-colors">
-                        {isSimulating ? <Zap className="w-3 h-3 animate-spin"/> : <Play className="w-3 h-3"/>}
+                        {isSimulating ? <Zap className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
                         {isSimulating ? "RUNNING" : "TEST SWARM"}
                     </button>
                 </div>
@@ -237,7 +237,7 @@ function SwarmBuilderInner() {
 
             {/* Main Content Area */}
             <div className="flex-1 overflow-hidden relative">
-                
+
                 {/* VIEW 1: ARCHITECT (Minimalist List) */}
                 {viewMode === 'architect' && (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="h-full max-w-4xl mx-auto p-8 overflow-y-auto">
@@ -250,7 +250,7 @@ function SwarmBuilderInner() {
                                 <Plus className="w-4 h-4" /> New Agent
                             </button>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Orchestrator Card */}
                             <div className="p-6 rounded-2xl bg-zinc-900/50 border border-amber-500/20 hover:border-amber-500/40 transition-all group">
@@ -269,13 +269,13 @@ function SwarmBuilderInner() {
                             {agentsList.map((agent, i) => (
                                 <div key={i} className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-all group relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <div className="p-2 cursor-pointer hover:bg-zinc-800 rounded-lg text-zinc-400"><Code className="w-4 h-4"/></div>
+                                        <div className="p-2 cursor-pointer hover:bg-zinc-800 rounded-lg text-zinc-400"><Code className="w-4 h-4" /></div>
                                     </div>
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="p-2 bg-zinc-800 rounded-lg text-zinc-300"><Bot className="w-5 h-5" /></div>
                                         <span className="font-semibold text-lg">{agent.name}</span>
                                     </div>
-                                    
+
                                     {/* Minimal Instruction Editor (Fake for visuals, but reflects code) */}
                                     <div className="bg-black/30 rounded-lg p-3 mb-3">
                                         <div className="flex items-center gap-2 mb-2 text-zinc-500 text-[10px] uppercase tracking-wider font-semibold">
@@ -285,14 +285,14 @@ function SwarmBuilderInner() {
                                             {agent.content.split('\n')[0]}...
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2 mt-4">
                                         <span className="text-[10px] text-zinc-500 px-2 py-1 bg-zinc-800/50 rounded-full">Automated</span>
                                         <span className="text-[10px] text-zinc-500 px-2 py-1 bg-zinc-800/50 rounded-full">HiveLang</span>
                                     </div>
                                 </div>
                             ))}
-                            
+
                             {/* Empty State / Add New */}
                             <button onClick={addNewAgent} className="p-6 rounded-2xl border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/30 transition-all flex flex-col items-center justify-center gap-3 text-zinc-500 hover:text-zinc-300 group">
                                 <div className="p-3 bg-zinc-900 rounded-full group-hover:scale-110 transition-transform"><Plus className="w-6 h-6" /></div>
@@ -325,8 +325,8 @@ function SwarmBuilderInner() {
 
                 {/* VIEW 3: SOURCE CODE */}
                 <div className={cn("absolute inset-0 bg-[#1e1e1e] transition-opacity duration-300 flex flex-col", viewMode === 'code' ? "opacity-100 z-10" : "opacity-0 -z-10")}>
-                     <div className="h-full">
-                         <Editor
+                    <div className="h-full">
+                        <Editor
                             height="100%"
                             defaultLanguage="ruby"
                             value={code}
@@ -338,8 +338,8 @@ function SwarmBuilderInner() {
                                 fontFamily: "'JetBrains Mono', monospace",
                                 padding: { top: 24 }
                             }}
-                         />
-                     </div>
+                        />
+                    </div>
                 </div>
 
             </div>

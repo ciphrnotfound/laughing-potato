@@ -1,8 +1,5 @@
 const nextConfig = {
-  eslint: {
-    // Disable ESLint during production builds to prevent build failures due to lint errors
-    ignoreDuringBuilds: true,
-  },
+
   images: {
     remotePatterns: [
       {

@@ -222,7 +222,7 @@ export default function SwarmPage() {
                           whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.1)" }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleExecuteSwarm(workflow.id)}
-                          disabled={workflow.status === 'running'}
+                          disabled={(workflow.status as string) === 'running'}
                           className="w-10 h-10 rounded-full bg-white/[0.05] flex items-center justify-center text-white transition-colors"
                         >
                           <Play size={16} fill="currentColor" className="ml-0.5" />
@@ -323,8 +323,8 @@ export default function SwarmPage() {
                           key={bot.id}
                           onClick={() => toggleBotSelection(bot.id)}
                           className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center gap-4 group ${selectedBots.includes(bot.id)
-                              ? 'bg-purple-500/[0.08] border-purple-500/30'
-                              : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
+                            ? 'bg-purple-500/[0.08] border-purple-500/30'
+                            : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'
                             }`}
                         >
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${selectedBots.includes(bot.id) ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-[#1a1a1a] text-gray-500'

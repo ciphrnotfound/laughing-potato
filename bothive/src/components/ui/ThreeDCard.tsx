@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import { motion, useMotionTemplate, useMotionValue, useSpring } from "framer-motion";
 
-export const SpotlightCard = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+export const SpotlightCard = ({ children, className = "", spotlightColor = "rgba(139, 92, 246, 0.15)" }: { children: React.ReactNode; className?: string; spotlightColor?: string }) => {
     const divRef = useRef<HTMLDivElement>(null);
     const [isFocused, setIsFocused] = useState(false);
     const position = useRef({ x: 0, y: 0 });
@@ -63,7 +63,7 @@ export const SpotlightCard = ({ children, className = "" }: { children: React.Re
             <div
                 className="pointer-events-none absolute -inset-px opacity-[var(--spotlight-opacity)] transition-opacity duration-300"
                 style={{
-                    background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(139, 92, 246, 0.15), transparent 40%)`,
+                    background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), ${spotlightColor}, transparent 40%)`,
                 }}
             />
             {children}

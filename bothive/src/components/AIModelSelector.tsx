@@ -34,6 +34,7 @@ interface AIModel {
     recommended?: boolean;
     popular?: boolean;
     new?: boolean;
+    premium?: boolean;
 }
 
 interface AIModelSelectorProps {
