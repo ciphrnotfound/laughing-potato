@@ -29,7 +29,7 @@ export function VisualIntegrationBuilder({ onCodeGenerated }: VisualBuilderProps
     const [capDescription, setCapDescription] = useState("");
     const [capMethod, setCapMethod] = useState<"GET" | "POST" | "PUT" | "PATCH" | "DELETE">("GET");
     const [capUrl, setCapUrl] = useState("");
-    const [capParams, setCapParams] = useState<Array<{ name: string; type: string; required: boolean }>>([]);
+    const [capParams, setCapParams] = useState<Array<{ name: string; type: "string" | "number" | "boolean" | "object"; required: boolean }>>([]);
     const [capHeaders, setCapHeaders] = useState<Array<{ key: string; value: string }>>([
         { key: "Content-Type", value: "application/json" }
     ]);

@@ -435,10 +435,10 @@ export async function registerRealIntegrations() {
 
     enhancedNotionTools.forEach((tool) => {
         const toolName = tool.name.replace('notion.', '');
-        const displayName = toolName.split('.').map(word => 
+        const displayName = toolName.split('.').map(word =>
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
-        
+
         theHive.register(tool, {
             displayName: `Notion - ${displayName}`,
             category: 'productivity',
@@ -459,10 +459,10 @@ export async function registerRealIntegrations() {
 
     whatsappBusinessTools.forEach((tool) => {
         const toolName = tool.name.replace('whatsapp.', '');
-        const displayName = toolName.split('.').map(word => 
+        const displayName = toolName.split('.').map(word =>
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
-        
+
         theHive.register(tool, {
             displayName: `WhatsApp - ${displayName}`,
             category: 'communication',
@@ -482,6 +482,6 @@ export async function registerRealIntegrations() {
 }
 
 // Auto-register on server
-if (typeof window === 'undefined') {
-    registerRealIntegrations().catch(console.error);
-}
+// if (typeof window === 'undefined') {
+//     registerRealIntegrations().catch(console.error);
+// }

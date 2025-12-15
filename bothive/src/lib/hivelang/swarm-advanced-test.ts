@@ -72,8 +72,8 @@ async function runTest() {
     console.log("Compilation successful. Initializing runtime...");
 
     // Extract agents from metadata to simulate runtime injection
-    const program = eval(result.code.replace("export default", "global.program ="));
-    const agents = global.program.agents;
+    const program = eval(result.code.replace("export default", "(global as any).program ="));
+    const agents = (global as any).program.agents;
 
     const ctx = createMockContext();
     // Inject agents into context (mimicking hive-compiler runtime update)
@@ -82,7 +82,7 @@ async function runTest() {
     console.log("\n--- Test 1: Simulating Google Doc Input ---");
     const testInput = "https://docs.google.com/document/d/123XYZ";
 
-    await global.program.run({
+    await (global as any).program.run({
         ...ctx,
         input: testInput
     });

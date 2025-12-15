@@ -208,7 +208,7 @@ export function registerHiveLangLanguage(monaco: Monaco) {
 
     // Register completion provider
     monaco.languages.registerCompletionItemProvider("hivelang", {
-        provideCompletionItems: (model, position) => {
+        provideCompletionItems: (model: any, position: any) => {
             const word = model.getWordUntilPosition(position);
             const range = {
                 startLineNumber: position.lineNumber,
@@ -363,7 +363,7 @@ export function registerHiveLangLanguage(monaco: Monaco) {
 
     // Register hover provider for documentation
     monaco.languages.registerHoverProvider("hivelang", {
-        provideHover: (model, position) => {
+        provideHover: (model: any, position: any) => {
             const word = model.getWordAtPosition(position);
             if (!word) return null;
 

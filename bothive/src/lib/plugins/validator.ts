@@ -1,9 +1,8 @@
 /**
  * Tool Validator - Validates tool implementations for security and correctness
  */
-
+import { HiveToolMetadata as ToolMetadata } from "./registry";
 import { ToolDescriptor } from "@/lib/agentTypes";
-import { ToolMetadata } from "./registry";
 
 export interface ValidationResult {
     valid: boolean;
@@ -138,15 +137,9 @@ export class ToolValidator {
                     userId: 'test-user',
                 },
                 sharedMemory: {
-                    data: {},
-                    set: () => { },
-                    get: () => undefined,
-                    has: () => false,
-                    delete: () => false,
-                    clear: () => { },
-                    keys: () => [],
-                    values: () => [],
-                    entries: () => [],
+                    get: async () => undefined,
+                    set: async () => { },
+                    append: async () => { },
                 },
             };
 

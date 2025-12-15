@@ -2,12 +2,32 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { usePaystackPayment } from 'react-paystack';
-import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
 import { ShieldCheck, Loader2, ArrowLeft, CreditCard, Tag, Check, Sparkles, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
+// Dynamically import the paystack hook to avoid window is not defined error during SSR
+const PaystackButton = dynamic(
+    () => import('react-paystack').then((mod) => {
+        const PaystackHookButton = ({ config, onSuccess, onClose, children, disabled, className }: any) => {
+            const initializePayment = mod.usePaystackPayment(config);
+            return (
+                <button
+                    onClick={() => initializePayment({ onSuccess, onClose })}
+                    disabled={disabled}
+                    className={className}
+                >
+                    {children}
+                </button>
+            );
+        };
+        return PaystackHookButton;
+    }),
+    { ssr: false, loading: () => <button disabled className="w-full py-5 rounded-xl font-bold text-white text-lg flex items-center justify-center gap-2 mt-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-xl shadow-violet-500/20 opacity-70 cursor-not-allowed"><Loader2 className="w-6 h-6 animate-spin" /></button> }
+);
 
 function CheckoutContent() {
     const searchParams = useSearchParams();
@@ -101,8 +121,6 @@ function CheckoutContent() {
         publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
         metadata: { user_id: userId, plan_name: planName }
     };
-
-    const initializePayment = usePaystackPayment(config);
 
     const onSuccess = async (reference: any) => {
         const loadingToast = toast.loading('Verifying payment...');
@@ -206,19 +224,35 @@ function CheckoutContent() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => finalAmount <= 0 ? handleFreeActivation() : initializePayment({ onSuccess, onClose })}
-                            disabled={!isReady || isProcessing}
-                            className={cn(
-                                "w-full py-5 rounded-xl font-bold text-white text-lg flex items-center justify-center gap-2 mt-4",
-                                "bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-xl shadow-violet-500/20",
-                                (!isReady || isProcessing) && "opacity-70 cursor-not-allowed"
-                            )}
-                        >
-                            {(isProcessing || !isReady) ? <Loader2 className="w-6 h-6 animate-spin" /> :
-                                finalAmount <= 0 ? <><Sparkles className="w-5 h-5" /> Activate Free</> :
-                                <><CreditCard className="w-5 h-5" /> Complete Payment</>}
-                        </button>
+                        {finalAmount <= 0 ? (
+                            <button
+                                onClick={handleFreeActivation}
+                                disabled={!isReady || isProcessing}
+                                className={cn(
+                                    "w-full py-5 rounded-xl font-bold text-white text-lg flex items-center justify-center gap-2 mt-4",
+                                    "bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-xl shadow-violet-500/20",
+                                    (!isReady || isProcessing) && "opacity-70 cursor-not-allowed"
+                                )}
+                            >
+                                {(isProcessing || !isReady) ? <Loader2 className="w-6 h-6 animate-spin" /> :
+                                    <><Sparkles className="w-5 h-5" /> Activate Free</>}
+                            </button>
+                        ) : (
+                            <PaystackButton
+                                config={config}
+                                onSuccess={onSuccess}
+                                onClose={onClose}
+                                disabled={!isReady || isProcessing}
+                                className={cn(
+                                    "w-full py-5 rounded-xl font-bold text-white text-lg flex items-center justify-center gap-2 mt-4",
+                                    "bg-gradient-to-r from-violet-600 to-fuchsia-600 shadow-xl shadow-violet-500/20",
+                                    (!isReady || isProcessing) && "opacity-70 cursor-not-allowed"
+                                )}
+                            >
+                                {(isProcessing || !isReady) ? <Loader2 className="w-6 h-6 animate-spin" /> :
+                                    <><CreditCard className="w-5 h-5" /> Complete Payment</>}
+                            </PaystackButton>
+                        )}
 
                         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mt-4">
                             <ShieldCheck className="w-3 h-3 text-green-500" />

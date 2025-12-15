@@ -307,7 +307,7 @@ export default function Footer() {
                   textShadow: hoveredChar === index
                     ? '0 0 40px rgba(255,255,255,0.2)'
                     : '0 0 0px rgba(255,255,255,0)',
-                }}
+                } as any}
                 whileHover={{
                   y: -10,
                   transition: { type: 'spring', stiffness: 400, damping: 15 }

@@ -8,6 +8,11 @@ import {
 } from "@/lib/agentTypes";
 import { generalTools, codingTools, studyTools, socialTools, messagingTools, integrationTools } from "@/lib/tools";
 import { createSharedMemory } from "@/lib/sharedMemory";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const TOOLSETS: ToolDescriptor[] = [
   ...generalTools,

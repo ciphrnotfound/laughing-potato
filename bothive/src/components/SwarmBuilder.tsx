@@ -103,6 +103,15 @@ const TechNode = ({ data, selected }: { data: any; selected: boolean }) => {
 
 const nodeTypes = { agentNode: TechNode };
 
+interface AgentNodeData {
+    id: string;
+    label: string;
+    codeSnippet: string;
+    isActive?: boolean;
+    color: string;
+    role?: string;
+}
+
 const INITIAL_CODE = `bot IvySwarm
   description "Elite Ivy League Essay Coaching System"
 
@@ -149,7 +158,7 @@ function SwarmBuilderInner() {
     useEffect(() => {
         const agents = parseAgentsFromCode(code);
         // ... (Existing node mapping logic) ...
-        const newNodes = agents.map((agent, index) => {
+        const newNodes: Node<AgentNodeData>[] = agents.map((agent, index) => {
             const existingNode = nodes.find(n => n.id === agent.name);
             return {
                 id: agent.name,
@@ -169,7 +178,7 @@ function SwarmBuilderInner() {
                 id: 'IvySwarm',
                 type: 'agentNode',
                 position: { x: 350, y: 0 },
-                data: { id: 'IvySwarm', label: 'IvySwarm', role: 'Orchestrator', codeSnippet: 'on input...', color: "text-amber-400" }
+                data: { id: 'IvySwarm', label: 'IvySwarm', role: 'Orchestrator', codeSnippet: 'on input...', color: "text-amber-400", isActive: false }
             });
         }
         if (JSON.stringify(newNodes.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {

@@ -379,7 +379,7 @@ class IntegrationCache {
     set(integrationId: string, runtime: HiveLangRuntime) {
         if (this.cache.size >= this.maxSize) {
             const firstKey = this.cache.keys().next().value;
-            this.cache.delete(firstKey);
+            if (firstKey) this.cache.delete(firstKey);
         }
         this.cache.set(integrationId, runtime);
     }

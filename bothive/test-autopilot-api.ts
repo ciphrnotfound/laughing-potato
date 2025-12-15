@@ -17,7 +17,7 @@ try {
     }
   }
   console.log('Environment variables loaded for test');
-} catch (error) {
+} catch (error: any) {
   console.log('Could not load .env.local:', error.message);
 }
 

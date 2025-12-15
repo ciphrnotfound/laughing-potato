@@ -1,5 +1,4 @@
 import { ToolDescriptor, ToolContext } from "@/lib/agentTypes";
-import { google } from "googleapis";
 
 /**
  * Google Calendar Integration Tools

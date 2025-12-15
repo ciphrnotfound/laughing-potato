@@ -120,23 +120,23 @@ Begin! Remember to follow the Thought/Action/Action Input format.`;
 
             // Clean up action - remove markdown formatting and extra text
             action = action.replace(/\*\*/g, "")  // Remove bold markdown
-                           .replace(/`/g, "")      // Remove code markdown
-                           .replace(/\n.*$/s, "")  // Remove any text after newlines
-                           .trim();
+                .replace(/`/g, "")      // Remove code markdown
+                .replace(/\n[\s\S]*$/, "")  // Remove any text after newlines
+                .trim();
 
             // Fix common LLM mistakes in action field
             if (action.includes("Action Input:")) {
                 action = action.split("Action Input:")[0].trim();
             }
-            
+
             // Remove common prefixes that LLM adds
             action = action.replace(/^use\s+/i, "")  // Remove "Use " at start
-                           .replace(/^call\s+/i, "")  // Remove "Call " at start
-                           .replace(/^execute\s+/i, "")  // Remove "Execute " at start
-                           .replace(/^to\s+/i, "")  // Remove "To " at start
-                           .replace(/\s+to\s+.*$/i, "")  // Remove " to ..." at end
-                           .trim();
-            
+                .replace(/^call\s+/i, "")  // Remove "Call " at start
+                .replace(/^execute\s+/i, "")  // Remove "Execute " at start
+                .replace(/^to\s+/i, "")  // Remove "To " at start
+                .replace(/\s+to\s+.*$/i, "")  // Remove " to ..." at end
+                .trim();
+
             // Validate action is just a tool name (contains only letters, numbers, dots, underscores, hyphens)
             if (action && !/^[a-zA-Z0-9._-]+$/.test(action)) {
                 // Try to extract tool name from the text using common patterns
@@ -177,7 +177,7 @@ Begin! Remember to follow the Thought/Action/Action Input format.`;
                     observation = result.output || JSON.stringify(result);
                 } catch (error) {
                     observation = `Error executing ${action}: ${error instanceof Error ? error.message : String(error)
-                    }`;
+                        }`;
                 }
             } else {
                 observation = `Tool '${action}' not found. Available tools: ${availableTools

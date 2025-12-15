@@ -4,7 +4,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
-import { BotsService } from "./bots.service";
+import { getBot } from "./bots.service";
 
 export interface BotExecution {
     id: string;
@@ -52,7 +52,7 @@ export class ExecutionsService {
      */
     static async execute(input: ExecuteBotInput, user_id: string) {
         // Get the bot
-        const bot = await BotsService.getById(input.bot_id);
+        const bot = await getBot(input.bot_id);
 
         if (!bot) {
             throw new Error('Bot not found');

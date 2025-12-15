@@ -85,6 +85,15 @@ const TechNode = ({ data, selected }: { data: any; selected: boolean }) => {
 
 const nodeTypes = { agentNode: TechNode };
 
+interface AgentNodeData {
+    id: string;
+    label: string;
+    codeSnippet: string;
+    isActive?: boolean;
+    color: string;
+    role?: string;
+}
+
 interface SwarmComposerProps {
     value: string;
     onChange: (value: string) => void;
@@ -112,7 +121,7 @@ function SwarmComposerInner({ value, onChange }: SwarmComposerProps) {
     useEffect(() => {
         const agents = parseAgentsFromCode(code);
 
-        const newNodes = agents.map((agent, index) => {
+        const newNodes: Node<AgentNodeData>[] = agents.map((agent, index) => {
             const existingNode = nodes.find(n => n.id === agent.name);
             return {
                 id: agent.name,
@@ -139,7 +148,7 @@ function SwarmComposerInner({ value, onChange }: SwarmComposerProps) {
                 id: botName,
                 type: 'agentNode',
                 position: { x: 350, y: 0 },
-                data: { id: botName, label: botName, role: 'Orchestrator', codeSnippet: 'on input...', color: "text-amber-400" }
+                data: { id: botName, label: botName, role: 'Orchestrator', codeSnippet: 'on input...', color: "text-amber-400", isActive: false }
             });
         }
 

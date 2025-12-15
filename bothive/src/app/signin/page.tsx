@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import Image from "next/image";
 
-export default function SignIn() {
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get('next') || '/passkey';
@@ -406,5 +406,17 @@ export default function SignIn() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }

@@ -1,0 +1,897 @@
+﻿
+> bothive@0.1.0 build
+> next build
+
+node.exe : 
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+At C:\Program 
+Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: ([baseline  
+  -brows...ping@latest -D`:   
+ String) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 
+   Γû▓ Next.js 16.0.0 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+ Γ£ô Compiled successfully in 58s
+   Skipping validation of types
+   Collecting page data ...
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ETIMEDOUT'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+   Generating static pages (0/141) ...
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i ba
+seline-browser-mapping@latest 
+-D`
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+   Generating static pages (35/141) 
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+   Generating static pages (70/141) 
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+   Generating static pages (105/141) 
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+AggregateError: 
+    at ignore-listed frames {
+  code: 'ECONNREFUSED'
+}
+ Γ£ô Generating static pages (141/141) in 25.5s
+   Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ Γùï /about
+Γö£ Γùï /achievements
+Γö£ ╞Æ /api/achievements
+Γö£ ╞Æ /api/admin/seed-hivelang
+Γö£ ╞Æ /api/agents
+Γö£ ╞Æ /api/agents/[id]
+Γö£ ╞Æ /api/agents/execute
+Γö£ ╞Æ /api/ai/chat
+Γö£ ╞Æ /api/ai/generate-hive
+Γö£ ╞Æ /api/ai/hivelang-generator
+Γö£ ╞Æ /api/ai/learn
+Γö£ ╞Æ /api/analytics/dashboard
+Γö£ ╞Æ /api/auth/[kindeAuth]
+Γö£ ╞Æ /api/auth/link-session
+Γö£ ╞Æ /api/auth/session
+Γö£ ╞Æ /api/auth/signin
+Γö£ ╞Æ /api/auth/signup
+Γö£ ╞Æ /api/autoposter/run
+Γö£ ╞Æ /api/billing/activate-free
+Γö£ ╞Æ /api/billing/create-checkout
+Γö£ ╞Æ /api/billing/usage/track
+Γö£ ╞Æ /api/billing/verify
+Γö£ ╞Æ /api/billing/webhook
+Γö£ ╞Æ /api/bot/deploy
+Γö£ ╞Æ /api/bot/execute
+Γö£ ╞Æ /api/bot/run
+Γö£ ╞Æ /api/bots
+Γö£ ╞Æ /api/bots/[botId]/analytics
+Γö£ ╞Æ /api/bots/[botId]/deploy
+Γö£ ╞Æ /api/bots/[botId]/execute
+Γö£ ╞Æ /api/bots/[botId]/run
+Γö£ ╞Æ /api/bots/[botId]/widget
+Γö£ ╞Æ /api/chat
+Γö£ ╞Æ /api/coupons/create
+Γö£ ╞Æ /api/coupons/verify
+Γö£ ╞Æ /api/developer/api-keys
+Γö£ ╞Æ /api/developer/connect
+Γö£ ╞Æ /api/developer/dashboard
+Γö£ ╞Æ /api/developer/register
+Γö£ ╞Æ /api/emails/deployment-confirmation
+Γö£ ╞Æ /api/hivemind
+Γö£ ╞Æ /api/hivetools
+Γö£ ╞Æ /api/hivetools/[toolName]
+Γö£ ╞Æ /api/hivetools/install
+Γö£ ╞Æ /api/integrations
+Γö£ ╞Æ /api/integrations/[id]
+Γö£ ╞Æ /api/integrations/[id]/connect
+Γö£ ╞Æ /api/integrations/[id]/install
+Γö£ ╞Æ /api/integrations/execute
+Γö£ ╞Æ /api/integrations/notion/databases
+Γö£ ╞Æ /api/integrations/notion/oauth/authorize
+Γö£ ╞Æ /api/integrations/notion/oauth/callback
+Γö£ ╞Æ /api/integrations/notion/pages
+Γö£ ╞Æ /api/integrations/purchase
+Γö£ ╞Æ /api/integrations/status
+Γö£ ╞Æ /api/integrations/submit
+Γö£ ╞Æ /api/integrations/test
+Γö£ ╞Æ /api/integrations/youtube/search
+Γö£ ╞Æ /api/integrations/youtube/transcript/[videoId]
+Γö£ ╞Æ /api/integrations/youtube/video/[videoId]
+Γö£ ╞Æ /api/knowledge
+Γö£ ╞Æ /api/knowledge/bases
+Γö£ ╞Æ /api/plugins
+Γö£ ╞Æ /api/run
+Γö£ ╞Æ /api/social/publish
+Γö£ ╞Æ /api/social/publish-scheduled
+Γö£ ╞Æ /api/swarm/autopilot
+Γö£ ╞Æ /api/swarm/execute
+Γö£ ╞Æ /api/test-email
+Γö£ ╞Æ /api/tools
+Γö£ ╞Æ /api/tools/[toolName]
+Γö£ ╞Æ /api/usage/check
+Γö£ ╞Æ /api/usage/track
+Γö£ ╞Æ /api/user/integrations
+Γö£ ╞Æ /api/user/integrations/[id]
+Γö£ ╞Æ /api/webhooks/paystack
+Γö£ ╞Æ /api/workflows
+Γö£ ╞Æ /api/workflows/[id]
+Γö£ ╞Æ /api/workflows/[id]/status
+Γö£ ╞Æ /api/workforce/enqueue
+Γö£ ╞Æ /api/workforce/run
+Γö£ ╞Æ /api/workforce/status
+Γö£ ╞Æ /api/workforce/stream
+Γö£ ╞Æ /api/workforce/test
+Γö£ Γùï /blog
+Γö£ ╞Æ /blog/[slug]
+Γö£ Γùï /builder
+Γö£ Γùï /careers
+Γö£ Γùï /changelog
+Γö£ Γùï /contact
+Γö£ Γùï /dashboard
+Γö£ Γùï /dashboard/admin
+Γö£ Γùï /dashboard/admin/approvals
+Γö£ Γùï /dashboard/admin/coupons
+Γö£ Γùï /dashboard/admin/status
+Γö£ Γùï /dashboard/admin/tenants
+Γö£ Γùï /dashboard/agents
+Γö£ Γùï /dashboard/ai-intelligence
+Γö£ Γùï /dashboard/analytics
+Γö£ Γùï /dashboard/billing
+Γö£ Γùï /dashboard/billing/checkout
+Γö£ Γùï /dashboard/bot-tester
+Γö£ Γùï /dashboard/bots
+Γö£ ╞Æ /dashboard/bots/[botId]
+Γö£ Γùï /dashboard/business/special-request
+Γö£ Γùï /dashboard/calendar
+Γö£ Γùï /dashboard/dev
+Γö£ Γùï /dashboard/developer
+Γö£ Γùï /dashboard/developer/api-keys
+Γö£ Γùï /dashboard/employees
+Γö£ ╞Æ /dashboard/employees/[id]
+Γö£ Γùï /dashboard/home
+Γö£ ╞Æ /dashboard/installs/[slug]
+Γö£ Γùï /dashboard/integrations
+Γö£ Γùï /dashboard/integrations/new
+Γö£ Γùï /dashboard/knowledge
+Γö£ Γùï /dashboard/knowledge/graph
+Γö£ Γùï /dashboard/marketplace
+Γö£ Γùï /dashboard/orchestrator
+Γö£ Γùï /dashboard/profile
+Γö£ Γùï /dashboard/run-bot
+Γö£ Γùï /dashboard/settings
+Γö£ Γùï /dashboard/social
+Γö£ Γùï /dashboard/store
+Γö£ Γùï /dashboard/student
+Γö£ Γùï /dashboard/swarm
+Γö£ Γùï /dashboard/swarm-builder
+Γö£ Γùï /dashboard/tasks
+Γö£ Γùï /dashboard/webhooks
+Γö£ Γùï /dashboard/workflows
+Γö£ Γùï /dashboard/workforce
+Γö£ ╞Æ /dashboard/workforce/[id]
+Γö£ Γùï /dashboard/workspaces
+Γö£ Γùï /developer
+Γö£ Γùï /developer/submit
+Γö£ Γùï /developers
+Γö£ Γùï /docs
+Γö£ Γùï /docs/hivelang
+Γö£ Γùï /features
+Γö£ Γùï /founder
+Γö£ Γùï /getting-started
+Γö£ Γùï /guides
+Γö£ Γùï /guides/creative-bot
+Γö£ Γùï /guides/custom-integration
+Γö£ Γùï /guides/dev-helper
+Γö£ Γùï /guides/study-buddy
+Γö£ Γùï /hivestore
+Γö£ ╞Æ /hivestore/[slug]
+Γö£ Γùï /hivetools
+Γö£ ╞Æ /hivetools/[slug]
+Γö£ Γùï /integrations
+Γö£ ╞Æ /integrations/[id]
+Γö£ Γùï /integrations/new
+Γö£ Γùï /landing-page
+Γö£ Γùï /landing-page/light
+Γö£ Γùï /leaderboard
+Γö£ Γùï /marketplace
+Γö£ Γùï /onboarding
+Γö£ Γùï /passkey
+Γö£ Γùï /pricing
+Γö£ Γùï /signin
+Γö£ Γùï /signup
+Γö£ Γùï /templates
+Γö£ Γùï /verify
+Γöö Γùï /workflows/builder
+
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

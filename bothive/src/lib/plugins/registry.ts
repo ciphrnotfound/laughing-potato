@@ -259,6 +259,6 @@ class HiveToolRegistry {
 export const theHive = new HiveToolRegistry();
 
 // Auto-initialize
-if (typeof window === 'undefined') {
-    theHive.initialize().catch(console.error);
-}
+// if (typeof window === 'undefined') {
+//     theHive.initialize().catch(console.error);
+// }

@@ -1,5 +1,6 @@
 
 import { generateText, AI_MODEL } from "@/lib/ai-client";
+import { ToolDescriptor } from "@/lib/agentTypes";
 
 /**
  * Advanced data analysis, business intelligence, and insights tools

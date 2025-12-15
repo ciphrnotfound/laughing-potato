@@ -82,6 +82,7 @@ export type ToolContext = {
     sharedMemory: SharedMemory;
     tenant?: TenantContext;
     agents?: any[];
+    credentials?: Record<string, any>;
 };
 
 export type ToolResult = {

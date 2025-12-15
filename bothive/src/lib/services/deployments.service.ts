@@ -4,7 +4,7 @@
  */
 
 import { supabase } from "@/lib/supabase";
-import { BotsService } from "./bots.service";
+import { getBot } from "./bots.service";
 
 export interface Deployment {
     id: string;
@@ -51,7 +51,7 @@ export class DeploymentsService {
      */
     static async create(input: CreateDeploymentInput, user_id: string) {
         // Get the bot to deploy
-        const bot = await BotsService.getById(input.bot_id);
+        const bot = await getBot(input.bot_id);
 
         if (!bot) {
             throw new Error('Bot not found');
@@ -65,14 +65,14 @@ export class DeploymentsService {
                 user_id,
                 version: input.version,
                 commit_message: input.commit_message,
-                source_code: bot.source_code,
-                compiled_code: bot.compiled_code,
-                compiler_version: bot.compiler_version,
-                config: bot.config,
-                environment_variables: bot.environment_variables,
+                source_code: bot.hivelang_code || '',
+                compiled_code: bot.compiled_js || null,
+                compiler_version: '1.0.0', // Default
+                config: {}, // Default
+                environment_variables: {}, // Default
                 environment: input.environment || 'production',
                 status: 'queued',
-                deployment_region: bot.deployment_region,
+                deployment_region: 'us-east-1', // Default
             })
             .select()
             .single();

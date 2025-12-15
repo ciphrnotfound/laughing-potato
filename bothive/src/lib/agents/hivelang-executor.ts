@@ -163,7 +163,7 @@ export async function executeHiveLangProgram(
         }
 
         // Get user ID from context for integration credentials
-        const userId = toolContext.userId ?? toolContext.metadata?.userId;
+        const userId = toolContext.metadata?.userId;
 
         // Create the runtime context for program.run()
         const runtimeContext = {
@@ -239,31 +239,31 @@ export async function executeHiveLangProgram(
             }
         };
 
-// Step 4: Execute the program deterministically
-const result = await program.run(runtimeContext);
+        // Step 4: Execute the program deterministically
+        const result = await program.run(runtimeContext);
 
-// Merge transcripts
-const combinedTranscript = [
-    { type: "metadata", bot: compiled.metadata.name, timestamp: Date.now() },
-    ...transcript,
-    ...(result?.transcript ?? []),
-];
+        // Merge transcripts
+        const combinedTranscript = [
+            { type: "metadata", bot: compiled.metadata.name, timestamp: Date.now() },
+            ...transcript,
+            ...(result?.transcript ?? []),
+        ];
 
-return {
-    output: outputs.join("\n"),
-    transcript: combinedTranscript,
-    steps: result?.transcript ?? [],
-    success: true,
-};
+        return {
+            output: outputs.join("\n"),
+            transcript: combinedTranscript,
+            steps: result?.transcript ?? [],
+            success: true,
+        };
     } catch (error) {
-    return {
-        output: "",
-        transcript: [],
-        steps: [],
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-    };
-}
+        return {
+            output: "",
+            transcript: [],
+            steps: [],
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
 }
 
 /**

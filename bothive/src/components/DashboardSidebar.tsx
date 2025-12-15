@@ -107,8 +107,35 @@ const ROLE_CONFIG: Record<string, SidebarItem[]> = {
   ]
 };
 
-export default function DashboardSidebar() {
-  const [open, setOpen] = useState(false);
+interface DashboardSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void; // Unused in Sidebar currently, but passed by Wrapper
+  onCollapseChange?: (collapsed: boolean) => void;
+}
+
+export default function DashboardSidebar({ isOpen: externalOpen, onClose, onCollapseChange }: DashboardSidebarProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Resolve controlled vs uncontrolled state
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+
+  // Custom setter to handle both internal state and callbacks
+  const setOpen = (value: boolean | ((prevState: boolean) => boolean)) => {
+    const nextOpen = typeof value === 'function' ? value(open) : value;
+
+    if (externalOpen === undefined) {
+      setInternalOpen(nextOpen);
+    }
+
+    if (onCollapseChange) {
+      onCollapseChange(!nextOpen);
+    }
+
+    // If we're closing and there's an onClose handler (e.g. for mobile drawers)
+    if (!nextOpen && onClose) {
+      onClose();
+    }
+  };
   const [role, setRole] = useState<string>("business");
   const [userEmail, setUserEmail] = useState<string>("");
   const [teamName, setTeamName] = useState<string>("");

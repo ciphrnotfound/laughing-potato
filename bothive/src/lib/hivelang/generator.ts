@@ -3,7 +3,7 @@
  * Allows non-developers to create integrations without writing code
  */
 
-interface VisualCapability {
+export interface VisualCapability {
     name: string;
     description: string;
     http_method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -25,7 +25,7 @@ interface VisualCapability {
     };
 }
 
-interface VisualIntegration {
+export interface VisualIntegration {
     name: string;
     slug: string;
     description: string;

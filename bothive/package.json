@@ -47,6 +47,7 @@
     "openai": "^4.104.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.0",
+    "react-aria-components": "^1.13.0",
     "react-dom": "19.2.0",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",

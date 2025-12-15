@@ -46,20 +46,20 @@ export const agentOrchestrationTools: ToolDescriptor[] = [
       const personality = typeof args.personality === "string" ? args.personality : "helpful and professional";
       const expertise = Array.isArray(args.expertise) ? args.expertise : [];
       const tools = Array.isArray(args.tools) ? args.tools : [];
-      
+
       if (!name || !role) {
         return { success: false, output: "Agent name and role are required" };
       }
-      
+
       const agentConfig: AgentConfig = {
         name,
         role,
         personality,
         expertise,
         tools,
-        constraints: args.constraints || []
+        constraints: Array.isArray(args.constraints) ? args.constraints : []
       };
-      
+
       const fullPrompt = `You are creating a new AI agent named "${name}" with the following configuration:
 
 Role: ${role}
@@ -75,15 +75,15 @@ Generate a detailed agent description including:
 5. Example interactions
 
 Make this agent sound unique and specialized for its role.`;
-      
+
       try {
         const agentDescription = await generateText(fullPrompt, AI_MODEL);
-        
+
         return {
           success: true,
           output: `Agent "${name}" created successfully`,
-          data: { 
-            agentConfig, 
+          data: {
+            agentConfig,
             description: agentDescription,
             createdAt: Date.now()
           },
@@ -106,11 +106,11 @@ Make this agent sound unique and specialized for its role.`;
       const taskDescription = typeof args.taskDescription === "string" ? args.taskDescription : "";
       const availableAgents = Array.isArray(args.availableAgents) ? args.availableAgents : [];
       const priority = typeof args.priority === "string" ? args.priority : "medium";
-      
+
       if (!taskId || !taskDescription || !availableAgents.length) {
         return { success: false, output: "Task ID, description, and available agents are required" };
       }
-      
+
       const fullPrompt = `You are an AI task delegation system. Analyze this task and determine the best agent to handle it.
 
 Task: ${taskDescription}
@@ -127,13 +127,13 @@ Determine:
 5. Potential challenges or considerations
 
 Return your delegation decision and reasoning.`;
-      
+
       try {
         const delegationDecision = await generateText(fullPrompt, AI_MODEL);
-        
+
         // Parse the decision to extract the recommended agent
         const recommendedAgent = availableAgents[0]; // Simplified - in real implementation, parse from decision
-        
+
         const agentTask: AgentTask = {
           id: taskId,
           type: "delegated",
@@ -142,11 +142,11 @@ Return your delegation decision and reasoning.`;
           status: "pending",
           assignedAgent: recommendedAgent.name
         };
-        
+
         return {
           success: true,
           output: `Task delegated to ${recommendedAgent.name}`,
-          data: { 
+          data: {
             task: agentTask,
             delegationReasoning: delegationDecision,
             recommendedAgent: recommendedAgent.name
@@ -171,11 +171,11 @@ Return your delegation decision and reasoning.`;
       const difficultyLevel = typeof args.difficultyLevel === "string" ? args.difficultyLevel : "intermediate";
       const goals = Array.isArray(args.goals) ? args.goals : [];
       const timeframe = typeof args.timeframe === "string" ? args.timeframe : "flexible";
-      
+
       if (!subject) {
         return { success: false, output: "Study subject is required" };
       }
-      
+
       const studyBuddyConfig = {
         name: `${subject} Study Buddy`,
         role: `Personalized tutor and study companion for ${subject}`,
@@ -183,7 +183,7 @@ Return your delegation decision and reasoning.`;
         expertise: [subject, "pedagogy", "learning strategies", "motivation techniques"],
         tools: [
           "ai.tutor.personalized",
-          "ai.content.summarize", 
+          "ai.content.summarize",
           "ai.content.generate",
           "ai.quiz.generate",
           "ai.flashcards.create",
@@ -194,7 +194,7 @@ Return your delegation decision and reasoning.`;
         goals,
         timeframe
       };
-      
+
       const fullPrompt = `You are creating an advanced AI study buddy for ${subject} with these specifications:
 
 Learning Style: ${learningStyle}
@@ -216,19 +216,19 @@ Design a comprehensive study buddy that:
 
 Include specific strategies for different learning styles (visual, auditory, kinesthetic, reading/writing).
 Make this study buddy sound like a real personal tutor who cares about student success.`;
-      
+
       try {
         const studyBuddyDescription = await generateText(fullPrompt, AI_MODEL);
-        
+
         // Generate initial study plan
         const studyPlanPrompt = `Create a personalized ${timeframe} study plan for ${subject} at ${difficultyLevel} level for a ${learningStyle} learner with these goals: ${goals.join(", ")}. Include daily/weekly schedules, key topics to cover, and milestone checkpoints.`;
-        
+
         const initialStudyPlan = await generateText(studyPlanPrompt, AI_MODEL);
-        
+
         return {
           success: true,
           output: `Study buddy for ${subject} created successfully`,
-          data: { 
+          data: {
             studyBuddyConfig,
             description: studyBuddyDescription,
             initialStudyPlan,
@@ -261,11 +261,11 @@ Make this study buddy sound like a real personal tutor who cares about student s
       const sessionType = typeof args.sessionType === "string" ? args.sessionType : "lesson";
       const duration = typeof args.duration === "string" ? args.duration : "30 minutes";
       const previousMistakes = Array.isArray(args.previousMistakes) ? args.previousMistakes : [];
-      
+
       if (!subject || !topic) {
         return { success: false, output: "Subject and topic are required" };
       }
-      
+
       const fullPrompt = `You are conducting a ${sessionType} study session for ${subject} - ${topic}.
 
 Session Details:
@@ -283,19 +283,19 @@ Create an interactive study session that includes:
 7. Suggestions for further practice
 
 Make it engaging and adaptive to the student's needs. Address any previous mistakes directly.`;
-      
+
       try {
         const sessionContent = await generateText(fullPrompt, AI_MODEL);
-        
+
         // Generate follow-up assessment
         const assessmentPrompt = `Create 5 assessment questions for ${subject} - ${topic} at appropriate difficulty level. Include a mix of question types suitable for ${learningStyle} learners.`;
-        
+
         const assessmentQuestions = await generateText(assessmentPrompt, AI_MODEL);
-        
+
         return {
           success: true,
           output: `Study session for ${topic} completed`,
-          data: { 
+          data: {
             sessionContent,
             assessmentQuestions,
             sessionDetails: { subject, topic, learningStyle, sessionType, duration },
@@ -326,7 +326,7 @@ Make it engaging and adaptive to the student's needs. Address any previous mista
       const botType = typeof args.botType === "string" ? args.botType : "study-buddy";
       const features = Array.isArray(args.features) ? args.features : [];
       const apiKeys = Array.isArray(args.apiKeys) ? args.apiKeys : [];
-      
+
       const vercelConfig = {
         functions: {
           "api/bot/*.ts": {
@@ -340,14 +340,14 @@ Make it engaging and adaptive to the student's needs. Address any previous mista
           OPENAI_API_KEY: process.env.OPENAI_API_KEY || "@openai_api_key",
           BOT_NAME: botName,
           BOT_TYPE: botType,
-          ...apiKeys.reduce((acc, key) => ({ ...acc, [key]: `@${key.toLowerCase()}` }), {})
+          ...apiKeys.reduce<Record<string, string>>((acc, key) => ({ ...acc, [key]: `@${key.toLowerCase()}` }), {})
         },
         buildCommand: "npm run build",
         installCommand: "npm install",
         framework: "nextjs",
         outputDirectory: ".next"
       };
-      
+
       const fullPrompt = `Create a comprehensive deployment guide for a ${botType} bot named "${botName}" on Vercel with these features: ${features.join(", ")}.
 
 Include:
@@ -363,14 +363,14 @@ Include:
 10. Troubleshooting guide
 
 Make it production-ready with real-world considerations.`;
-      
+
       try {
         const deploymentGuide = await generateText(fullPrompt, AI_MODEL);
-        
+
         return {
           success: true,
           output: `Vercel deployment configuration generated for ${botName}`,
-          data: { 
+          data: {
             vercelConfig,
             deploymentGuide,
             setupFiles: {
