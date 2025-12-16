@@ -1,9 +1,0 @@
-bot TestTrello
-  description "Test Trello integration"
-  
-  on input
-    call trello.create_board with name: "Test Board from HiveLang", description: "Testing integration" as board
-    say "Created board: " + board.name
-    say "Board URL: " + board.url
-  end
-end

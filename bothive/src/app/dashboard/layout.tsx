@@ -1,12 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import HiveMind from "@/components/HiveMind";
 import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
-
+import { supabase } from "@/lib/supabase";
 import { DeadlineProvider } from "@/lib/deadline-context";
 import DeadlineTicker from "@/components/DeadlineTicker";
+import { toast } from "sonner";
 
 export default function DashboardLayout({
   children,
@@ -15,6 +18,55 @@ export default function DashboardLayout({
 }) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const router = useRouter();
+  const pathname = usePathname();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push("/signin");
+          return;
+        }
+
+        // Strict Admin Check - The Gatekeeper
+        if (user.email !== "akinlorinjeremiah@gmail.com") {
+          // Access Denied -> Waitlist
+          if (!pathname?.includes("/waitlist")) {
+            router.push("/waitlist");
+          }
+          setChecking(false);
+          return;
+        }
+
+        // If Admin, proceed to standard checks (like onboarding, though Admin likely stays)
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("onboarding_completed")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!profile || !profile.onboarding_completed) {
+          if (!pathname?.includes("/onboarding")) {
+            toast("Please complete your setup first.");
+            router.push("/onboarding");
+          }
+        }
+      } catch (error) {
+        console.error("Error checking access:", error);
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkAccess();
+  }, [router, pathname]);
+
+  if (checking) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <DeadlineProvider>

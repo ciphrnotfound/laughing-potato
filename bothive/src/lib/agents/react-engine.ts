@@ -34,15 +34,9 @@ You have access to tools. For each step, you must:
 3. OBSERVE: Analyze the tool's output
 4. DECIDE: Continue with more steps or provide final answer
 
-CRITICAL FORMATTING RULES:
-- Action field MUST contain ONLY the exact tool name, nothing else
-- Action field MUST NOT contain sentences, explanations, or markdown
-- Action field MUST NOT contain words like "Use", "Call", "Execute"
-- Action field MUST be just the tool name: "integrations.firebase.read"
-
 Format your response EXACTLY as:
 Thought: [your reasoning about what to do next]
-Action: [exact tool name only - no extra words]
+Action: [tool name from available tools]
 Action Input: [JSON object with tool parameters]
 
 After seeing the observation, either:
@@ -118,32 +112,9 @@ Begin! Remember to follow the Thought/Action/Action Input format.`;
             let action = extractSection(agentResponse, "Action");
             const actionInputRaw = extractSection(agentResponse, "Action Input");
 
-            // Clean up action - remove markdown formatting and extra text
-            action = action.replace(/\*\*/g, "")  // Remove bold markdown
-                .replace(/`/g, "")      // Remove code markdown
-                .replace(/\n[\s\S]*$/, "")  // Remove any text after newlines
-                .trim();
-
-            // Fix common LLM mistakes in action field
+            // Fix common LLM mistake: "Action: ToolName Action Input: {...}"
             if (action.includes("Action Input:")) {
                 action = action.split("Action Input:")[0].trim();
-            }
-
-            // Remove common prefixes that LLM adds
-            action = action.replace(/^use\s+/i, "")  // Remove "Use " at start
-                .replace(/^call\s+/i, "")  // Remove "Call " at start
-                .replace(/^execute\s+/i, "")  // Remove "Execute " at start
-                .replace(/^to\s+/i, "")  // Remove "To " at start
-                .replace(/\s+to\s+.*$/i, "")  // Remove " to ..." at end
-                .trim();
-
-            // Validate action is just a tool name (contains only letters, numbers, dots, underscores, hyphens)
-            if (action && !/^[a-zA-Z0-9._-]+$/.test(action)) {
-                // Try to extract tool name from the text using common patterns
-                const toolNameMatch = action.match(/[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+/);
-                if (toolNameMatch) {
-                    action = toolNameMatch[0];
-                }
             }
 
             if (!action) {
@@ -177,7 +148,7 @@ Begin! Remember to follow the Thought/Action/Action Input format.`;
                     observation = result.output || JSON.stringify(result);
                 } catch (error) {
                     observation = `Error executing ${action}: ${error instanceof Error ? error.message : String(error)
-                        }`;
+                    }`;
                 }
             } else {
                 observation = `Tool '${action}' not found. Available tools: ${availableTools

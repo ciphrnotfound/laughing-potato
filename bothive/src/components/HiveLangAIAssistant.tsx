@@ -66,38 +66,7 @@ export function HiveLangAIAssistant({
     }, [messages]);
 
     const generateHiveLangCode = async (prompt: string): Promise<{ content: string; code: string }> => {
-        try {
-            // Call the real AI API to generate HiveLang code
-            const response = await fetch('/api/ai/hivelang-generator', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    prompt,
-                    currentCode,
-                    conversationHistory: messages.filter(m => m.role === 'user').map(m => m.content)
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to generate code');
-            }
-
-            const data = await response.json();
-            return {
-                content: data.explanation || "Here's the HiveLang code for your request:",
-                code: data.code
-            };
-        } catch (error) {
-            console.error('AI generation error:', error);
-            
-            // Fallback to template-based generation
-            return generateFallbackCode(prompt);
-        }
-    };
-
-    const generateFallbackCode = (prompt: string): { content: string; code: string } => {
+        // This would call your AI API - for now, we'll generate based on keywords
         const lowerPrompt = prompt.toLowerCase();
 
         let code = "";

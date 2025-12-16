@@ -58,7 +58,7 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 function FileTextIcon(props: any) {
-    return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+    return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
 }
 
 export default function IntegrationsPage() {
@@ -99,19 +99,19 @@ export default function IntegrationsPage() {
 
     return (
         <div className={cn("min-h-screen relative overflow-hidden", isDark ? "bg-[#030014]" : "bg-[#fafafa]")}>
-             {/* Gradient overlay */}
-             <div className={cn(
+            {/* Gradient overlay */}
+            <div className={cn(
                 "fixed inset-0 pointer-events-none z-0",
                 isDark
-                  ? "bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.1),transparent_70%)]"
-                  : "bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.05),transparent_70%)]"
-              )} />
+                    ? "bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.1),transparent_70%)]"
+                    : "bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.05),transparent_70%)]"
+            )} />
 
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-24">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
                     <div>
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-violet-500/20 bg-violet-500/5 text-xs font-semibold text-violet-600 dark:text-violet-400 mb-6 uppercase tracking-wider"
@@ -119,7 +119,7 @@ export default function IntegrationsPage() {
                             <Zap className="w-3 h-3" />
                             Ecosystem
                         </motion.div>
-                        <motion.h1 
+                        <motion.h1
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
@@ -127,7 +127,7 @@ export default function IntegrationsPage() {
                         >
                             Integrations
                         </motion.h1>
-                        <motion.p 
+                        <motion.p
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
@@ -139,9 +139,9 @@ export default function IntegrationsPage() {
                     </div>
 
                     <motion.div
-                         initial={{ opacity: 0, x: 20 }}
-                         animate={{ opacity: 1, x: 0 }}
-                         transition={{ delay: 0.3 }}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 }}
                     >
                         <Link
                             href="/integrations/new"
@@ -177,7 +177,7 @@ export default function IntegrationsPage() {
                             />
                         </div>
 
-                         <button
+                        <button
                             onClick={() => setShowOfficial(!showOfficial)}
                             className={cn(
                                 "flex items-center gap-2 px-4 py-3 rounded-xl border transition-all font-medium",
@@ -190,8 +190,8 @@ export default function IntegrationsPage() {
                             {showOfficial ? "Official Only" : "All"}
                         </button>
                     </div>
-                     {/* Categories */}
-                     <div className="max-w-7xl mx-auto flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
+                    {/* Categories */}
+                    <div className="max-w-7xl mx-auto flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide">
                         {CATEGORIES.map((cat) => {
                             const Icon = cat.icon;
                             const isSelected = selectedCategory === cat.value;
@@ -263,13 +263,24 @@ export default function IntegrationsPage() {
                                                 )}>
                                                     <Icon className="w-7 h-7" />
                                                 </div>
-                                                {integration.is_official && (
-                                                    <div className="px-2.5 py-1 rounded-md bg-violet-100 dark:bg-violet-500/20 border border-violet-200 dark:border-violet-500/20">
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-300 flex items-center gap-1">
-                                                            <Star className="w-3 h-3 fill-violet-600 dark:fill-violet-300" /> Official
-                                                        </span>
-                                                    </div>
-                                                )}
+                                                <div className="flex flex-col items-end gap-2">
+                                                    {integration.is_official && (
+                                                        <div className="px-2.5 py-1 rounded-md bg-violet-100 dark:bg-violet-500/20 border border-violet-200 dark:border-violet-500/20">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-300 flex items-center gap-1">
+                                                                <Star className="w-3 h-3 fill-violet-600 dark:fill-violet-300" /> Official
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {/* @ts-ignore - is_connected injected by API */}
+                                                    {integration.is_connected && (
+                                                        <div className="px-2.5 py-1 rounded-md bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20">
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-300 flex items-center gap-1">
+                                                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                                Connected
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div className="mb-4">
@@ -282,11 +293,11 @@ export default function IntegrationsPage() {
                                             </div>
 
                                             <div className="mt-auto pt-6 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
-                                                 <div className="flex items-center gap-4 text-xs font-medium text-black/40 dark:text-white/40">
-                                                    <span>{integration.install_count} installs</span>
+                                                <div className="flex items-center gap-4 text-xs font-medium text-black/40 dark:text-white/40">
+                                                    <span>{integration.install_count || 0} installs</span>
                                                     <span className="capitalize">{integration.category}</span>
-                                                 </div>
-                                                 <ArrowRight className="w-4 h-4 text-black/20 dark:text-white/20 group-hover:text-violet-500 group-hover:translate-x-1 transition-all" />
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 text-black/20 dark:text-white/20 group-hover:text-violet-500 group-hover:translate-x-1 transition-all" />
                                             </div>
                                         </div>
                                     </SpotlightCard>

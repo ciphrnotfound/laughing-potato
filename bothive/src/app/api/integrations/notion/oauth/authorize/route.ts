@@ -11,7 +11,12 @@ export async function GET(request: NextRequest) {
         }
 
         const notionClientId = process.env.NOTION_CLIENT_ID;
-        const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/notion/oauth/callback`;
+        console.log("NOTION_AUTH_DEBUG: Reading Client ID...");
+        console.log(`NOTION_AUTH_DEBUG: ID Length: ${notionClientId?.length || 0}`);
+        console.log(`NOTION_AUTH_DEBUG: ID Value (first 5): ${notionClientId?.substring(0, 5)}...`);
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const redirectUri = `${appUrl}/api/integrations/notion/oauth/callback`;
 
         if (!notionClientId) {
             return NextResponse.json(

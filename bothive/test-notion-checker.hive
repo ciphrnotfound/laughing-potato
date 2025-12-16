@@ -1,0 +1,24 @@
+// Test bot to verify Notion integration status
+name: "Notion Integration Checker"
+description: "Checks if Notion integration is working"
+
+step check_integration {
+  // This will fail but show us the exact error
+  call integrations.createNotionPage {
+    title: "Test Page"
+    content: "Testing Notion integration"
+    // Note: parent_page_id is missing - this will show the error
+  }
+  -> result
+}
+
+step show_error {
+  say "🔍 Notion Integration Test Results:"
+  say "Result: {result}"
+  say ""
+  say "💡 To make this work:"
+  say "1. Go to your Notion workspace"
+  say "2. Find a page you want to use"
+  say "3. Get the page ID from the URL"
+  say "4. Add parent_page_id to your call"
+}

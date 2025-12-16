@@ -1,0 +1,46 @@
+bot YouTubeContentAssistant
+  description "Helps with YouTube content creation - search videos, create playlists, analyze trends"
+  
+  memory session
+    var lastSearch array
+    var currentPlaylist string
+    var searchQuery string
+  end
+  
+  on input when input.action == "search_videos"
+    call integrations.youtube.search with {
+      query: input.query,
+      limit: input.limit or 5
+    } as videos
+    
+    set $lastSearch to videos
+    set $searchQuery to input.query
+    say "🎬 Found " + videos.length + " videos for: " + input.query
+    
+    for video in videos
+      say "• " + video.title + " (" + video.duration + ")"
+      say "  Channel: " + video.channel + " | Views: " + video.viewCount
+      say "  URL: " + video.url
+    end
+  end
+  
+  on input when input.action == "create_playlist"
+    call integrations.youtube.createPlaylist with {
+      title: input.title,
+      description: input.description or "Created by Bothive bot",
+      videoIds: input.video_ids or []
+    } as playlist
+    
+    set $currentPlaylist to playlist.id
+    say "🎵 Created playlist: " + playlist.title
+    say "🔗 Playlist URL: " + playlist.url
+    say "📺 Videos in playlist: " + playlist.videoCount
+  end
+  
+  on input
+    call general.respond with {
+      prompt: "You are a YouTube content assistant. Help users search for videos and create playlists. Available actions: search_videos, create_playlist"
+    } as response
+    say response.output
+  end
+end

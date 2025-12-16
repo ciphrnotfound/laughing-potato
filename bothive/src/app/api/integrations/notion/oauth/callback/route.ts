@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 
 // GET /api/integrations/notion/oauth/callback - Handle Notion OAuth callback
 export async function GET(request: NextRequest) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
     try {
         const { searchParams } = new URL(request.url);
         const code = searchParams.get("code");
@@ -11,32 +13,27 @@ export async function GET(request: NextRequest) {
         const error = searchParams.get("error");
 
         if (error) {
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=${error}`
-            );
+            return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=${error}`);
         }
 
         if (!code || !state) {
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=missing_params`
-            );
+            return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=missing_params`);
         }
 
-        const notionClientId = process.env.NOTION_CLIENT_ID;
-        const notionClientSecret = process.env.NOTION_CLIENT_SECRET;
-        const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/notion/oauth/callback`;
+        const clientId = process.env.NOTION_CLIENT_ID;
+        const clientSecret = process.env.NOTION_CLIENT_SECRET;
 
-        if (!notionClientId || !notionClientSecret) {
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=config_missing`
-            );
+        const redirectUri = `${appUrl}/api/integrations/notion/oauth/callback`;
+
+        if (!clientId || !clientSecret) {
+            return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=config_missing`);
         }
 
         // Exchange code for access token
         const tokenResponse = await fetch("https://api.notion.com/v1/oauth/token", {
             method: "POST",
             headers: {
-                "Authorization": `Basic ${Buffer.from(`${notionClientId}:${notionClientSecret}`).toString("base64")}`,
+                "Authorization": `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
@@ -49,9 +46,7 @@ export async function GET(request: NextRequest) {
         if (!tokenResponse.ok) {
             const errorData = await tokenResponse.json();
             console.error("Notion token exchange error:", errorData);
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=token_exchange_failed`
-            );
+            return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=token_exchange_failed`);
         }
 
         const tokenData = await tokenResponse.json();
@@ -84,9 +79,7 @@ export async function GET(request: NextRequest) {
             .single();
 
         if (!integration) {
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=integration_not_found`
-            );
+            return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=integration_not_found`);
         }
 
         // Store user integration connection
@@ -104,23 +97,17 @@ export async function GET(request: NextRequest) {
                     owner: tokenData.owner,
                 },
                 status: "active",
-            });
+            }, { onConflict: 'user_id, integration_id' });
 
         if (insertError) {
             console.error("Error storing Notion connection:", insertError);
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=storage_failed`
-            );
+            return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=storage_failed`);
         }
 
         // Success! Redirect back to integrations page
-        return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}/integrations?success=notion_connected`
-        );
+        return NextResponse.redirect(`${appUrl}/dashboard/integrations?success=notion_connected`);
     } catch (error: any) {
         console.error("Error in Notion OAuth callback:", error);
-        return NextResponse.redirect(
-            `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=callback_failed`
-        );
+        return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=callback_failed`);
     }
 }

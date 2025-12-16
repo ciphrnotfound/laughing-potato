@@ -1,0 +1,91 @@
+# 📝 Notion Bot - Corrected Integration Names
+
+```hive
+bot NotionBotCorrected
+  description "Notion bot with correct integration names"
+  
+  on input when input.action == "test"
+    say "🧪 Testing Notion integration..."
+    
+    # Test with createNotionPage (correct name)
+    if input.parent_page_id
+      call integrations.createNotionPage with {
+        title: "Test Page from Bot",
+        content: "This is a test page created by Bothive bot",
+        parent_page_id: input.parent_page_id
+      } as page_result
+      
+      if page_result.success
+        say "✅ Page created: " + page_result.title
+        say "🔗 URL: " + page_result.url
+      else
+        say "❌ Error: " + page_result.output
+        if page_result.output.includes("Notion is not connected")
+          say "🔐 Please connect your Notion account first!"
+        end
+        if page_result.output.includes("Missing 'parent_page_id'")
+          say "📄 Please provide a parent_page_id"
+        end
+      end
+    else
+      say "📄 To test, provide parent_page_id"
+      say "Example: {\"action\": \"test\", \"parent_page_id\": \"your-page-id\"}"
+    end
+  end
+  
+  on input when input.action == "create_database"
+    call integrations.createNotionDatabase with {
+      title: input.title,
+      parent_page_id: input.parent_page_id,
+      properties: input.properties or {
+        "Name": { "title": {} },
+        "Status": { "select": {} }
+      }
+    } as database
+    
+    if database.success
+      say "✅ Database created: " + database.title
+      say "🔗 URL: " + database.url
+    else
+      say "❌ Error: " + database.output
+    end
+  end
+  
+  on input when input.action == "add_entry"
+    call integrations.addNotionDatabaseEntry with {
+      database_id: input.database_id,
+      properties: input.properties
+    } as entry
+    
+    if entry.success
+      say "✅ Entry added successfully"
+    else
+      say "❌ Error: " + entry.output
+    end
+  end
+  
+  on input when input.action == "search"
+    call integrations.queryNotionDatabase with {
+      database_id: input.database_id,
+      filter: input.filter
+    } as results
+    
+    if results.success
+      say "✅ Found " + results.results.length + " results"
+    else
+      say "❌ Error: " + results.output
+    end
+  end
+  
+  on input
+    say "🎯 Notion Bot Ready!"
+    say "Available actions:"
+    say "• test - Test page creation (needs parent_page_id)"
+    say "• create_database - Create a new database"
+    say "• add_entry - Add entry to database"
+    say "• search - Search in database"
+    say ""
+    say "Try: {\"action\": \"test\", \"parent_page_id\": \"your-page-id\"}"
+  end
+end
+```

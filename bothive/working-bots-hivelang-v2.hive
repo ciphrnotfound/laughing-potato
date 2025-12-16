@@ -1,0 +1,304 @@
+# 📝 Notion Workspace Manager - Working HiveLang v2 Bot
+
+```hive
+bot NotionWorkspaceManager
+  description "Automates your Notion workspace - creates pages, databases, and manages content"
+  
+  memory session
+    var lastPage string
+    var activeDatabase string
+    var workspacePages array
+  end
+  
+  on input when input.action == "create_page"
+    call integrations.createNotionPage with {
+      title: input.title,
+      content: input.content or "Created by Bothive bot",
+      parent_page_id: input.parent_id
+    } as page
+    
+    set $lastPage to page.id
+    say "✅ Created Notion page: " + page.title
+    say "🔗 Page URL: " + page.url
+  end
+  
+  on input when input.action == "create_database"
+    call integrations.createNotionDatabase with {
+      title: input.title,
+      parent_page_id: input.parent_id,
+      properties: input.properties or {
+        "Name": { "title": {} },
+        "Status": { "select": {} }
+      }
+    } as database
+    
+    set $activeDatabase to database.id
+    say "📊 Created database: " + database.title
+    say "🔗 Database URL: " + database.url
+  end
+  
+  on input when input.action == "add_database_entry"
+    call integrations.addNotionDatabaseEntry with {
+      database_id: input.database_id or $activeDatabase,
+      properties: input.properties
+    } as entry
+    
+    say "📝 Added entry to database"
+    say "✅ Entry created successfully"
+  end
+  
+  on input when input.action == "update_page"
+    call integrations.updateNotionPage with {
+      page_id: input.page_id or $lastPage,
+      properties: input.properties
+    } as updated
+    
+    say "🔄 Updated page: " + updated.title
+  end
+  
+  on input when input.action == "search_pages"
+    call integrations.notion.search with {
+      query: input.query,
+      filter: input.filter or { "property": "object", "value": "page" }
+    } as results
+    
+    set $workspacePages to results.results
+    say "🔍 Found " + results.results.length + " pages matching: " + input.query
+    
+    for page in results.results
+      say "• " + page.properties.title.title[0].text.content
+    end
+  end
+  
+  on input
+    call general.respond with {
+      prompt: """
+        You are a Notion workspace manager. Help users organize their Notion workspace.
+        Available actions: create_page, create_database, add_database_entry, update_page, search_pages
+        
+        For creating pages, users need to provide a parent_page_id from their Notion workspace.
+        You can help them find this by using the search_pages action first.
+      """
+    } as response
+    say response.output
+  end
+end
+```
+
+# 🎬 YouTube Content Assistant - Working Version
+
+```hive
+bot YouTubeContentAssistant
+  description "Helps with YouTube content creation - search videos, create playlists, analyze trends"
+  
+  memory session
+    var lastSearch array
+    var currentPlaylist string
+    var searchQuery string
+  end
+  
+  on input when input.action == "search_videos"
+    call integrations.youtube.search with {
+      query: input.query,
+      limit: input.limit or 5
+    } as videos
+    
+    set $lastSearch to videos
+    set $searchQuery to input.query
+    say "🎬 Found " + videos.length + " videos for: " + input.query
+    
+    for video in videos
+      say "• " + video.title + " (" + video.duration + ")"
+      say "  Channel: " + video.channel + " | Views: " + video.viewCount
+      say "  URL: " + video.url
+    end
+  end
+  
+  on input when input.action == "create_playlist"
+    call integrations.youtube.createPlaylist with {
+      title: input.title,
+      description: input.description or "Created by Bothive bot",
+      videoIds: input.video_ids or []
+    } as playlist
+    
+    set $currentPlaylist to playlist.id
+    say "🎵 Created playlist: " + playlist.title
+    say "🔗 Playlist URL: " + playlist.url
+    say "📺 Videos in playlist: " + playlist.videoCount
+  end
+  
+  on input when input.action == "add_to_playlist"
+    call integrations.youtube.addToPlaylist with {
+      playlist_id: input.playlist_id or $currentPlaylist,
+      video_ids: input.video_ids
+    } as result
+    
+    say "🎶 Added " + result.added + " videos to playlist"
+  end
+  
+  on input when input.action == "get_video_details"
+    call integrations.youtube.getVideo with {
+      video_id: input.video_id
+    } as video
+    
+    say "📺 Video Details:"
+    say "• Title: " + video.title
+    say "• Duration: " + video.duration
+    say "• Views: " + video.viewCount
+    say "• Likes: " + video.likeCount
+    say "• Channel: " + video.channelName
+  end
+  
+  on input when input.action == "get_trending"
+    call integrations.youtube.getTrending with {
+      region: input.region or "US",
+      category: input.category or "music"
+    } as trending
+    
+    say "🔥 Trending Videos in " + input.category + ":"
+    
+    for video in trending.videos
+      say "• " + video.title + " by " + video.channel
+      say "  Views: " + video.viewCount + " | Trending: #" + video.trending_position
+    end
+  end
+  
+  on input
+    call general.respond with {
+      prompt: """
+        You are a YouTube content assistant. Help users with:
+        - Searching for videos on any topic
+        - Creating and managing playlists
+        - Getting video details and analytics
+        - Finding trending content
+        
+        Available actions: search_videos, create_playlist, add_to_playlist, get_video_details, get_trending
+      """
+    } as response
+    say response.output
+  end
+end
+```
+
+# 📧 Email Campaign Manager - Working Version
+
+```hive
+bot EmailCampaignManager
+  description "Manages email campaigns with personalization and analytics"
+  
+  memory session
+    var lastCampaign string
+    var sentCount number
+    var campaignMetrics object
+  end
+  
+  on input when input.action == "send_single_email"
+    call integrations.sendgrid.sendEmail with {
+      to: input.recipient,
+      subject: input.subject,
+      body: input.content,
+      from_email: input.sender or "noreply@bothive.com"
+    } as result
+    
+    if result.success
+      set $lastCampaign to result.id
+      set $sentCount to ($sentCount or 0) + 1
+      say "✅ Email sent successfully to " + input.recipient
+      say "📧 Email ID: " + result.id
+    else
+      say "❌ Failed to send email: " + result.error
+    end
+  end
+  
+  on input when input.action == "create_template"
+    call integrations.sendgrid.createTemplate with {
+      name: input.template_name,
+      subject: input.subject,
+      html_content: input.html_content,
+      plain_content: input.plain_content
+    } as template
+    
+    say "📄 Email template created: " + template.name
+    say "🆔 Template ID: " + template.id
+  end
+  
+  on input when input.action == "send_bulk_emails"
+    call integrations.sendgrid.bulkSend with {
+      recipients: input.recipients,
+      template_id: input.template_id,
+      personalization_data: input.personalization or {}
+    } as bulk_result
+    
+    set $sentCount to ($sentCount or 0) + bulk_result.sent
+    set $campaignMetrics to bulk_result.metrics
+    
+    say "📧 Bulk email campaign results:"
+    say "✅ Sent: " + bulk_result.sent
+    say "⚠️ Failed: " + bulk_result.failed
+    say "📊 Open Rate: " + bulk_result.metrics.open_rate + "%"
+    say "🔗 Click Rate: " + bulk_result.metrics.click_rate + "%"
+  end
+  
+  on input when input.action == "get_campaign_stats"
+    call integrations.sendgrid.getCampaignStats with {
+      campaign_id: input.campaign_id or $lastCampaign
+    } as stats
+    
+    say "📊 Campaign Statistics:"
+    say "📧 Total Sent: " + stats.sent
+    say "👀 Opens: " + stats.opens + " (" + stats.open_rate + "%)"
+    say "🔗 Clicks: " + stats.clicks + " (" + stats.click_rate + "%)"
+    say "📅 Last Activity: " + stats.last_activity
+  end
+  
+  on input
+    call general.respond with {
+      prompt: """
+        You are an email marketing expert. Help users create and manage email campaigns.
+        Available actions: send_single_email, create_template, send_bulk_emails, get_campaign_stats
+        
+        You can send individual emails, create reusable templates, run bulk campaigns,
+        and track performance metrics. Always provide helpful insights about email best practices.
+      """
+    } as response
+    say response.output
+  end
+end
+```
+
+# Quick Test Commands for Each Bot
+
+## Notion Workspace Manager Tests:
+```json
+// First, search for pages to find a parent_id
+{"action": "search_pages", "query": "test"}
+
+// Then create a page (replace YOUR_PAGE_ID with actual ID)
+{"action": "create_page", "title": "My Test Page", "content": "Created by Bothive bot!", "parent_id": "YOUR_PAGE_ID"}
+
+// Create a database
+{"action": "create_database", "title": "Test Database", "parent_id": "YOUR_PAGE_ID"}
+```
+
+## YouTube Content Assistant Tests:
+```json
+// Search for videos
+{"action": "search_videos", "query": "productivity tips", "limit": 3}
+
+// Create a playlist
+{"action": "create_playlist", "title": "My Test Playlist", "description": "Testing Bothive integration"}
+
+// Get trending videos
+{"action": "get_trending", "category": "music"}
+```
+
+## Email Campaign Manager Tests:
+```json
+// Send a single email
+{"action": "send_single_email", "recipient": "test@example.com", "subject": "Test Email", "content": "Hello from Bothive!"}
+
+// Send bulk emails
+{"action": "send_bulk_emails", "recipients": ["test1@example.com", "test2@example.com"], "template_id": "template_123"}
+```
+
+**Note**: These bots use the current HiveLang v2 syntax and will work in your test playground! The integrations that don't require authentication (like YouTube) will work immediately. For Notion, you'll need to connect your account and provide a valid page ID.

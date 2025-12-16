@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { executeHiveLangProgram } from "@/lib/agents";
+import { generalTools, codingTools, studyTools, socialTools, messagingTools, integrationTools, agentTools } from "@/lib/tools";
+import { createSharedMemory } from "@/lib/sharedMemory";
+import { ToolContext } from "@/lib/agentTypes";
 
 // POST /api/bots/[botId]/execute - Execute a bot (internal use)
 export async function POST(
@@ -70,38 +74,92 @@ export async function POST(
             );
         }
 
-        // Execute the bot using AI
-        const systemPrompt = bot.system_prompt || "You are a helpful assistant.";
+        // Execute the bot using HiveLang if available, otherwise fallback to AI
+        let responseText: string;
+        let model: string;
+        
+        if (bot.hivelang_code && bot.hivelang_code.trim().length > 0) {
+            // Use HiveLang execution with tools
+            const ALL_TOOLS = [
+                ...generalTools,
+                ...codingTools,
+                ...studyTools,
+                ...socialTools,
+                ...messagingTools,
+                ...integrationTools,
+                ...agentTools,
+            ];
 
-        // Call OpenAI/Grok API
-        const aiResponse = await fetch("https://api.x.ai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.XAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-                model: "grok-3-latest",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    ...(context ? [{ role: "assistant", content: context }] : []),
-                    { role: "user", content: prompt },
-                ],
-                temperature: 0.7,
-            }),
-        });
+            const sharedMemory = createSharedMemory();
+            const toolContext: ToolContext = {
+                metadata: {
+                    botId: bot.id,
+                    runId: `exec-${Date.now()}`,
+                    userId: user.id,
+                    botSystemPrompt: bot.system_prompt || "You are a helpful assistant."
+                },
+                sharedMemory
+            };
 
-        if (!aiResponse.ok) {
-            const errorText = await aiResponse.text();
-            console.error("AI API error:", errorText);
-            return NextResponse.json(
-                { error: "Failed to execute bot" },
-                { status: 500 }
+            const result = await executeHiveLangProgram(
+                bot.hivelang_code,
+                { input: prompt, context },
+                ALL_TOOLS,
+                toolContext
             );
-        }
 
-        const aiData = await aiResponse.json();
-        const responseText = aiData.choices?.[0]?.message?.content || "";
+            if (result.success) {
+                responseText = result.output;
+                model = "HiveLang v2";
+            } else {
+                // Show the actual HiveLang error instead of falling back to AI
+                console.error("HiveLang execution failed:", result.error);
+                responseText = `⚠️ **Tool Execution Failed**
+
+I tried to use tools but encountered an error:
+> ${result.error}
+
+**To fix this:**
+• Make sure your integrations are connected in Settings
+• Check that required parameters are provided
+• Verify you have the necessary permissions
+
+*This error came from the tool itself, not the AI.*`;
+                model = "HiveLang v2 (Error)";
+            }
+        } else {
+            // No HiveLang code, use regular AI
+            const systemPrompt = bot.system_prompt || "You are a helpful assistant.";
+            const aiResponse = await fetch("https://api.x.ai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${process.env.XAI_API_KEY}`,
+                },
+                body: JSON.stringify({
+                    model: "grok-3-latest",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        ...(context ? [{ role: "assistant", content: context }] : []),
+                        { role: "user", content: prompt },
+                    ],
+                    temperature: 0.7,
+                }),
+            });
+
+            if (!aiResponse.ok) {
+                const errorText = await aiResponse.text();
+                console.error("AI API error:", errorText);
+                return NextResponse.json(
+                    { error: "Failed to execute bot" },
+                    { status: 500 }
+                );
+            }
+
+            const aiData = await aiResponse.json();
+            responseText = aiData.choices?.[0]?.message?.content || "";
+            model = "grok-3-latest";
+        }
 
         // Log execution
         await supabase.from("bot_executions").insert({
@@ -117,7 +175,7 @@ export async function POST(
             success: true,
             response: responseText,
             botId,
-            model: "grok-3-latest",
+            model: model,
         });
 
     } catch (error: any) {

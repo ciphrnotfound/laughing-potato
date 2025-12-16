@@ -63,28 +63,50 @@ export default function RunBotPage() {
 
     try {
       const bot = QUICK_BOTS[selectedBot as keyof typeof QUICK_BOTS];
-      
-      const response = await fetch('/api/run', {
+
+
+
+
+
+
+      // Create a temporary bot with the template
+      const botResponse = await fetch('/api/bots', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          botId: selectedBot,
-          steps: bot.template,
+          name: bot.name,
+          description: bot.description,
+          hivelang_code: bot.template,
+          system_prompt: "You are a helpful bot that executes tasks.",
+          is_public: false,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to run bot');
+      if (!botResponse.ok) {
+        throw new Error('Failed to create temporary bot');
       }
 
-      const runResult = await response.json();
+      const { bot: tempBot } = await botResponse.json();
+      
+      // Execute the bot using the correct endpoint
+      const executeResponse = await fetch(`/api/bots/${tempBot.id}/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input: { prompt: "Execute the template" }
+        }),
+      });
+
+      if (!executeResponse.ok) {
+        throw new Error('Failed to execute bot');
+      }
+
+      const executeResult = await executeResponse.json();
       
       setResult({
         success: true,
         message: `${bot.name} completed successfully!`,
-        output: runResult
+        output: executeResult
       });
 
     } catch (error) {

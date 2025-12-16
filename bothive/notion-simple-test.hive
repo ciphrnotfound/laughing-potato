@@ -1,0 +1,46 @@
+# 📝 Notion Bot - Simple Test Version
+
+```hive
+bot SimpleNotionTest
+  description "Simple test bot to verify Notion integration works"
+  
+  on input when input.action == "test"
+    say "🧪 Testing Notion integration..."
+    
+    # Try to search first (this should work even without auth)
+    call integrations.notion.search with {
+      query: "test"
+    } as search_result
+    
+    say "✅ Search result: " + search_result.results.length + " items found"
+    
+    # Now try to create a page (this will show auth issues if any)
+    if input.parent_page_id
+      call integrations.createNotionPage with {
+        title: "Test Page from Bot",
+        content: "This is a test page created by Bothive bot",
+        parent_page_id: input.parent_page_id
+      } as page_result
+      
+      if page_result.success
+        say "✅ Page created: " + page_result.title
+        say "🔗 URL: " + page_result.url
+      else
+        say "❌ Page creation failed: " + page_result.output
+        if page_result.output.includes("Notion is not connected")
+          say "🔐 Please connect your Notion account in Settings > Integrations"
+        end
+      end
+    else
+      say "📄 To test page creation, provide parent_page_id"
+      say "Example: {\"action\": \"test\", \"parent_page_id\": \"your-page-id\"}"
+    end
+  end
+  
+  on input
+    say "🎯 Simple Notion Test Bot"
+    say "Available: test action"
+    say "Try: {\"action\": \"test\"} or {\"action\": \"test\", \"parent_page_id\": \"your-id\"}"
+  end
+end
+```

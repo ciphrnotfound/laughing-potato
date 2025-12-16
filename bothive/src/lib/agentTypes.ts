@@ -16,6 +16,7 @@ export type AgentDefinition = {
     name: string;
     description?: string;
     skills: string[];
+    capabilities?: BotCapability[];
     memoryKeys?: string[];
 };
 
@@ -27,6 +28,8 @@ export type BotCapability =
     | "study.quiz"
     | "integrations.firebase.read"
     | "integrations.firebase.write"
+    | "integrations.notion.read"
+    | "integrations.notion.write"
     | "integrations.whatsapp.send"
     | "social.publish"
     | "social.publish"
@@ -127,4 +130,5 @@ export type UserBot = {
     description?: string;
     icon?: string;
     slug?: string;
+    capabilities?: string[];
 };

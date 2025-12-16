@@ -3,7 +3,7 @@ import IORedis from "ioredis";
 import { runDigitalWorkforceHeavy, WorkforceIteration } from "@/lib/workforce/orchestrator";
 import { createClient } from "@supabase/supabase-js";
 import { allTools } from "@/lib/tools/all-tools";
-import { createSupabaseSharedMemory } from "@/lib/sharedMemorySupabase";
+import { createSharedMemory } from "@/lib/sharedMemory";
 import { ToolContext } from "@/lib/agentTypes";
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
@@ -29,14 +29,14 @@ export function startWorkforceWorker() {
     async (job: Job<WorkforceJobData>) => {
       const { userId, request } = job.data;
 
-      // Build ToolContext with Supabase shared memory
-      const memStore = createSupabaseSharedMemory(`job-${job.id}`);
+      // Build ToolContext
+      const memStore = createSharedMemory(`job-${job.id}`);
       const sharedMemory: ToolContext["sharedMemory"] = {
         async get(key) { return memStore.get(key); },
         async set(key, val) { memStore.set(key, val); },
         async append(key, val) {
-          const existing = await memStore.get(key) ?? [];
-          await memStore.set(key, Array.isArray(existing) ? [...existing, val] : [existing, val]);
+          const existing = memStore.get(key) ?? [];
+          memStore.set(key, Array.isArray(existing) ? [...existing, val] : [existing, val]);
         },
       };
       const toolCtx: ToolContext = {

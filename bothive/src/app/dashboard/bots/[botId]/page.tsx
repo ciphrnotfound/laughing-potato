@@ -40,6 +40,7 @@ interface Bot {
   updated_at?: string;
   user_id: string;
   code?: string;
+  hivelang_code?: string;
   system_prompt?: string;
   capabilities?: string[]; // Added capabilities
   skills?: string[]; // Added skills fallback
@@ -54,12 +55,18 @@ function parseStringList(value: unknown): string[] {
   return [];
 }
 
-export default function BotPage({ params }: { params: { botId: string } }) {
+export default function BotPage() {
+  const params = useParams();
+  const botId = params.botId as string;
+
   const [bot, setBot] = useState<Bot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [publishing, setPublishing] = useState(false); // Added publishing state
+  const [publishing, setPublishing] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [activeTab, setActiveTab] = useState<"configure" | "test" | "deploy">("configure");
+  const [activeTab, setActiveTab] = useState<"configure" | "code" | "test" | "deploy">("configure");
+  const [editedCode, setEditedCode] = useState("");
+  const [savingCode, setSavingCode] = useState(false);
+  const [codeSaved, setCodeSaved] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const supabase = createClientComponentClient();
@@ -106,6 +113,41 @@ export default function BotPage({ params }: { params: { botId: string } }) {
       setPublishing(false);
     }
   };
+
+  const handleSaveCode = async () => {
+    if (!bot) return;
+
+    try {
+      setSavingCode(true);
+      setCodeSaved(false);
+
+      const { error } = await supabase
+        .from('bots')
+        .update({ hivelang_code: editedCode })
+        .eq('id', params.botId);
+
+      if (error) throw error;
+
+      // Update local state
+      setBot(prev => prev ? { ...prev, hivelang_code: editedCode, code: editedCode } : null);
+      setCodeSaved(true);
+
+      // Reset saved indicator after 3 seconds
+      setTimeout(() => setCodeSaved(false), 3000);
+    } catch (error) {
+      console.error("Error saving code:", error);
+      alert("Failed to save code. Please try again.");
+    } finally {
+      setSavingCode(false);
+    }
+  };
+
+  // Initialize editedCode when bot loads
+  useEffect(() => {
+    if (bot) {
+      setEditedCode(bot.hivelang_code || bot.code || "");
+    }
+  }, [bot]);
 
   if (loading) {
     return (
@@ -194,7 +236,7 @@ export default function BotPage({ params }: { params: { botId: string } }) {
                 "rounded-2xl border overflow-hidden",
                 isDark ? "bg-zinc-900/50 border-white/10" : "bg-zinc-50 border-black/5"
               )}>
-                <AIBotAssistant botId={params.botId} />
+                <AIBotAssistant botId={(Array.isArray(params.botId) ? params.botId[0] : params.botId) || ""} />
               </div>
             </motion.div>
           )}
@@ -204,6 +246,7 @@ export default function BotPage({ params }: { params: { botId: string } }) {
         <div className="flex items-center gap-1 mb-8 border-b border-black/5 dark:border-white/10 pb-1">
           {[
             { id: "configure", label: "Configuration", icon: Settings },
+            { id: "code", label: "Code", icon: Code },
             { id: "test", label: "Playground", icon: Play },
             { id: "deploy", label: "Deployment", icon: Zap }
           ].map((tab) => (
@@ -326,10 +369,91 @@ export default function BotPage({ params }: { params: { botId: string } }) {
               </div>
             )}
 
+            {activeTab === "code" && (
+              <div className="space-y-6">
+                <div className={cn(
+                  "p-6 rounded-2xl border",
+                  isDark ? "bg-zinc-900/30 border-white/10" : "bg-white border-black/5 shadow-sm"
+                )}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-lg font-semibold">Hivelang Code</h2>
+                      <p className="text-sm text-zinc-500">
+                        Write your bot's logic using Hivelang syntax.
+                        {!editedCode && (
+                          <span className="ml-2 text-yellow-600 dark:text-yellow-400">⚠️ No code saved yet</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {codeSaved && (
+                        <span className="flex items-center gap-1 text-green-600 text-sm">
+                          <Check className="w-4 h-4" /> Saved
+                        </span>
+                      )}
+                      <button
+                        onClick={handleSaveCode}
+                        disabled={savingCode}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                          "bg-purple-600 text-white hover:bg-purple-700",
+                          "disabled:opacity-50 disabled:cursor-not-allowed"
+                        )}
+                      >
+                        {savingCode ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Save Code
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={editedCode}
+                    onChange={(e) => setEditedCode(e.target.value)}
+                    placeholder={`# Example Hivelang code
+agent MyBot
+  on input
+    if input contains "hello"
+      say "Hello! How can I help you today?"
+    end
+    
+    if input contains "create schedule"
+      call integrations.createNotionDatabase with title: "My Schedule", parent_page_id: "YOUR_PAGE_ID" as db
+      say "Created: " + db.url
+    end
+  end
+end`}
+                    className={cn(
+                      "w-full h-[500px] p-4 rounded-xl font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500",
+                      isDark
+                        ? "bg-zinc-950 border border-white/10 text-white placeholder-zinc-600"
+                        : "bg-zinc-50 border border-black/10 text-black placeholder-zinc-400"
+                    )}
+                  />
+
+                  <div className="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Tip:</strong> After saving your code, go to the <strong>Playground</strong> tab to test it.
+                      Your bot will execute this Hivelang code when you chat with it.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeTab === "test" && (
               <div className="h-[600px] w-full">
                 <AIChatInterface
                   botCapabilities={parseStringList(bot.capabilities || bot.skills || [])}
+                  hivelangCode={bot.hivelang_code || bot.code}
                 />
               </div>
             )}

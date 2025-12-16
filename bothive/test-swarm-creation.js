@@ -1,5 +1,5 @@
 // Test swarm creation with authentication fix
-const http = require('http');
+const https = require('https');
 
 // Load environment variables
 require('fs').readFileSync('.env.local', 'utf8').split('\n').forEach(line => {
@@ -36,7 +36,7 @@ const options = {
   }
 };
 
-const req = http.request(options, (res) => {
+const req = https.request(options, (res) => {
   let data = '';
   
   res.on('data', (chunk) => {

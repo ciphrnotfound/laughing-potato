@@ -46,18 +46,17 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    // Initialize theme during state creation to avoid setState in effect
-    if (typeof window === "undefined") return "dark";
-    const stored = getStoredTheme();
-    return stored || getSystemTheme();
-  });
-  const [mounted, setMounted] = useState(() => typeof window !== "undefined");
+  const [theme, setThemeState] = useState<Theme>("dark");
+  const [mounted, setMounted] = useState(false);
 
-  // Apply theme on mount and when theme changes
+  // Initialize theme on mount
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    const stored = getStoredTheme();
+    const initial = stored || getSystemTheme();
+    setThemeState(initial);
+    applyTheme(initial);
+    setMounted(true);
+  }, []);
 
   // Listen for system theme changes
   useEffect(() => {

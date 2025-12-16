@@ -1,7 +1,6 @@
 import { aiClient, AI_MODEL } from "@/lib/ai-client";
 import { executeReAct } from "@/lib/agents/react-engine";
-import { ToolDescriptor, ToolContext } from "@/lib/agentTypes";
-import type { ReActStep } from "@/lib/agents";
+import { ToolDescriptor, ToolContext, ToolResult } from "@/lib/agentTypes";
 
 export interface WorkforcePlan {
     roles: string[]; // e.g., ["Research Agent", "Writing Agent"]
@@ -17,14 +16,8 @@ export interface WorkforceRunOptions {
 
 export interface WorkforceIteration {
     outputs: Record<string, string>;
-    steps: Record<string, ReActStep[]>;
-    busSnapshot: BusMessage[];
-}
-
-interface BusMessage {
-    sender: string;
-    content: string;
-    timestamp: number;
+    steps: Record<string, any[]>;
+    busSnapshot: any[];
 }
 
 export interface WorkforceRunResult {
@@ -58,7 +51,7 @@ export async function runDigitalWorkforceHeavy(
         // Ensure bus exists
         await options.toolContext.sharedMemory.set("bus", []);
 
-        const currentRoles = [...plan.roles];
+        let currentRoles = [...plan.roles];
         let loop = 0;
 
         while (loop < 3) {
@@ -74,7 +67,7 @@ export async function runDigitalWorkforceHeavy(
         }
 
         const outputs: Record<string, string> = {};
-        const steps: Record<string, ReActStep[]> = {};
+        const steps: Record<string, any[]> = {};
 
         // Run all agents in parallel for this iteration
         await Promise.all(
@@ -111,7 +104,7 @@ export async function runDigitalWorkforceHeavy(
 
         // Snapshot bus after agents finished
         const busRaw = await options.toolContext.sharedMemory.get("bus");
-        const busSnapshot: BusMessage[] = Array.isArray(busRaw) ? (busRaw as BusMessage[]) : [];
+        const busSnapshot = Array.isArray(busRaw) ? busRaw : [];
         const iterationPayload: WorkforceIteration = {
             outputs: { ...outputs },
             steps: { ...steps },
@@ -123,8 +116,8 @@ export async function runDigitalWorkforceHeavy(
 
         // Parse bus for new role requests
         const requestedRoles: string[] = busSnapshot
-            .filter((m) => typeof m.content === "string" && m.content.toLowerCase().includes("@orchestrator request:"))
-            .flatMap((m) => {
+            .filter((m: any) => typeof m.content === "string" && m.content.toLowerCase().includes("@orchestrator request:"))
+            .flatMap((m: any) => {
                 const match = m.content.match(/request:\s*([A-Za-z0-9 _-]+)/i);
                 return match ? [match[1].trim()] : [];
             })

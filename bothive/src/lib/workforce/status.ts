@@ -12,7 +12,7 @@ export interface WorkforceStatusPayload {
     jobId?: string;
     progress?: number;
     iterations?: WorkforceIteration[];
-    result?: unknown;
+    result?: any;
     error?: string;
 }
 
@@ -33,11 +33,9 @@ export async function getWorkforceStatus(id: string): Promise<WorkforceStatusPay
         const state = await job.getState();
         const progressData = job.progress as number | { percent?: number; iterations?: WorkforceIteration[] };
         const progress = typeof progressData === "number" ? progressData : progressData?.percent ?? 0;
-        const liveIterations = typeof progressData === "number"
-            ? undefined
-            : Array.isArray(progressData?.iterations)
-                ? progressData.iterations
-                : undefined;
+        const liveIterations = Array.isArray((progressData as any)?.iterations)
+            ? ((progressData as any)?.iterations as WorkforceIteration[])
+            : undefined;
 
         if (state === "completed") {
             const persisted = await getPersistedResult(id);

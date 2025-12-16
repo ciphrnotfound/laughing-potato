@@ -482,6 +482,91 @@ export interface Database {
                     updated_at?: string
                 }
             }
+            integrations: {
+                Row: {
+                    id: string
+                    slug: string
+                    name: string
+                    description: string | null
+                    category: string | null
+                    type: string | null
+                    features: Json | null
+                    pricing_model: string | null
+                    documentation_url: string | null
+                    setup_time: string | null
+                    hivelang_code: string | null
+                    is_active: boolean
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    slug?: string
+                    name: string
+                    description?: string | null
+                    category?: string | null
+                    type?: string | null
+                    features?: Json | null
+                    pricing_model?: string | null
+                    documentation_url?: string | null
+                    setup_time?: string | null
+                    hivelang_code?: string | null
+                    is_active?: boolean
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    slug?: string
+                    name?: string
+                    description?: string | null
+                    category?: string | null
+                    type?: string | null
+                    features?: Json | null
+                    pricing_model?: string | null
+                    documentation_url?: string | null
+                    setup_time?: string | null
+                    hivelang_code?: string | null
+                    is_active?: boolean
+                    created_at?: string
+                }
+            }
+            user_integrations: {
+                Row: {
+                    id: string
+                    user_id: string
+                    integration_id: string
+                    access_token: string | null
+                    refresh_token: string | null
+                    expires_at: string | null
+                    additional_config: Json | null
+                    status: string
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    integration_id: string
+                    access_token?: string | null
+                    refresh_token?: string | null
+                    expires_at?: string | null
+                    additional_config?: Json | null
+                    status?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    integration_id?: string
+                    access_token?: string | null
+                    refresh_token?: string | null
+                    expires_at?: string | null
+                    additional_config?: Json | null
+                    status?: string
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
         }
         Views: {
             [_ in never]: never

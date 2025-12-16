@@ -12,7 +12,9 @@ import { createNotionPage } from "@/lib/integrations/notion";
 import { calendarTools as newCalendarTools } from "./calendar-tools";
 import { zoomTools } from "./zoom-tools";
 import { notionTools } from "./notion-tools";
+import { knowledgeTools } from "./knowledge-tools";
 import { emailTools } from "./email-tools";
+import { youtubeTools } from "./youtube-tools";
 import { botCompositionTools } from "./bot-composition-tools";
 import { generateText as runGrokCommand } from "@/lib/ai-client";
 import { aiTools as importedAiTools } from "./ai-tools";
@@ -23,8 +25,6 @@ import { visionTools as importedVisionTools } from "./vision-tools";
 import { analysisTools as importedAnalysisTools } from "./analysis-tools";
 import { googleDocsTools as importedGoogleDocsTools } from "./google-docs-tools";
 import { knowledgeTools as importedKnowledgeTools } from "./knowledge-tools";
-
-
 
 
 // Re-export agent tools
@@ -200,6 +200,7 @@ export const integrationTools: ToolDescriptor[] = [
   ...zoomTools,
   ...notionTools,
   ...emailTools,
+  ...youtubeTools,
 ];
 
 export const generalTools: ToolDescriptor[] = [
@@ -479,7 +480,7 @@ Return up to ${limit} representative messages in this JSON format (array only):
 Only output JSON.`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to reach language model.";
@@ -566,7 +567,7 @@ Respond as JSON only:
 }`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to reach language model.";
@@ -602,7 +603,7 @@ Return JSON only:
 }`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to reach language model.";
@@ -688,7 +689,7 @@ export const codingTools: ToolDescriptor[] = [
       const language = typeof args.language === "string" ? args.language : "typescript";
       const task = typeof args.task === "string" ? args.task : "";
       const prompt = `You are a senior engineer. Language: ${language}. Task: ${task}. Provide well-structured code with concise commentary.`;
-      const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+      const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
       await ctx.sharedMemory.append("code-snippets", { language, output });
       return { success: true, output };
     },
@@ -699,7 +700,7 @@ export const codingTools: ToolDescriptor[] = [
     description: "Review a code snippet and highlight improvements",
     async run(args) {
       const code = typeof args.code === "string" ? args.code : "";
-      const output = await runGrokCommand(`Review this code and suggest improvements:\n\n${code}`, GROQ_MODEL_CANDIDATES);
+      const output = await runGrokCommand(`Review this code and suggest improvements:\n\n${code}`, GROQ_MODEL_CANDIDATES[0]);
       return { success: true, output };
     },
   },
@@ -726,7 +727,7 @@ export const studyTools: ToolDescriptor[] = [
       const subject = typeof args.subject === "string" ? args.subject : "the topic";
       const output = await runGrokCommand(
         `Create 5 flashcards about ${subject}. Format each as "Q: ..." on one line and "A: ..." on the next line.`,
-        GROQ_MODEL_CANDIDATES
+        GROQ_MODEL_CANDIDATES[0]
       );
       return { success: true, output };
     },
@@ -772,7 +773,7 @@ For each topic, respond in this JSON format (array only, no extra text):
 Only output valid JSON.`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to reach language model.";
@@ -824,7 +825,7 @@ Return your answer as JSON only in this shape:
 }`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to reach language model.";
@@ -894,7 +895,7 @@ Please provide:
 Return only the code with explanations.`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to generate code.";
@@ -940,7 +941,7 @@ Please provide:
 Format your response clearly with sections.`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to review code.";
@@ -979,7 +980,7 @@ Please provide:
 Be thorough and educational in your explanation.`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to debug code.";
@@ -1016,7 +1017,7 @@ Please provide:
 Focus on making the code cleaner, more maintainable, and following ${language} best practices.`;
 
       try {
-        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES);
+        const output = await runGrokCommand(prompt, GROQ_MODEL_CANDIDATES[0]);
         return { success: true, output };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to refactor code.";
@@ -1249,6 +1250,10 @@ Focus on making the code cleaner, more maintainable, and following ${language} b
     },
   },
 ];
+
+// Define automationTools and hivelangGeneratedTools as empty arrays
+export const automationTools: ToolDescriptor[] = [];
+export const hivelangGeneratedTools: ToolDescriptor[] = [];
 
 // Export all tools combined
 export const allTools = [

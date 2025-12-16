@@ -429,7 +429,7 @@ async function generateResponse(prompt: string, botCode: string, config: any): P
     return generateLocalResponse(prompt, config);
 }
 
-function extractSystemPrompt(botCode: string, config: { name?: string; description?: string }): string {
+function extractSystemPrompt(botCode: string, config: any): string {
     // Try to extract description from bot code
     const descMatch = botCode.match(/@description\s+"([^"]+)"/);
     const desc = descMatch ? descMatch[1] : config.description || '';
@@ -438,7 +438,7 @@ function extractSystemPrompt(botCode: string, config: { name?: string; descripti
 Be helpful, concise, and friendly. This is a dev environment for testing.`;
 }
 
-function generateLocalResponse(prompt: string, config: { name?: string; description?: string }): string {
+function generateLocalResponse(prompt: string, config: any): string {
     const lower = prompt.toLowerCase();
 
     if (lower.match(/^(hi|hello|hey|greetings)/)) {

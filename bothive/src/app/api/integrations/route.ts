@@ -6,60 +6,73 @@ import { cookies } from "next/headers";
 export async function GET(request: NextRequest) {
     try {
         const cookieStore = await cookies();
-        const supabase = createServerClient(
+
+        // 1. Get current User (for mapping connections)
+        const supabaseAuth = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value
-                    },
-                    set(name: string, value: string, options: any) {
-                        cookieStore.set({ name, value, ...options })
-                    },
-                    remove(name: string, options: any) {
-                        cookieStore.set({ name, value: '', ...options })
-                    },
+                    get(name: string) { return cookieStore.get(name)?.value },
+                    set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }) },
+                    remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }) },
                 },
             }
         );
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+
+        // 2. Init Admin Client (Bypass RLS)
+        // We import the createClient from specifically supabase-js for the admin client 
+        // to avoid any cookie/ssr confusion, although createServerClient would work too if config'd right.
+        // But let's use the standard creating for admin tasks.
+        const { createClient } = await import("@supabase/supabase-js");
+        const adminDb = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
         const { searchParams } = new URL(request.url);
-
-        // Query params
         const category = searchParams.get("category");
         const search = searchParams.get("search");
         const official = searchParams.get("official");
 
-        let query = supabase
+        // 3. Fetch Integrations (Admin Level)
+        let query = adminDb
             .from("integrations")
             .select("*")
-            .in("status", ["active", "beta"]) // Include both active and beta
             .order("created_at", { ascending: false });
 
-        // Filter by category
-        if (category && category !== "all") {
-            query = query.eq("category", category);
+        if (category && category !== "all") query = query.eq("category", category);
+        if (official === "true") query = query.eq("is_official", true);
+        if (search) query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+
+        const { data: integrations, error: intError } = await query;
+
+        if (intError) throw intError;
+
+        // 4. Fetch User Connections (if logged in)
+        let userConnections: any[] = [];
+        if (user) {
+            const { data: inviteData } = await adminDb
+                .from("user_integrations")
+                .select("integration_id, status")
+                .eq("user_id", user.id);
+
+            userConnections = inviteData || [];
         }
 
-        // Filter by official
-        if (official === "true") {
-            query = query.eq("is_official", true);
-        }
+        // 5. Merge Data
+        const enrichedIntegrations = integrations?.map((integration) => {
+            const conn = userConnections.find(c => c.integration_id === integration.id);
+            return {
+                ...integration,
+                is_connected: !!conn,
+                connection_status: conn?.status || 'disconnected'
+            };
+        });
 
-        // Search by name or description
-        if (search) {
-            query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
-        }
+        return NextResponse.json({ integrations: enrichedIntegrations });
 
-        const { data, error } = await query;
-
-        if (error) {
-            console.error("Error fetching integrations:", error);
-            return NextResponse.json({ error: error.message }, { status: 500 });
-        }
-
-        return NextResponse.json({ integrations: data });
     } catch (error: any) {
         console.error("Error in GET /api/integrations:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });

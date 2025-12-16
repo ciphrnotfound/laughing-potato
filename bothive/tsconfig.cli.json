@@ -1,0 +1,23 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "commonjs",
+        "outDir": "./dist",
+        "target": "es2019",
+        "lib": [
+            "es2019",
+            "dom"
+        ],
+        "noEmit": false,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ]
+        }
+    },
+    "include": [
+        "src/cli.ts",
+        "src/lib/**/*"
+    ]
+}

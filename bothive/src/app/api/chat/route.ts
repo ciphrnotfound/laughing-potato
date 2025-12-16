@@ -6,6 +6,7 @@ import { TIER_CONFIG, SubscriptionTier } from "@/lib/subscription-tiers";
 import { executeHiveLangProgram } from "@/lib/agents/hivelang-executor";
 import { allTools as ALL_TOOLS } from "@/lib/tools";
 import { ToolContext } from "@/lib/agentTypes";
+import { createSharedMemory } from "@/lib/sharedMemory";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -83,19 +84,19 @@ export async function POST(request: NextRequest) {
         if (hivelangCode && hivelangCode.trim().length > 0) {
             console.log("Chat: Executing HiveLang Code...");
 
-            // Create context
+            // Create execution record for shared memory
+            const executionId = "chat-" + Date.now();
+            
+            // Create context with proper shared memory
+            const sharedMemory = createSharedMemory(executionId);
             const toolContext: ToolContext = {
                 metadata: {
                     botId: "ephemeral-chat-bot",
-                    runId: "chat-" + Date.now(),
+                    runId: executionId,
                     userId: user?.id,
                     botSystemPrompt: systemPrompt
                 },
-                sharedMemory: {
-                    get: async () => undefined,
-                    set: async () => { },
-                    append: async () => { },
-                }
+                sharedMemory
             };
 
             // Execute
@@ -125,7 +126,17 @@ export async function POST(request: NextRequest) {
             if (!result.success) {
                 console.warn("HiveLang execution failed:", result.error);
                 return NextResponse.json({
-                    response: `⚠️ **Agent Execution Failed**\n\nI tried to run your Hivelang code, but encountered an error:\n> ${result.error}\n\n*Check your API credentials in the Configure Panel.*`,
+                    response: `⚠️ **Tool Execution Failed**
+
+I tried to use tools but encountered an error:
+> ${result.error}
+
+**To fix this:**
+• Make sure your integrations are connected in Settings
+• Check that required parameters are provided
+• Verify you have the necessary permissions
+
+*This error came from the tool itself, not the AI.*`,
                     model: "HiveLang v2 (Error)",
                     agentic: true
                 });

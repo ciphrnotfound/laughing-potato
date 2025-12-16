@@ -52,7 +52,7 @@ const TEMPLATES: Template[] = [
         label: "Study Buddy",
         blurb: "Your personal AI tutor: explains concepts, creates quizzes, and generates flashcards.",
         type: "bot",
-        capabilities: ["Tutoring", "Quizzes", "Flashcards", "Explanations"],
+        capabilities: ["Tutoring", "Notion", "YouTube", "Email", "WhatsApp"],
     },
     {
         id: "surreal_oracle",
@@ -179,6 +179,8 @@ const DEFAULT_TOOLS: ToolEntry[] = [
     { id: "http.request", name: "HTTP Request", description: "Make external API calls", enabled: false },
     { id: "email.send", name: "Email Sender", description: "Send emails via integrations", enabled: false },
     { id: "calendar.manage", name: "Calendar Manager", description: "Book and manage events", enabled: false },
+    { id: "integrations.createNotionPage", name: "Notion: Create Page", description: "Create pages in Notion", enabled: false },
+    { id: "integrations.createNotionDatabase", name: "Notion: Create Database", description: "Create databases in Notion", enabled: false },
 ];
 
 // Template-specific source code
@@ -193,14 +195,15 @@ const TEMPLATE_SOURCES: Record<string, string> = {
 end
 `,
     study_buddy: `bot StudyBuddy
-  description "Your personal AI tutor for any subject"
+  description "Your personal AI tutor with Notion, YouTube, and communication powers"
   
   memory session
     var currentTopic string
     var studentLevel string
-    var quizScore int
+    var notionPageId string
   end
   
+  # Tutoring Flow
   on input when input.command == "explain"
     set $currentTopic to input.topic
     
@@ -212,36 +215,74 @@ end
     say "📚 Let me explain " + $currentTopic + ":\\n\\n" + explanation.output
   end
   
+  # Resource Gathering (YouTube)
+  on input when input.command == "resources"
+    call integrations.youtube.search with {
+      query: $currentTopic ?? input.topic,
+      limit: 3
+    } as videos
+    
+    say "📺 I found these videos for you:\\n"
+    
+    # Create a playlist for them
+    var vidIds array
+    # Logic to extract IDs (simplified)
+    # call integrations.youtube.createPlaylist with { title: "Study: " + $currentTopic, videoIds: vidIds } as playlist
+    # say "I also made a playlist: " + playlist.url
+    
+    say videos.output
+  end
+
+  # Notion Integration
+  on input when input.command == "save_notes"
+    call integrations.createNotionPage with {
+      title: "Study Notes: " + ($currentTopic ?? "General"),
+      content: input.notes ?? "Notes from session on " + $currentTopic
+    } as page
+    
+    set $notionPageId to page.page_id
+    say "✅ Saved notes to Notion: " + page.url
+  end
+  
+  # Quiz & Flashcards
   on input when input.command == "quiz"
     call study.quiz with {
       topic: $currentTopic ?? input.topic,
-      count: input.count ?? 5,
-      difficulty: $studentLevel ?? "medium"
+      count: 3
     } as quiz
-    
     say "🧠 Quiz Time!\\n\\n" + quiz.output
   end
   
-  on input when input.command == "flashcards"
-    call study.flashcards with {
-      topic: $currentTopic ?? input.topic,
-      count: input.count ?? 10
-    } as cards
-    
-    say "🃏 Here are your flashcards:\\n\\n" + cards.output
+  # Communication
+  on input when input.command == "email_summary"
+    call email.send with {
+      to: input.email,
+      subject: "Study Summary: " + $currentTopic,
+      body: "Here is what we covered today regarding " + $currentTopic + "..."
+    } as mail
+    say "📧 Sent summary to email."
   end
-  
+
+  on input when input.command == "whatsapp_remind"
+    call integrations.whatsapp.send with {
+      to: input.phone,
+      body: "Don't forget to review " + $currentTopic + " tomorrow!"
+    } as msg
+    say "📱 WhatsApp reminder set."
+  end
+
+  # General Chat
   on input
-    # General tutoring conversation
     call general.respond with {
       prompt: """
-        You are Study Buddy, a friendly AI tutor.
-        Current topic: """ + ($currentTopic ?? "not set") + """
-        Student level: """ + ($studentLevel ?? "unknown") + """
+        You are Study Buddy.
+        Current Topic: """ + ($currentTopic ?? "None") + """
         
-        Help the student with: """ + input.message
+        If user asks for resources, suggest 'resources'.
+        If they want to save, suggest 'save_notes'.
+        
+        User: """ + input.message
     } as response
-    
     say response.output
   end
 end
@@ -585,6 +626,16 @@ export default function BuilderWizard() {
                 setTools(prev => prev.map(t => ({
                     ...t,
                     enabled: ["general.respond", "code.generate", "code.review", "agent.analyze"].includes(t.id)
+                })));
+            } else if (id === "study_buddy") {
+                setTools(prev => prev.map(t => ({
+                    ...t,
+                    enabled: ["general.respond", "study.quiz", "email.send", "integrations.youtube.search", "integrations.createNotionPage", "integrations.createNotionDatabase"].includes(t.id)
+                })));
+            } else if (id === "study_buddy_swarm") {
+                setTools(prev => prev.map(t => ({
+                    ...t,
+                    enabled: ["general.respond", "study.quiz", "email.send", "integrations.youtube.search", "integrations.createNotionPage", "integrations.createNotionDatabase", "calendar.manage"].includes(t.id)
                 })));
             }
         }

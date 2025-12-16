@@ -47,7 +47,7 @@ async function testAIGeneration() {
     - Triggers: Webhook, Schedule (Cron), Email, Form Submit
     - Integrations: ${availableIntegrations?.join(', ') || 'Slack, Gmail, HubSpot'}
     - Logic: Condition, Loop, delay
-    - User's Custom Bots: ${availableBots?.map((b) => `${b.name} (${b.id})`).join(', ') || 'None'}
+    - User's Custom Bots: ${availableBots?.map((b: any) => `${b.name} (${b.id})`).join(', ') || 'None'}
 
     Output Rules:
     1. Return ONLY valid JSON. No markdown.

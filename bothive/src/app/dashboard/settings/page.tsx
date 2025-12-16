@@ -235,6 +235,53 @@ export default function SettingsPage() {
           </div>
         );
 
+      case 'integrations':
+        return (
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-xl font-bold text-neutral-900 dark:text-white mb-1">Integrations</h2>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">Manage external tool connections.</p>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-white dark:bg-neutral-800 flex items-center justify-center border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                  {/* Notion Icon Replacement if Image not available, using text for now or generic icon */}
+                  <span className="font-bold text-lg">N</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-neutral-900 dark:text-white">Notion</h3>
+                  <p className="text-sm text-neutral-500">Connect your workspace for knowledge management.</p>
+                </div>
+                <div className="ml-auto px-3 py-1 rounded-full bg-green-500/10 text-green-600 text-xs font-medium border border-green-500/20">
+                  Active
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                    Root Page ID
+                  </label>
+                  <p className="text-xs text-neutral-500 mb-2">
+                    The ID of the page where new databases will be created.
+                  </p>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      placeholder="e.g. 1a2b3c..."
+                      className="flex-1 px-4 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                    />
+                    <button className="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                      Update
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -263,7 +310,10 @@ export default function SettingsPage() {
         {/* Sidebar */}
         <div className="w-full md:w-64 flex-shrink-0">
           <nav className="space-y-1 sticky top-6">
-            {SETTINGS_SECTIONS.map(section => {
+            {[
+              ...SETTINGS_SECTIONS,
+              { id: 'integrations', name: 'Integrations', icon: DatabaseIcon }
+            ].map(section => {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
               return (

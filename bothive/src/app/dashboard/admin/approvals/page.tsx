@@ -3,10 +3,16 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "@/lib/theme-context";
 import { DashboardPageShell } from "@/components/DashboardPageShell";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
 import { Loader2, CheckCircle2, XCircle, Clock, Bot, User, Plug } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Initialize Supabase client
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface PendingItem {
     id: string;
@@ -23,7 +29,6 @@ interface PendingItem {
 
 export default function AdminApprovalsPage() {
     const { theme } = useTheme();
-    const supabase = createClientComponentClient();
     const [activeTab, setActiveTab] = useState<'bots' | 'integrations'>('bots');
     const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -37,31 +42,15 @@ export default function AdminApprovalsPage() {
 
             let items: any[] = [];
             let table = activeTab === 'bots' ? 'bots' : 'integrations';
+            let statusQuery = activeTab === 'bots' ? 'pending_approval' : 'pending';
 
-            const query = supabase
+            const { data, error } = await supabase
                 .from(table)
                 .select('*')
+                .eq('status', statusQuery)
                 .order('created_at', { ascending: false });
 
-            // Handle different schemas for bots vs integrations
-            if (activeTab === 'bots') {
-                // New schema uses approval_status
-                query.eq('approval_status', 'pending_review');
-            } else {
-                // Integrations might still use the old status
-                query.in('status', ['pending', 'beta']);
-            }
-
-            console.log(`[Admin] Fetching ${table} pending items...`);
-            const { data, error } = await query;
-
-            if (error) {
-                console.error("[Admin] Supabase error:", error);
-                throw error;
-            }
-
-            console.log(`[Admin] Fetched ${data?.length} items from ${table}`, data);
-
+            if (error) throw error;
             if (!data) return;
 
             items = data.map(item => ({ ...item, source: activeTab }));
@@ -74,17 +63,16 @@ export default function AdminApprovalsPage() {
                     .select('id, email')
                     .in('id', userIds);
 
-                // Map authors to items
-                const userMap = new Map(users?.map(u => [u.id, u]) || []);
+                const userMap = new Map(users?.map(u => [u.id, u.email]));
                 items = items.map(item => ({
                     ...item,
-                    author_email: userMap.get(item.user_id)?.email || 'Unknown'
+                    author_email: userMap.get(item.user_id) || 'Unknown User'
                 }));
             }
 
             setPendingItems(items);
         } catch (error) {
-            console.error("Error fetching pending items:", error);
+            console.error(`Error fetching pending ${activeTab}:`, error);
         } finally {
             setLoading(false);
         }
@@ -97,38 +85,25 @@ export default function AdminApprovalsPage() {
     const handleApproval = async (itemId: string, approve: boolean) => {
         try {
             setActionLoading(itemId);
+            const newStatus = approve ? 'active' : 'rejected';
+            // For bots, 'active' is standard. For integrations, 'active' usually means 'connected' but here it means 'approved/public'
+            // Let's stick to 'active' as the approved state for both as established in migration.
+
             const table = activeTab === 'bots' ? 'bots' : 'integrations';
-            
-            // Prepare update payload
-            // Constraint valid_status: pending, approved, rejected
-            // RLS requires: status = 'approved' AND is_published = true
-            const updates = approve 
-                ? { 
-                    approval_status: 'approved', 
-                    status: 'approved',
-                    is_published: true,
-                    approved_at: new Date().toISOString()
-                  }
-                : { 
-                    approval_status: 'rejected', 
-                    status: 'rejected',
-                    is_published: false,
-                    rejection_reason: "Does not meet guidelines"
-                  };
 
             const { error } = await supabase
                 .from(table)
-                .update(updates)
+                .update({ status: newStatus })
                 .eq('id', itemId);
 
             if (error) throw error;
 
             // Remove from list
-            setPendingItems(prev => prev.filter(item => item.id !== itemId));
+            setPendingItems(prev => prev.filter(b => b.id !== itemId));
 
-        } catch (error: any) {
+        } catch (error) {
             console.error(`Error ${approve ? 'approving' : 'rejecting'} item:`, error);
-            alert(`Failed to update status: ${error.message || "Unknown error"}`);
+            alert('Failed to update status');
         } finally {
             setActionLoading(null);
         }

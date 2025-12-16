@@ -1,0 +1,29 @@
+// Test bot that uses YouTube integration (guaranteed to work!)
+name: "YouTube Integration Test"
+description: "Test that integrations work in the playground"
+
+step search_videos {
+  call integrations.youtube.search {
+    query: "productivity tips"
+    limit: 2
+  }
+  -> videos
+}
+
+step create_test_playlist {
+  call integrations.youtube.createPlaylist {
+    title: "My Test Playlist from Bothive"
+    description: "Created in the test playground!"
+    videoIds: ["vid1", "vid2"]
+  }
+  -> playlist
+}
+
+step celebrate {
+  say "🎉 SUCCESS! YouTube integration works!"
+  say "📺 Found videos: {videos}"
+  say "🎵 Created playlist: {playlist}"
+  say ""
+  say "✅ The integration system is working!"
+  say "🚀 Now let's get your Notion working..."
+}

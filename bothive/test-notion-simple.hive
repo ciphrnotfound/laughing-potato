@@ -1,0 +1,16 @@
+// Simple Notion test bot
+name: "Notion Test Bot"
+description: "Test Notion integration"
+
+step test_notion {
+  call integrations.createNotionPage {
+    title: "Test Page from Bothive"
+    content: "This is a test page created by my Bothive bot!"
+    parent_page_id: "YOUR_PAGE_ID_HERE"  // You need to provide a real Notion page ID
+  }
+  -> result
+}
+
+step show_result {
+  say "Notion test result: {result}"
+}

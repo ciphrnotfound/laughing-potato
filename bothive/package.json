@@ -13,7 +13,12 @@
     "auto-cron": "node scripts/auto-cron.js",
     "smart-cron": "node scripts/smart-cron.js",
     "whatsapp-reminder": "node scripts/whatsapp-reminder-cron.js",
-    "workforce:worker": "tsx scripts/start-workforce.ts"
+    "whatsapp-reminder": "node scripts/whatsapp-reminder-cron.js",
+    "workforce:worker": "tsx scripts/start-workforce.ts",
+    "build:cli": "tsc -p tsconfig.cli.json"
+  },
+  "bin": {
+    "bothive": "./dist/cli.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

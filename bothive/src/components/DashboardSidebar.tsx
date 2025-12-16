@@ -107,36 +107,9 @@ const ROLE_CONFIG: Record<string, SidebarItem[]> = {
   ]
 };
 
-interface DashboardSidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void; // Unused in Sidebar currently, but passed by Wrapper
-  onCollapseChange?: (collapsed: boolean) => void;
-}
-
-export default function DashboardSidebar({ isOpen: externalOpen, onClose, onCollapseChange }: DashboardSidebarProps = {}) {
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  // Resolve controlled vs uncontrolled state
-  const open = externalOpen !== undefined ? externalOpen : internalOpen;
-
-  // Custom setter to handle both internal state and callbacks
-  const setOpen = (value: boolean | ((prevState: boolean) => boolean)) => {
-    const nextOpen = typeof value === 'function' ? value(open) : value;
-
-    if (externalOpen === undefined) {
-      setInternalOpen(nextOpen);
-    }
-
-    if (onCollapseChange) {
-      onCollapseChange(!nextOpen);
-    }
-
-    // If we're closing and there's an onClose handler (e.g. for mobile drawers)
-    if (!nextOpen && onClose) {
-      onClose();
-    }
-  };
-  const [role, setRole] = useState<string>("business");
+export default function DashboardSidebar() {
+  const [open, setOpen] = useState(false);
+  const [role, setRole] = useState<string | null>(null); // Start with null to indicate loading/unknown
   const [userEmail, setUserEmail] = useState<string>("");
   const [teamName, setTeamName] = useState<string>("");
 
@@ -147,9 +120,7 @@ export default function DashboardSidebar({ isOpen: externalOpen, onClose, onColl
       if (user) {
         setUserEmail(user.email || "");
 
-        // TEMPORARY: For Development/Demo, checking if user wants to see teams view (e.g. strict email check or local storage)
-        // In production, this comes from the DB profile.
-        // I will add a manual toggle in the UI later, but for now defaulting 'teams' if email contains 'founder'.
+        // TEMPORARY: For Development/Demo, checking if user wants to see teams view
         if (user.email?.includes("founder") || localStorage.getItem("bothive_role_override") === "teams") {
           setRole("teams");
           return;
@@ -163,28 +134,28 @@ export default function DashboardSidebar({ isOpen: externalOpen, onClose, onColl
 
         // Database Check
         const { data: userProfile } = await supabase
-          .from("users")
-          .select("role")
-          .eq("id", user.id)
+          .from("user_profiles")
+          .select("role, team_name, preferred_name")
+          .eq("user_id", user.id)
           .single();
 
         if (userProfile?.role) {
           setRole(userProfile.role);
+        } else {
+          // Safe Fallback if profile exists but no role (legacy users)
+          // Ideally should be handled by Onboarding, but for safety:
+          setRole("business");
         }
 
-        // Fetch user profile for team name
-        const { data: profileData } = await supabase
-          .from("user_profiles")
-          .select("team_name, preferred_name")
-          .eq("user_id", user.id)
-          .single();
-
-        if (profileData?.team_name) setTeamName(profileData.team_name);
-        else if (profileData?.preferred_name) setTeamName(profileData.preferred_name);
+        if (userProfile?.team_name) setTeamName(userProfile.team_name);
+        else if (userProfile?.preferred_name) setTeamName(userProfile.preferred_name);
       }
     };
     fetchUserRole();
   }, []);
+
+  // While loading role, return null or a skeleton to prevent flash of wrong content
+  if (!role) return null;
 
   const links = ROLE_CONFIG[role] || ROLE_CONFIG.business;
 

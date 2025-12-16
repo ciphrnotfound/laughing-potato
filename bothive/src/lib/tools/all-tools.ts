@@ -8,7 +8,6 @@ import {
     integrationTools,
     agentTools
 } from "@/lib/tools";
-import { realDataTools } from "@/lib/tools/real-data-tools";
 
 export const allTools: ToolDescriptor[] = [
     ...generalTools,
@@ -17,6 +16,5 @@ export const allTools: ToolDescriptor[] = [
     ...socialTools,
     ...messagingTools,
     ...integrationTools,
-    ...agentTools,
-    ...realDataTools
+    ...agentTools
 ];

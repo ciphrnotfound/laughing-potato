@@ -559,7 +559,6 @@ function WorkflowBuilderInner({ workflowId, onBack }: VisualWorkflowBuilderProps
             const response = await fetch('/api/swarm/execute', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include', // Include authentication cookies
                 body: JSON.stringify({ nodes, edges }),
             });
 
@@ -985,7 +984,6 @@ function WorkflowBuilderInner({ workflowId, onBack }: VisualWorkflowBuilderProps
                                                         const res = await fetch('/api/swarm/autopilot', {
                                                             method: 'POST',
                                                             headers: { 'Content-Type': 'application/json' },
-                                                            credentials: 'include', // Include authentication cookies
                                                             body: JSON.stringify({
                                                                 goal: val,
                                                                 availableBots: realUserBots,

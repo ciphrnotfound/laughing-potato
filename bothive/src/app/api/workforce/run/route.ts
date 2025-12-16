@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDigitalWorkforceHeavy as runDigitalWorkforce } from "@/lib/workforce/orchestrator";
-import { allTools } from "@/lib/tools";
-import { createSupabaseSharedMemory } from "@/lib/sharedMemorySupabase";
+import { generalTools, codingTools, studyTools, socialTools, messagingTools, integrationTools, agentTools } from "@/lib/tools";
+import { createSharedMemory } from "@/lib/sharedMemory";
 import { ToolContext } from "@/lib/agentTypes";
 
 export async function POST(req: NextRequest) {
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: "Missing 'request' body param" }, { status: 400 });
     }
 
-    const memStore = createSupabaseSharedMemory(`workforce-run-${Date.now()}`);
+    const memStore = createSharedMemory("workforce-run");
     const sharedMemory: ToolContext["sharedMemory"] = {
         async get(key) {
             return memStore.get(key);
@@ -20,7 +20,13 @@ export async function POST(req: NextRequest) {
             memStore.set(key, value);
         },
         async append(key, value) {
-            await memStore.append(key, value);
+            const existing = (await memStore.get(key)) ?? [];
+            if (Array.isArray(existing)) {
+                existing.push(value);
+                memStore.set(key, existing);
+            } else {
+                memStore.set(key, [existing, value]);
+            }
         },
     };
 
@@ -33,7 +39,15 @@ export async function POST(req: NextRequest) {
         sharedMemory,
     };
 
-    const sharedTools = allTools;
+    const sharedTools = [
+        ...generalTools,
+        ...codingTools,
+        ...studyTools,
+        ...socialTools,
+        ...messagingTools,
+        ...integrationTools,
+        ...agentTools,
+    ];
 
     // Run workforce orchestrator
     const result = await runDigitalWorkforce(request, {

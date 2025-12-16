@@ -13,27 +13,23 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Goal is required" }, { status: 400 });
         }
 
-        // Authentication is optional for blueprint generation
-        // The AI can generate workflows without user context
-        let user = null;
-        try {
-            const cookieStore = await cookies();
-            const supabase = createServerClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-                {
-                    cookies: {
-                        get(name: string) { return cookieStore.get(name)?.value; },
-                        set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
-                        remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
-                    },
-                }
-            );
-            const { data: { user: authUser } } = await supabase.auth.getUser();
-            user = authUser;
-        } catch (authError) {
-            // User is not authenticated, but we can still generate blueprints
-            console.log('User not authenticated, proceeding with anonymous blueprint generation');
+        // Authenticate user
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) { return cookieStore.get(name)?.value; },
+                    set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
+                    remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
+                },
+            }
+        );
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const systemPrompt = `
