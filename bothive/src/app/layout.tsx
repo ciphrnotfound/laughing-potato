@@ -18,9 +18,9 @@ export const metadata: Metadata = {
   description:
     "Build, deploy, and scale autonomous AI agents. Connect them into workflows that work while you sleep.",
   icons: {
-    icon: "/colored-logo (2).png"
+    icon: "/colored-logoa.svg"
   },
-  metadataBase: new URL("https://bothive.example"),
+  metadataBase: new URL("https://bothive.cloud"),
 };
 
 export default function RootLayout({

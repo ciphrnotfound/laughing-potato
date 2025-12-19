@@ -1,0 +1,239 @@
+bot StudyBuddySwarm
+  description "Your ultimate AI study companion with specialized agents"
+  
+  memory session
+    var handled boolean
+  end
+
+  # ═══════════════════════════════════════════════════════════════
+  # RESEARCH AGENT - Finds learning materials
+  # ═══════════════════════════════════════════════════════════════
+  agent ResearchAgent
+    on input
+      if task == "find_resources"
+        parallel
+          call youtube.search with query: f"{topic} tutorial explained", max_results: "5" as videos
+          
+          call google.search with query: f"{topic} study guide pdf", type: "pdf" as pdfs
+          
+          call google.search with query: f"{topic} lecture notes", type: "web" as notes
+
+          call spotify.search with query: "lofi study music", type: "playlist" as playlists
+        end
+        
+        return { "videos": videos.items, "pdfs": pdfs.items, "notes": notes.items, "music": playlists, "topic": topic }
+      end
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════════════
+  # PROJECT MANAGER AGENT - Manages study tasks in Trello
+  # ═══════════════════════════════════════════════════════════════
+  agent ProjectManagerAgent
+    on input
+      if task == "create_study_plan"
+        # Create a study board
+        call trello.create_board with name: f"📚 Study: {subject}", description: f"Study plan for {subject} - managed by Study Buddy" as board
+        
+        remember studyPlan { "boardId": board.id, "subject": subject }
+        
+        # Get the default lists
+        call trello.get_lists with board_id: board.id as lists
+        
+        # Create cards for each topic
+        loop topic in topics
+          call trello.create_card with list_id: lists[0].id, title: topic.name, description: topic.description, due_date: topic.deadline
+        end
+        
+        say "📋 Created study board: " + board.url
+        return board
+      end
+    end
+    
+    on input
+      if task == "mark_complete"
+        call trello.move_card with card_id: cardId, target_list_id: doneListId
+        
+        set $studyStreak = $studyStreak + 1
+        say f"✅ Marked complete! 🔥 Study streak: {$studyStreak}"
+      end
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════════════
+  # COMMUNICATION AGENT - Handles notifications
+  # ═══════════════════════════════════════════════════════════════
+  agent CommunicationAgent
+    on input
+      if task == "notify"
+          parallel
+              if whatsapp
+                  call whatsapp.send_message with to: phone, message: message
+              end
+
+              if email
+                  call gmail.send with to: email_address, subject: "📚 Study Buddy Alert", body: message
+              end
+
+              if slack
+                  call slack.send_message with channel: slack_channel, text: message
+              end
+
+              if discord
+                  call discord.send_message with channel_id: discord_channel_id, content: message
+              end
+          end
+          say "📣 Notifications sent!"
+      end
+    end
+    
+    on input
+      if task == "check_messages"
+        parallel
+          call whatsapp.get_unread as whatsappMsgs
+          call gmail.list with max_results: "5", unread_only: "true" as emails
+        end
+        
+        say f"📬 You have {whatsappMsgs.length} WhatsApp messages"
+        say f"📧 You have {emails.count} unread emails"
+        
+        return { "whatsapp": whatsappMsgs, "email": emails.items }
+      end
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════════════
+  # KNOWLEDGE AGENT - Manages Notion
+  # ═══════════════════════════════════════════════════════════════
+  agent KnowledgeAgent
+    on input
+      if task == "create_schedule"
+        say "🔍 Searching for Notion parent pages..."
+        
+        say "To create a database, I need a 'Parent Page' to put it in."
+        say "I'll try to create it, but if it fails, please provide a Page ID."
+        
+        # Placeholder ID - tool should handle this error gracefully
+        call integrations.createNotionDatabase with title: "Study Plan: " + topic, parent_page_id: "SEARCH_OR_ASK" as db
+        
+        if not db or db.error
+            say "⚠️ Could not create database. " + (db.error or "Unknown error")
+            say "Tip: Create a page in Notion called 'Study Home', copy its ID, and tell me: 'Use Notion Page ID: XXXXX'"
+            return null
+        end
+
+        say "✅ Created study database: " + db.url
+        
+        # Add a sample entry
+        call integrations.addNotionDatabaseEntry with database_id: db.id, properties: {"Name": {"title": [{"text": {"content": "Week 1: Foundations"}}]}} as entry
+        
+        return db
+      end
+    end
+    
+    on input
+       if input contains "Notion API Key"
+          say "🔒 Key received (mock). Please use the Integrations dashboard for real connection."
+       end
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════════════
+  # SCHEDULER AGENT - Manages study reminders & Pomodoro
+  # ═══════════════════════════════════════════════════════════════
+  agent SchedulerAgent
+    on input
+      if task == "set_reminder"
+        call calendar.create_reminder with text: f"📚 Study: {topic}", time: time as reminder
+        
+        say "⏰ Reminder set for " + reminder.time
+        
+        # Notify
+        delegate to CommunicationAgent with task: "notify", whatsapp: "true", phone: phone, slack: "true", slack_channel: "#study-alerts", message: f"⏰ Reminder set: Study {topic} at {time}"
+        
+        return reminder
+      end
+    end
+    
+    on input
+      if task == "pomodoro"
+        say f"🍅 Starting 25-minute Pomodoro session for: {topic}"
+        
+        # Start music
+        call spotify.search with query: "focus flow", type: "playlist" as playlists
+        say f"🎵 Playing some focus music: {playlists[0].name}"
+        
+        wait 25m
+        
+        delegate to CommunicationAgent with task: "notify", whatsapp: "true", phone: phone, discord: "true", discord_channel_id: "123456789", message: "🎉 Pomodoro complete! Take a 5-minute break."
+        
+        say "🎉 Time's up! Take a break."
+      end
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════════════
+  # TUTOR AGENT - Explains concepts and creates quizzes
+  # ═══════════════════════════════════════════════════════════════
+  agent TutorAgent
+    on input
+      if task == "explain"
+        call ai.generate with prompt: f"Explain {topic} in simple terms for a student. Use analogies and examples.", format: "markdown" as explanation
+        say f"📖 Here's your explanation:\n{explanation}"
+        return explanation
+      end
+    end
+    
+    on input
+      if task == "quiz"
+        call ai.generate with prompt: f"Create a {count or 5} question quiz about {topic}. Include answers at the end.", format: "json" as quiz
+        return quiz
+      end
+    end
+  end
+
+  # ═══════════════════════════════════════════════════════════════
+  # MAIN ORCHESTRATOR
+  # ═══════════════════════════════════════════════════════════════
+  on input
+    set $handled = false
+    
+    if input contains "study plan" or input contains "create"
+      set $handled = true
+      say "📅 Let's organize your study plan!"
+      delegate to ProjectManagerAgent with task: "create_study_plan", subject: "Math", topics: [{"name": "Calculus", "deadline": "tomorrow"}]
+    end
+
+    if input contains "schedule" or input contains "notion"
+      set $handled = true
+      say "📝 Creating Notion schedule..."
+      delegate to KnowledgeAgent with task: "create_schedule", topic: input
+    end
+
+    if input contains "find" or input contains "search" or input contains "youtube" or input contains "video" or input contains "scan" or input contains "look"
+      set $handled = true
+      say "🔍 Searching for materials..."
+      delegate to ResearchAgent with task: "find_resources", topic: input
+    end
+
+    if input contains "pomodoro" or input contains "start"
+      set $handled = true
+      delegate to SchedulerAgent with task: "pomodoro", topic: "General Study"
+    end
+
+    if input contains "quiz" or input contains "test"
+      set $handled = true
+      delegate to TutorAgent with task: "quiz", topic: input
+    end
+
+    if input contains "explain"
+      set $handled = true
+      delegate to TutorAgent with task: "explain", topic: input
+    end
+
+    if $handled == false
+      call general.respond with { prompt: input } as response
+      say response.output
+    end
+  end
+end

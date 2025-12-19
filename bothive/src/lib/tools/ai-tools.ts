@@ -8,6 +8,57 @@ import { generateText, AI_MODEL } from "@/lib/ai-client";
 
 export const aiTools: ToolDescriptor[] = [
     {
+        name: "ai.generate",
+        capability: "ai.content",
+        description: "General purpose AI generation for tasks like extraction, reasoning, or content creation.",
+        async run(args, ctx) {
+            const prompt = typeof args.prompt === "string" ? args.prompt : "";
+            if (!prompt) return { success: false, output: "Prompt is required" };
+
+            try {
+                const result = await generateText(prompt, AI_MODEL);
+
+                // Smart parse: if result looks like JSON, try to parse it for the 'data' field
+                let dataResult = undefined;
+                const trimmedResult = result.trim();
+
+                // Try to find JSON block in markdown or raw
+                let jsonStr = trimmedResult;
+                if (trimmedResult.includes('```')) {
+                    const match = trimmedResult.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                    if (match) jsonStr = match[1].trim();
+                }
+
+                if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+                    try {
+                        dataResult = JSON.parse(jsonStr);
+                    } catch (e) {
+                        // If direct parse fails, try extracting just the {} range as a last resort
+                        const start = jsonStr.indexOf('{');
+                        const end = jsonStr.lastIndexOf('}');
+                        if (start !== -1 && end !== -1 && end > start) {
+                            try {
+                                dataResult = JSON.parse(jsonStr.substring(start, end + 1));
+                            } catch (e2) {
+                                // Ignore
+                            }
+                        }
+                    }
+                }
+
+                return {
+                    success: true,
+                    output: result,
+                    data: dataResult
+                };
+            } catch (error) {
+                return { success: false, output: `AI generation failed: ${error instanceof Error ? error.message : String(error)}` };
+            }
+        }
+
+    },
+
+    {
         name: "ai.generate.content",
         capability: "ai.content",
         description: "Generate high-quality content using AI (articles, posts, descriptions, etc.)",
@@ -419,16 +470,16 @@ ${text}`;
             const task = typeof args.task === "string" ? args.task : "analyze";
             const detail = typeof args.detail === "string" ? args.detail : "medium";
             const duration = typeof args.duration === "string" ? args.duration : "unknown";
-            
+
             if (!videoDescription) {
                 return { success: false, output: "Video description is required" };
             }
-            
+
             const fullPrompt = `You are an AI expert at analyzing video content. ${task} this video based on the description provided with ${detail} detail.
 Video description: ${videoDescription}
 Duration: ${duration}
 Return only the analysis results.`;
-            
+
             try {
                 const analysis = await generateText(fullPrompt, AI_MODEL);
                 return {
@@ -455,11 +506,11 @@ Return only the analysis results.`;
             const duration = typeof args.duration === "string" ? args.duration : "5 minutes";
             const tone = typeof args.tone === "string" ? args.tone : "engaging";
             const targetAudience = typeof args.targetAudience === "string" ? args.targetAudience : "general";
-            
+
             if (!topic) {
                 return { success: false, output: "Video topic is required" };
             }
-            
+
             const platformConstraints = {
                 youtube: "Optimize for YouTube: engaging hook, clear structure, calls to action, SEO-friendly",
                 tiktok: "Optimize for TikTok: quick hook, trending elements, vertical format, under 60 seconds",
@@ -467,7 +518,7 @@ Return only the analysis results.`;
                 linkedin: "Optimize for LinkedIn: professional tone, business value, educational content",
                 twitter: "Optimize for Twitter: concise, impactful, thread-friendly format"
             };
-            
+
             const fullPrompt = `You are an expert video script writer. Create a compelling video script about "${topic}" for ${platform}.
 
 Requirements:
@@ -484,7 +535,7 @@ Include:
 5. Estimated timing for each section
 
 Return a complete, ready-to-use script.`;
-            
+
             try {
                 const script = await generateText(fullPrompt, AI_MODEL);
                 return {
@@ -509,11 +560,11 @@ Return a complete, ready-to-use script.`;
             const videoDescriptions = Array.isArray(args.videoDescriptions) ? args.videoDescriptions : [];
             const niche = typeof args.niche === "string" ? args.niche : "general";
             const timeframe = typeof args.timeframe === "string" ? args.timeframe : "recent";
-            
+
             if (!videoDescriptions.length) {
                 return { success: false, output: "Video descriptions array is required" };
             }
-            
+
             const fullPrompt = `You are a video content strategy expert. Analyze these video descriptions for trends and patterns in the ${niche} niche.
 
 Timeframe: ${timeframe}
@@ -530,7 +581,7 @@ Provide analysis on:
 5. Recommendations for future content
 
 Return a comprehensive trend analysis report.`;
-            
+
             try {
                 const analysis = await generateText(fullPrompt, AI_MODEL);
                 return {

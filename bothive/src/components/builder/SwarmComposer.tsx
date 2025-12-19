@@ -16,9 +16,11 @@ import ReactFlow, {
     MarkerType
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { PulseNode } from './PulseNode';
 import Editor from "@monaco-editor/react";
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Play, Plus, Cpu, Zap, Box, Layers, Terminal, Code, LayoutGrid, Network } from 'lucide-react';
+import { Layers, LayoutGrid, Network, Code, Play, Zap, Volume2, VolumeX, Plus, Bot, Cpu, Terminal } from 'lucide-react';
+import { useTTS } from '@/hooks/useTTS';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -116,57 +118,75 @@ function SwarmComposerInner({ value, onChange }: SwarmComposerProps) {
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [isSimulating, setIsSimulating] = useState(false);
     const [viewMode, setViewMode] = useState<'visual' | 'code' | 'architect'>('architect');
+    const { isMuted, setIsMuted, speak } = useTTS();
 
     // Sync Code to Nodes
     useEffect(() => {
-        const agents = parseAgentsFromCode(code);
+        try {
+            // Parse agents from code
+            const agents = parseAgentsFromCode(code);
 
-        const newNodes: Node<AgentNodeData>[] = agents.map((agent, index) => {
-            const existingNode = nodes.find(n => n.id === agent.name);
-            return {
-                id: agent.name,
-                type: 'agentNode',
-                position: existingNode?.position || { x: 50 + (index * 280), y: 150 + (index % 2 === 0 ? 0 : 100) },
-                data: {
+            // Main Bot Name
+            const botNameMatch = code.match(/bot\s+([A-Za-z0-9_]+)/);
+            const botName = botNameMatch ? botNameMatch[1] : "HiveSwarm";
+
+            // Generate nodes
+            const newNodes: Node[] = [];
+
+            // 1. Add Sub-Agents
+            agents.forEach((agent, index) => {
+                const existingNode = nodes.find(n => n.id === agent.name);
+                newNodes.push({
                     id: agent.name,
-                    label: agent.name,
-                    codeSnippet: agent.content,
-                    isActive: false,
-                    color: index === 0 ? "text-cyan-400" : index === 1 ? "text-purple-400" : "text-emerald-400"
-                }
-            };
-        });
-
-        // Main Bot Node assumption based on standard HiveLang 'bot Name'
-        // We'll use a generic "Swarm Orchestrator" node if we can't find the bot name, 
-        // or just rely on the 'bot' declaration line.
-        const botNameMatch = code.match(/bot\s+([A-Za-z0-9_]+)/);
-        const botName = botNameMatch ? botNameMatch[1] : "HiveSwarm";
-
-        if (!newNodes.find(n => n.id === botName)) {
-            newNodes.unshift({
-                id: botName,
-                type: 'agentNode',
-                position: { x: 350, y: 0 },
-                data: { id: botName, label: botName, role: 'Orchestrator', codeSnippet: 'on input...', color: "text-amber-400", isActive: false }
+                    type: 'agentNode',
+                    position: existingNode?.position || { x: 50 + (index * 280), y: 150 + (index % 2 === 0 ? 0 : 100) },
+                    data: {
+                        id: agent.name,
+                        label: agent.name,
+                        codeSnippet: agent.content,
+                        isActive: false,
+                        color: index === 0 ? "text-cyan-400" : index === 1 ? "text-purple-400" : "text-emerald-400"
+                    }
+                });
             });
-        }
 
-        // Simple check to avoid infinite loop
-        if (newNodes.length !== nodes.length || newNodes.some((n, i) => n.id !== nodes[i]?.id)) {
-            setNodes(newNodes);
-            const newEdges = agents.map(a => ({
-                id: `e-${botName}-${a.name}`,
-                source: botName,
-                target: a.name,
-                animated: true,
-                style: { stroke: '#06b6d4', strokeWidth: 1.5 },
-                type: 'smoothstep',
-                markerEnd: { type: MarkerType.ArrowClosed, color: '#06b6d4' }
-            }));
-            setEdges(newEdges);
+            // 2. Add Main Orchestrator
+            if (!newNodes.find(n => n.id === botName)) {
+                newNodes.unshift({
+                    id: botName,
+                    type: 'agentNode',
+                    position: { x: 350, y: 0 }, // Top center
+                    data: {
+                        id: botName,
+                        label: botName,
+                        role: 'Orchestrator',
+                        codeSnippet: 'on input...',
+                        color: "text-amber-400",
+                        isActive: false
+                    }
+                });
+            }
+
+            // Simple check to avoid infinite loop / jitter
+            const hasChanges = newNodes.length !== nodes.length || newNodes.some((n, i) => n.id !== nodes[i]?.id);
+
+            if (hasChanges) {
+                setNodes(newNodes);
+                const newEdges = agents.map(a => ({
+                    id: `e-${botName}-${a.name}`,
+                    source: botName,
+                    target: a.name,
+                    animated: true,
+                    style: { stroke: '#06b6d4', strokeWidth: 1.5 },
+                    type: 'smoothstep',
+                    markerEnd: { type: MarkerType.ArrowClosed, color: '#06b6d4' }
+                }));
+                setEdges(newEdges);
+            }
+        } catch (e) {
+            // Silently fail on invalid code during typing
         }
-    }, [code]);
+    }, [code, nodes]);
 
     const addNewAgent = () => {
         const newAgentName = `Agent_${Math.floor(Math.random() * 1000)}`;
@@ -191,13 +211,33 @@ function SwarmComposerInner({ value, onChange }: SwarmComposerProps) {
 
         const sequence = [botName, ...nodes.filter(n => n.id !== botName).map(n => n.id)];
 
-        for (const id of sequence) {
-            setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, isActive: true } } : { ...n, data: { ...n.data, isActive: false } }));
-            await new Promise(r => setTimeout(r, 600));
+        for (let i = 0; i < sequence.length; i++) {
+            const id = sequence[i];
+
+            // Speak!
+            const thought = `Processing task for ${id}...`;
+            speak(thought, { pitch: 1.0 + (i * 0.1), rate: 1.1, voiceIndex: i });
+
+            setNodes(nds => nds.map(n => n.id === id ? {
+                ...n,
+                data: { ...n.data, isActive: true, status: 'thinking', thought: thought }
+            } : {
+                ...n,
+                data: { ...n.data, isActive: false, status: 'idle' }
+            }));
+            await new Promise(r => setTimeout(r, 2000)); // Slightly longer for speech
+
+            // Mark as done thinking, stay active briefly
+            setNodes(nds => nds.map(n => n.id === id ? {
+                ...n,
+                data: { ...n.data, isActive: true, status: 'active', thought: undefined }
+            } : n));
         }
         // Reset
-        setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, isActive: false } })));
-        setIsSimulating(false);
+        setTimeout(() => {
+            setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, isActive: false, status: 'idle' } })));
+            setIsSimulating(false);
+        }, 1000);
     };
 
     const agentsList = parseAgentsFromCode(code);
@@ -214,6 +254,7 @@ function SwarmComposerInner({ value, onChange }: SwarmComposerProps) {
                 </div>
 
                 <div className="flex bg-white/5 p-1 rounded-lg">
+                    {/* View Modes */}
                     <button onClick={() => setViewMode('architect')} className={cn("flex items-center gap-2 px-3 py-1 rounded text-xs font-medium transition-all", viewMode === 'architect' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-white")}>
                         <LayoutGrid className="w-3 h-3" /> Architect
                     </button>
@@ -225,10 +266,23 @@ function SwarmComposerInner({ value, onChange }: SwarmComposerProps) {
                     </button>
                 </div>
 
-                <button onClick={runSimulation} className="text-[10px] font-mono text-emerald-400 flex items-center gap-1.5 hover:bg-emerald-500/10 px-2 py-1 rounded border border-transparent hover:border-emerald-500/30 transition-all">
-                    {isSimulating ? <Zap className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                    {isSimulating ? "RUNNING..." : "TEST SWARM"}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setIsMuted(!isMuted)}
+                        className={cn(
+                            "p-1.5 rounded-lg transition-colors",
+                            isMuted ? "text-red-400 bg-red-400/10 hover:bg-red-400/20" : "text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20"
+                        )}
+                        title={isMuted ? "Unmute Voice" : "Mute Voice"}
+                    >
+                        {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                    </button>
+
+                    <button onClick={runSimulation} className="text-[10px] font-mono text-emerald-400 flex items-center gap-1.5 hover:bg-emerald-500/10 px-2 py-1 rounded border border-transparent hover:border-emerald-500/30 transition-all">
+                        {isSimulating ? <Zap className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                        {isSimulating ? "RUNNING..." : "TEST SWARM"}
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-hidden relative bg-[#0a0a0f]">
@@ -290,14 +344,13 @@ function SwarmComposerInner({ value, onChange }: SwarmComposerProps) {
                     </motion.div>
                 )}
 
-                {/* MODE 2: VISUAL */}
                 <div className={cn("absolute inset-0 transition-opacity duration-300", viewMode === 'visual' ? "opacity-100 z-10" : "opacity-0 -z-10")}>
                     <ReactFlow
-                        nodes={nodes}
+                        nodes={nodes.map(n => ({ ...n, type: 'pulse', data: { ...n.data, status: n.data.isActive ? 'active' : 'idle' } }))}
                         edges={edges}
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
-                        nodeTypes={nodeTypes}
+                        nodeTypes={{ pulse: PulseNode }}
                         fitView
                         className="bg-[#0a0a0f]"
                         defaultEdgeOptions={{ type: 'smoothstep', animated: true }}

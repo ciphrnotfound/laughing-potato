@@ -1,7 +1,6 @@
-import { compileHive, HiveCompileResult } from "../hive-compiler";
 import { ToolDescriptor, ToolContext } from "@/lib/agentTypes";
-import { HiveLangRuntime, integrationCache } from "@/lib/hivelang/runtime";
 import { createClient } from "@supabase/supabase-js";
+
 
 export interface HiveLangExecutionResult {
     output: string;
@@ -9,7 +8,9 @@ export interface HiveLangExecutionResult {
     steps: any[];
     success: boolean;
     error?: string;
+    variables?: Record<string, any>;
 }
+
 
 // Initialize Supabase client for server-side usage
 const getSupabaseAdmin = () => {
@@ -118,142 +119,184 @@ async function resolveIntegrationTool(
  * This runs the actual compiled logic instead of prompting an LLM
  * Now with Integration Bridge for community-created integrations!
  */
+/**
+ * Execute a HiveLang program using the V3 Standalone Interpreter
+ */
+import { Interpreter } from "../hivelang/v3/interpreter";
+
 export async function executeHiveLangProgram(
     hiveLangSource: string,
+    input: Record<string, any>,
+    availableTools: ToolDescriptor[],
+    toolContext: ToolContext,
+    initialVariables?: Record<string, any>
+): Promise<HiveLangExecutionResult> {
+    try {
+        const interpreter = new Interpreter();
+
+        // 1. Build tool lookup map
+        // We use PASS 1 and PASS 2 logic for priority
+
+        // 2. Register Built-in Tools
+        // PASS 1: Register all capabilities as fallbacks
+        for (const tool of availableTools) {
+            if (tool.capability) {
+                interpreter.registerTool(tool.capability, async (args: any, context: any) => {
+                    return await tool.run(args, toolContext);
+                });
+            }
+        }
+
+        // PASS 2: Register all names (higher priority, overwrites capability clashes)
+        for (const tool of availableTools) {
+            interpreter.registerTool(tool.name, async (args: any, context: any) => {
+                return await tool.run(args, toolContext);
+            });
+        }
+
+
+
+        // 3. Register Fallback for Integrations
+        const userId = toolContext.metadata?.userId;
+
+        interpreter.setFallbackToolHandler(async (args: any, context: any) => {
+            const toolName = args.tool; // tool name passed in args by our interpreter logic change? 
+            // Wait, my interpreter logic passes { tool: toolName, ...args } to fallback
+
+            // Extract tool name from the extended args if mixed, or args is just args?
+            // In interpreter: `this.fallbackToolHandler({ tool: toolName, ...args }, ...)`
+            // So tool name is in `args.tool`.
+            const realToolName = args.tool;
+            // Remove tool from args for the actual call
+            const { tool: _, ...callArgs } = args;
+
+            const integrationResult = await resolveIntegrationTool(
+                realToolName,
+                callArgs,
+                userId
+            );
+
+            if (integrationResult.found) {
+                if (integrationResult.error) {
+                    throw new Error(integrationResult.error);
+                }
+                return integrationResult.result;
+            }
+
+            throw new Error(`Tool not found: ${realToolName}`);
+        });
+
+        // 4. Run Interpreter
+        // v3 run() takes string code and ONE input object/string and optional initialVariables.
+        const result = await interpreter.run(hiveLangSource, input, initialVariables);
+
+        // 5. Format Result
+        // Collect transcript from output and tool calls?
+        // Legacy "transcript" is a list of events.
+        // V3 `result.output` is array of strings (Say statements)
+        // V3 `result.toolCalls` is array of { tool, args }
+
+        // We need to synthesize a transcript to match UI expectations if possible
+        const transcript: any[] = [];
+
+        // Add Says
+        result.output.forEach(msg => {
+            transcript.push({ type: "say", payload: msg, timestamp: Date.now() });
+        });
+
+        // Add Tools
+        result.toolCalls.forEach(tc => {
+            transcript.push({ type: "call", tool: tc.tool, args: tc.args, timestamp: Date.now() });
+        });
+
+        if (result.errors.length > 0) {
+            return {
+                output: result.output.join("\n"),
+                transcript,
+                steps: [],
+                success: false,
+                error: result.errors.join("\n"),
+            };
+        }
+
+        return {
+            output: result.output.join("\n"),
+            transcript,
+            steps: [], // streaming steps not yet unified
+            success: true,
+            variables: result.variables
+        };
+
+
+    } catch (error) {
+        return {
+            output: "",
+            transcript: [],
+            steps: [],
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
+}
+
+/**
+ * Execute a specific event handler in a HiveLang program (Proactivity)
+ */
+export async function executeHiveLangEvent(
+    hiveLangSource: string,
+    eventName: string,
     input: Record<string, any>,
     availableTools: ToolDescriptor[],
     toolContext: ToolContext
 ): Promise<HiveLangExecutionResult> {
     try {
-        // Step 1: Compile HiveLang source
-        const compiled: HiveCompileResult = await compileHive(hiveLangSource);
+        const interpreter = new Interpreter();
 
-        if (compiled.diagnostics.some((d) => d.severity === "error")) {
-            const errors = compiled.diagnostics
-                .filter((d) => d.severity === "error")
-                .map((d) => `Line ${d.line}: ${d.message}`)
-                .join("\n");
-
-            return {
-                output: "",
-                transcript: [],
-                steps: [],
-                success: false,
-                error: `HiveLang compilation failed:\n${errors}`,
-            };
-        }
-
-        // Step 2: Evaluate the compiled JavaScript to get the program object
-        // NOTE: We strip 'export default program;' because 'export' is not valid in new Function()
-        const cleanCode = compiled.code.replace(/export default program;/, "");
-        const programFactory = new Function(cleanCode + "\nreturn program;");
-        const program = programFactory();
-
-        // Step 3: Create execution context with tool bindings
-        const transcript: any[] = [];
-        const outputs: string[] = [];
-
-        // Build tool lookup map for built-in tools
-        const toolMap = new Map<string, ToolDescriptor>();
+        // PASS 1: Register all capabilities as fallbacks
         for (const tool of availableTools) {
-            toolMap.set(tool.name, tool);
             if (tool.capability) {
-                toolMap.set(tool.capability, tool);
+                interpreter.registerTool(tool.capability, async (args: any, context: any) => {
+                    return await tool.run(args, toolContext);
+                });
             }
         }
 
-        // Get user ID from context for integration credentials
+        // PASS 2: Register all names (higher priority, overwrites capability clashes)
+        for (const tool of availableTools) {
+            interpreter.registerTool(tool.name, async (args: any, context: any) => {
+                return await tool.run(args, toolContext);
+            });
+        }
+
+
+
         const userId = toolContext.metadata?.userId;
-
-        // Create the runtime context for program.run()
-        const runtimeContext = {
-            input,
-            locals: {},
-            emit: (event: any) => {
-                if (event.type === "say") {
-                    outputs.push(event.payload);
-                }
-                transcript.push({ ...event, timestamp: Date.now() });
-            },
-            callTool: async (toolName: string, ctx: any) => {
-                // First, try built-in tools
-                const tool = toolMap.get(toolName);
-                if (tool) {
-                    try {
-                        const result = await tool.run(ctx.args ?? {}, toolContext);
-                        return result;
-                    } catch (err: any) {
-                        return { error: err.message ?? String(err) };
-                    }
-                }
-
-                // If not found, try community integrations!
-                const integrationResult = await resolveIntegrationTool(
-                    toolName,
-                    ctx.args ?? {},
-                    userId
-                );
-
-                if (integrationResult.found) {
-                    if (integrationResult.error) {
-                        return { error: integrationResult.error };
-                    }
-                    return integrationResult.result;
-                }
-
-                // Tool not found anywhere
-                return { error: `Tool not found: ${toolName}` };
-            },
-            memory: toolContext.sharedMemory ?? {
-                get: async () => undefined,
-                set: async () => { },
-                append: async () => { },
-            },
-            evaluate: async (condition: string, ctx: any) => {
-                const scope = { ...ctx.input, ...ctx.locals };
-                console.log("[Hivelang Evaluate]", { condition, scopeKeys: Object.keys(scope), inputVal: scope.input });
-                try {
-                    // Preprocess 'contains' to JS '.includes()'
-                    // Handle: variable contains "string"
-                    // Regex: ([a-zA-Z0-9_.]+) contains "([^"]+)"
-                    // Global replacement to handle multiple 'contains'
-                    const jsCondition = condition.replace(/([a-zA-Z0-9_.]+)\s+contains\s+"([^"]+)"/g, (_, varName, stringVal) => {
-                        return `${varName}?.toLowerCase().includes("${stringVal}".toLowerCase())`;
-                    });
-
-                    // Evaluate using Function
-                    const result = new Function(...Object.keys(scope), `return ${jsCondition}`)(...Object.values(scope));
-                    return Boolean(result);
-                } catch (err) {
-                    console.error("[Hivelang Evaluate Error]", err);
-                    return false;
-                }
-            },
-            resolveCollection: async (key: string) => {
-                const parts = key.split(".");
-                let value: any = { ...input, ...runtimeContext.locals };
-                for (const part of parts) {
-                    value = value?.[part];
-                }
-                return Array.isArray(value) ? value : [];
+        interpreter.setFallbackToolHandler(async (args: any, context: any) => {
+            const realToolName = args.tool;
+            const { tool: _, ...callArgs } = args;
+            const integrationResult = await resolveIntegrationTool(realToolName, callArgs, userId);
+            if (integrationResult.found) {
+                if (integrationResult.error) throw new Error(integrationResult.error);
+                return integrationResult.result;
             }
-        };
+            throw new Error(`Tool not found: ${realToolName}`);
+        });
 
-        // Step 4: Execute the program deterministically
-        const result = await program.run(runtimeContext);
+        // 2. Load and Emit
+        await interpreter.load(hiveLangSource);
+        const result = await interpreter.emitEvent(eventName, input);
 
-        // Merge transcripts
-        const combinedTranscript = [
-            { type: "metadata", bot: compiled.metadata.name, timestamp: Date.now() },
-            ...transcript,
-            ...(result?.transcript ?? []),
-        ];
+        // 3. Format result
+        const transcript: any[] = [];
+        result.output.forEach(msg => transcript.push({ type: "say", payload: msg, timestamp: Date.now() }));
+        result.toolCalls.forEach(tc => transcript.push({ type: "call", tool: tc.tool, args: tc.args, timestamp: Date.now() }));
 
         return {
-            output: outputs.join("\n"),
-            transcript: combinedTranscript,
-            steps: result?.transcript ?? [],
-            success: true,
+            output: result.output.join("\n"),
+            transcript,
+            steps: [],
+            success: result.errors.length === 0,
+            error: result.errors.length > 0 ? result.errors.join("\n") : undefined
         };
     } catch (error) {
         return {
@@ -288,34 +331,36 @@ export async function executeHiveLangProgramStreaming(
 }
 
 /**
- * Validate HiveLang program can be executed
+ * Validate HiveLang program can be executed using V3 Engine
  */
+import { Tokenizer } from "../hivelang/v3/tokenizer";
+import { Parser } from "../hivelang/v3/parser";
+
 export async function validateHiveLangProgram(
     hiveLangSource: string,
     availableTools: ToolDescriptor[]
 ): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> {
-    const compiled = await compileHive(hiveLangSource);
+    const errors: string[] = [];
+    const warnings: string[] = [];
 
-    const errors = compiled.diagnostics
-        .filter((d) => d.severity === "error")
-        .map((d) => `Line ${d.line}: ${d.message}`);
+    try {
+        // 1. Tokenize
+        const tokenizer = new Tokenizer(hiveLangSource);
+        const tokens = tokenizer.tokenize();
 
-    const warnings = compiled.diagnostics
-        .filter((d) => d.severity === "warning")
-        .map((d) => `Line ${d.line}: ${d.message}`);
+        // 2. Parse
+        const parser = new Parser(tokens);
+        const program = parser.parse();
 
-    const toolNames = availableTools.map((t) => t.name);
-    const toolCapabilities = availableTools.map((t) => t.capability);
+        // 3. Static Analysis (Basic)
+        // We could walk the AST to check for invalid tool calls if we wanted.
+        // For now, if parsing succeeds, it's valid syntax.
 
-    const missingTools = compiled.metadata.tools.filter(
-        (tool) => !toolNames.includes(tool) && !toolCapabilities.includes(tool)
-    );
+        // TODO: AST walker to check for `CallExpression` nodes and verify against `availableTools`
+        // program.body...
 
-    if (missingTools.length > 0) {
-        // Note: These might be community integrations, not necessarily missing
-        warnings.push(
-            `Tools not in built-ins (may be community integrations): ${missingTools.join(", ")}`
-        );
+    } catch (e: any) {
+        errors.push(e.message);
     }
 
     return {

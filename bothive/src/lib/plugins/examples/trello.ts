@@ -11,11 +11,11 @@ import { ToolDescriptor } from "@/lib/agentTypes";
 function getTrelloCredentials(context: any) {
     const apiKey = context.metadata?.apiKey || context.user?.api_key || process.env.TRELLO_API_KEY;
     const token = context.metadata?.token || context.user?.token || process.env.TRELLO_TOKEN;
-    
+
     if (!apiKey || !token) {
         throw new Error("Trello API credentials not found. Please configure your Trello API key and token.");
     }
-    
+
     return { apiKey, token };
 }
 
@@ -23,7 +23,7 @@ function getTrelloCredentials(context: any) {
  * Create Trello board
  */
 export const trelloCreateBoard: ToolDescriptor = {
-    name: "trello.createBoard",
+    name: "integrations.trello.createBoard",
     capability: "integrations.trello",
     description: "Create a new Trello board with customizable settings",
 
@@ -93,7 +93,7 @@ export const trelloCreateBoard: ToolDescriptor = {
  * Create Trello card
  */
 export const trelloCreateCard: ToolDescriptor = {
-    name: "trello.createCard",
+    name: "integrations.trello.createCard",
     capability: "integrations.trello",
     description: "Create a new card on a Trello board list",
 
@@ -179,7 +179,7 @@ export const trelloCreateCard: ToolDescriptor = {
  * Move Trello card
  */
 export const trelloMoveCard: ToolDescriptor = {
-    name: "trello.moveCard",
+    name: "integrations.trello.moveCard",
     capability: "integrations.trello",
     description: "Move a Trello card to a different list",
 
@@ -253,7 +253,7 @@ export const trelloMoveCard: ToolDescriptor = {
  * Get board lists
  */
 export const trelloGetLists: ToolDescriptor = {
-    name: "trello.getLists",
+    name: "integrations.trello.getLists",
     capability: "integrations.trello",
     description: "Get all lists from a Trello board",
 
@@ -319,7 +319,7 @@ export const trelloGetLists: ToolDescriptor = {
  * Add comment to card
  */
 export const trelloAddComment: ToolDescriptor = {
-    name: "trello.addComment",
+    name: "integrations.trello.addComment",
     capability: "integrations.trello",
     description: "Add a comment to a Trello card",
 
@@ -384,7 +384,7 @@ export const trelloAddComment: ToolDescriptor = {
  * Update card status
  */
 export const trelloUpdateCard: ToolDescriptor = {
-    name: "trello.updateCard",
+    name: "integrations.trello.updateCard",
     capability: "integrations.trello",
     description: "Update card properties like due date, labels, or archive status",
 

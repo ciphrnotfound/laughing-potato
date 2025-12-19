@@ -1,5 +1,0 @@
-// Test bot that uses tools
-function main():
-    // Test using a basic tool
-    result = tools.web_search("latest AI news")
-    return result

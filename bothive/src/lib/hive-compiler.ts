@@ -739,17 +739,6 @@ const executeSteps = async (steps, ctx, transcript) => {
         if (ctx.callTool) {
           const result = await ctx.callTool(step.tool, { ...ctx, args });
           transcript.push({ type: 'tool', tool: step.tool, result, args });
-          
-          // Emit tool results so users can see success/error messages
-          if (result && typeof result === 'object') {
-            if (result.success === false && result.output) {
-              // Emit error messages
-              ctx.emit?.({ type: 'say', payload: '❌ Tool "' + step.tool + '" failed: ' + result.output });
-            } else if (result.success === true && result.output) {
-              // Emit success messages for clarity
-              ctx.emit?.({ type: 'say', payload: '✅ Tool "' + step.tool + '": ' + result.output });
-            }
-          }
         }
         break;
       }
@@ -758,17 +747,6 @@ const executeSteps = async (steps, ctx, transcript) => {
           if (ctx.callTool) {
             const result = await ctx.callTool(toolName, ctx);
             transcript.push({ type: 'tool', tool: toolName, result });
-            
-            // Emit tool results so users can see success/error messages
-            if (result && typeof result === 'object') {
-              if (result.success === false && result.output) {
-                // Emit error messages
-                ctx.emit?.({ type: 'say', payload: '❌ Tool "' + toolName + '" failed: ' + result.output });
-              } else if (result.success === true && result.output) {
-                // Emit success messages for clarity
-                ctx.emit?.({ type: 'say', payload: '✅ Tool "' + toolName + '": ' + result.output });
-              }
-            }
           }
         }
         break;

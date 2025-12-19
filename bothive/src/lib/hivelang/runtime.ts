@@ -294,22 +294,26 @@ export class HiveLangRuntime {
 
         // 6. response.data already works (no transpilation needed)
 
-        // 7. Handle 'if not' with braces: if not x { -> if (!x) {
-        // We capture everything between 'if not' and '{'
-        jsCode = jsCode.replace(/if\s+not\s+([^{]+?)\s*\{/g, (_, condition) => {
+        // 7. Handle 'if not' with braces or end: if not x { -> if (!x) {
+        jsCode = jsCode.replace(/if\s+not\s+([^{}\n]+)\s*(\{?)/g, (_, condition, brace) => {
             return `if (!(${condition.trim()})) {`;
         });
 
-        // 8. Handle 'if' with braces: if x { -> if (x) {
-        // We capture everything between 'if' and '{', avoiding 'else if'
-        jsCode = jsCode.replace(/(?<!else\s+)\bif\s+(?!not\s|\()([^{]+?)\s*\{/g, (_, condition) => {
+        // 8. Handle 'if' with braces or end: if x { -> if (x) {
+        jsCode = jsCode.replace(/(?<!else\s+)\bif\s+(?!not\s|\()([^{}\n]+)\s*(\{?)/g, (_, condition, brace) => {
             return `if (${condition.trim()}) {`;
         });
 
-        // 9. Handle 'elif' -> 'else if': elif x { -> else if (x) {
-        jsCode = jsCode.replace(/elif\s+([^{]+?)\s*\{/g, (_, condition) => {
+        // 9. Handle 'elif' -> 'else if'
+        jsCode = jsCode.replace(/elif\s+([^{}\n]+)\s*(\{?)/g, (_, condition, brace) => {
             return `else if (${condition.trim()}) {`;
         });
+
+        // 9b. Handle 'else' with optional brace
+        jsCode = jsCode.replace(/\belse\s*(\{?)/g, 'else {');
+
+        // 9c. Handle 'end' -> '}'
+        jsCode = jsCode.replace(/\bend\b/g, '}');
 
         // 10. General operators
         jsCode = jsCode.replace(/\bnot\s+/g, '!');

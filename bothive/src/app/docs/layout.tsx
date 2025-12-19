@@ -155,7 +155,7 @@ export default function DocsLayout({
                 </main>
             </div>
 
-            <Footer />
+            {/* <Footer /> */}
         </div>
     );
 }

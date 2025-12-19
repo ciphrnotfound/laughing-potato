@@ -53,7 +53,7 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/bothive`}
                 </div>
             </div>
 
-            <div className="space-y-6 pt-6 border-t border-white/10">
+            {/* <div className="space-y-6 pt-6 border-t border-white/10">
                 <h2 className="text-2xl font-bold text-white">Advanced: Distributing this CLI</h2>
                 <p className="text-white/60">
                     To make this tool available to your team or customers (via <code>npm install -g hivelang</code>), you need to publish it to the npm registry.
@@ -68,7 +68,7 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/bothive`}
                 <p className="text-white/60 text-sm">
                     Once published, anyone can install your specific version of the `hivelang` tool globally.
                 </p>
-            </div>
+            </div> */}
         </div>
     );
 }

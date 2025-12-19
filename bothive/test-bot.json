@@ -1,6 +1,0 @@
-{
-  "name": "Test Tool Bot",
-  "description": "Testing if bots can use tools",
-  "hivelang_code": "// Test bot that uses tools\nfunction main():\n    // Test using a basic tool\n    result = tools.web_search(\"latest AI news\")\n    return result",
-  "system_prompt": "You are a helpful bot that can use tools."
-}

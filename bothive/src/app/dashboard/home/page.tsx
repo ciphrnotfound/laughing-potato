@@ -427,7 +427,7 @@ export default function HomeDashboardPage() {
     let isCancelled = false;
 
     try {
-      const response = await fetch(`/api/bots/${botId}/execute`, {
+      const response = await fetch(`/api/my-bots/${botId}/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

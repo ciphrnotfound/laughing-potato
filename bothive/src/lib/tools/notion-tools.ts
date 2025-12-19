@@ -79,15 +79,33 @@ export const createNotionPage: ToolDescriptor = {
         let targetParentId = parentId;
 
         if (!targetParentId) {
-            // Try to search for a page to use as default parent? Or just error?
-            // Error is safer + instruction to user.
-            // BUT, user might expect it to just "work".
-            // Let's try to finding the Workspace root? Notion doesn't expose "Root" easily via API.
-            // We'll ask user to provide parent_page_id OR use search tool first.
-            // Wait, let's try to search for a page named "Docs" or something logic? No.
+            // Attempt to auto-discover a parent page if none provided
+            try {
+                const searchRes = await fetch("https://api.notion.com/v1/search", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${accessToken}`,
+                        "Content-Type": "application/json",
+                        "Notion-Version": "2022-06-28"
+                    },
+                    body: JSON.stringify({
+                        filter: { property: "object", value: "page" },
+                        page_size: 1
+                    })
+                });
+                const searchData = await searchRes.json();
+                if (searchData.results && searchData.results.length > 0) {
+                    targetParentId = searchData.results[0].id;
+                }
+            } catch (e) {
+                console.error("Auto-discovery of Notion parent failed", e);
+            }
+        }
+
+        if (!targetParentId) {
             return {
                 success: false,
-                output: "Missing 'parent_page_id'. Please provide the ID of a page or database to contain the new page."
+                output: "Missing 'parent_page_id'. I tried to find a page to put this in but failed. Please provide a Page ID from your Notion URL."
             };
         }
 
@@ -149,7 +167,13 @@ export const createNotionPage: ToolDescriptor = {
                 title,
                 message: `Notion page created: ${data.url}`
             }),
+            data: {
+                page_id: data.id,
+                url: data.url,
+                title
+            }
         };
+
     },
 };
 
@@ -204,7 +228,12 @@ export const addNotionDatabaseEntry: ToolDescriptor = {
                 url: data.url,
                 message: "Database entry added."
             }),
+            data: {
+                entry_id: data.id,
+                url: data.url
+            }
         };
+
     },
 };
 
@@ -255,7 +284,12 @@ export const queryNotionDatabase: ToolDescriptor = {
                 count: results.length,
                 results
             }),
+            data: {
+                count: results.length,
+                results
+            }
         };
+
     },
 };
 
@@ -298,7 +332,12 @@ export const updateNotionPage: ToolDescriptor = {
                 page_id: data.id,
                 updated: true
             }),
+            data: {
+                page_id: data.id,
+                updated: true
+            }
         };
+
     },
 };
 
@@ -315,17 +354,46 @@ export const createNotionDatabase: ToolDescriptor = {
         const accessToken = await getNotionAccessToken(userId);
         if (!accessToken) return { success: false, output: "Notion not connected." };
 
-        const parent_page_id = typeof input.parent_page_id === "string" ? input.parent_page_id : "";
+        const parent_page_id = typeof input.parent_page_id === "string" ? input.parent_page_id : undefined;
+        let targetParentId = parent_page_id;
+
+        if (!targetParentId || targetParentId === "SEARCH_OR_ASK") {
+            // Attempt to auto-discover a parent page if none provided
+            try {
+                const searchRes = await fetch("https://api.notion.com/v1/search", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${accessToken}`,
+                        "Content-Type": "application/json",
+                        "Notion-Version": "2022-06-28"
+                    },
+                    body: JSON.stringify({
+                        filter: { property: "object", value: "page" },
+                        page_size: 1
+                    })
+                });
+                const searchData = await searchRes.json();
+                if (searchData.results && searchData.results.length > 0) {
+                    targetParentId = searchData.results[0].id;
+                }
+            } catch (e) {
+                console.error("Auto-discovery of Notion parent for database failed", e);
+            }
+        }
+
+        if (!targetParentId || targetParentId === "SEARCH_OR_ASK") {
+            return { success: false, output: "Missing 'parent_page_id'. I tried to find a page to put this database in but failed. Please provide a Page ID." };
+        }
+
+
         const title = typeof input.title === "string" ? input.title : "Untitled Database";
         const properties = (input.properties as Record<string, any>) || {
             Name: { title: {} },
             Description: { rich_text: {} }
         };
 
-        if (!parent_page_id) return { success: false, output: "Missing 'parent_page_id'. A database must be created inside a page." };
-
         const body = {
-            parent: { page_id: parent_page_id },
+            parent: { page_id: targetParentId },
             title: [
                 {
                     type: "text",
@@ -359,7 +427,13 @@ export const createNotionDatabase: ToolDescriptor = {
                 title,
                 message: "Notion database created successfully."
             }),
+            data: {
+                database_id: data.id,
+                url: data.url,
+                title
+            }
         };
+
     },
 };
 

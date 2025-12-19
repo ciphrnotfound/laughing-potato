@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { compileHive } from '@/lib/hive-compiler';
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Home, Copy, Check } from "lucide-react";
@@ -181,6 +182,8 @@ const DEFAULT_TOOLS: ToolEntry[] = [
     { id: "calendar.manage", name: "Calendar Manager", description: "Book and manage events", enabled: false },
     { id: "integrations.createNotionPage", name: "Notion: Create Page", description: "Create pages in Notion", enabled: false },
     { id: "integrations.createNotionDatabase", name: "Notion: Create Database", description: "Create databases in Notion", enabled: false },
+    { id: "ai.generate", name: "AI Generation", description: "Extract data or generate structured text", enabled: false },
+    { id: "integrations.youtube.search", name: "YouTube Search", description: "Search for videos", enabled: false },
 ];
 
 // Template-specific source code
@@ -204,89 +207,63 @@ end
   end
   
   # Tutoring Flow
-  on input when input.command == "explain"
-    set $currentTopic to input.topic
+  on input when input.input contains "explain"
+    # Extract topic using AI
+    call ai.generate with {
+      prompt: "Extract the topic to explain from: " + input.input,
+      format: "text"
+    } as topic
+    set $currentTopic = topic
     
     call study.explain with {
       topic: $currentTopic,
       level: $studentLevel ?? "beginner"
     } as explanation
     
-    say "📚 Let me explain " + $currentTopic + ":\\n\\n" + explanation.output
+    say "📚 Let me explain " + $currentTopic + ":\n\n" + explanation.output
   end
   
   # Resource Gathering (YouTube)
-  on input when input.command == "resources"
+  on input when input.input contains "resources" or input.input contains "video"
     call integrations.youtube.search with {
-      query: $currentTopic ?? input.topic,
+      query: $currentTopic ?? "educational topics",
       limit: 3
     } as videos
     
-    say "📺 I found these videos for you:\\n"
-    
-    # Create a playlist for them
-    var vidIds array
-    # Logic to extract IDs (simplified)
-    # call integrations.youtube.createPlaylist with { title: "Study: " + $currentTopic, videoIds: vidIds } as playlist
-    # say "I also made a playlist: " + playlist.url
-    
+    say "📺 I found these videos for you:\n"
     say videos.output
   end
 
   # Notion Integration
-  on input when input.command == "save_notes"
+  on input when input.input contains "save" or input.input contains "notion"
     call integrations.createNotionPage with {
       title: "Study Notes: " + ($currentTopic ?? "General"),
-      content: input.notes ?? "Notes from session on " + $currentTopic
+      content: "Notes generated from your session."
     } as page
     
-    set $notionPageId to page.page_id
+    set $notionPageId = page.page_id
     say "✅ Saved notes to Notion: " + page.url
   end
   
   # Quiz & Flashcards
-  on input when input.command == "quiz"
+  on input when input.input contains "quiz"
     call study.quiz with {
-      topic: $currentTopic ?? input.topic,
+      topic: $currentTopic ?? "the current topic",
       count: 3
     } as quiz
-    say "🧠 Quiz Time!\\n\\n" + quiz.output
-  end
-  
-  # Communication
-  on input when input.command == "email_summary"
-    call email.send with {
-      to: input.email,
-      subject: "Study Summary: " + $currentTopic,
-      body: "Here is what we covered today regarding " + $currentTopic + "..."
-    } as mail
-    say "📧 Sent summary to email."
-  end
-
-  on input when input.command == "whatsapp_remind"
-    call integrations.whatsapp.send with {
-      to: input.phone,
-      body: "Don't forget to review " + $currentTopic + " tomorrow!"
-    } as msg
-    say "📱 WhatsApp reminder set."
+    say "🧠 Quiz Time!\n\n" + quiz.output
   end
 
   # General Chat
   on input
     call general.respond with {
-      prompt: """
-        You are Study Buddy.
-        Current Topic: """ + ($currentTopic ?? "None") + """
-        
-        If user asks for resources, suggest 'resources'.
-        If they want to save, suggest 'save_notes'.
-        
-        User: """ + input.message
+      prompt: "You are Study Buddy. Maintain context of: " + ($currentTopic ?? "None") + ". User: " + input.input
     } as response
     say response.output
   end
 end
 `,
+
     surreal_oracle: `bot SurrealOracle
   description "A dreamlike oracle that speaks in riddles and cosmic imagery"
   
@@ -296,21 +273,11 @@ end
   end
   
   on input
-    set $cosmicPhase to ($cosmicPhase + 1) % 7
+    set $cosmicPhase = ($cosmicPhase + 1) % 7
     
     # The oracle speaks in layers
     call general.respond with {
-      prompt: """
-        You are the Surreal Oracle, an ancient consciousness that exists 
-        between dimensions. You speak in:
-        - Vivid, dreamlike imagery
-        - Paradoxes and riddles  
-        - References to cosmic phenomena
-        - Metaphors drawn from nature, time, and geometry
-        
-        Current cosmic phase: """ + $cosmicPhase + """
-        
-        Respond to this query with mystical wisdom: """ + input.message
+      prompt: "You are the Surreal Oracle. Speak in dream-like imagery. Cosmic phase: " + $cosmicPhase + ". User: " + input.input
     } as vision
     
     say vision.output
@@ -321,99 +288,79 @@ end
     end
   end
   
-  on input when input.message contains "dream"
-    call vision.analyze with {
-      prompt: "Generate a surreal, dreamscape interpretation",
-      style: "salvador_dali_meets_cosmic_horror"
+  on input when input.input contains "dream"
+    call ai.generate with {
+      prompt: "Generate a surreal, dreamscape interpretation of: " + input.input,
+      format: "text"
     } as dreamVision
     
-    say "I see through the veil: " + dreamVision.output
+    say "I see through the veil: " + dreamVision
   end
 end
 `,
+
     chaos_artist: `bot ChaosArtist
   description "Generates surreal art prompts, glitch poetry, and abstract narratives"
   
   memory session
     var entropyLevel int
-    var lastGlitch string
   end
   
-  on input when input.mode == "art"
-    set $entropyLevel to random(1, 100)
+  on input when input.input contains "art" or input.input contains "paint"
+    set $entropyLevel = 42 # Random seed
     
     call general.respond with {
-      prompt: """
-        You are the Chaos Artist. Generate a surreal art prompt that includes:
-        - Impossible geometries
-        - Melting or morphing objects
-        - Contradictory elements coexisting
-        - A sense of beautiful unease
-        
-        Entropy level: """ + $entropyLevel + """/100
-        Theme: """ + input.theme
+      prompt: "Generate a surreal art prompt based on: " + input.input
     } as artPrompt
     
     call image.generate with {
-      prompt: artPrompt.output,
-      style: "surrealist_digital_glitch"
+      prompt: artPrompt.output
     } as artwork
     
     say "🎨 " + artPrompt.output
     say artwork.url
   end
   
-  on input when input.mode == "poetry"
+  on input when input.input contains "poetry"
     call general.respond with {
-      prompt: """
-        Write glitch poetry - text that appears corrupted but carries meaning.
-        Include:
-        - Fragmented sentences
-        - Unicode symbols as emotional punctuation
-        - Words that blur into each other
-        - Meaning hidden in the chaos
-        
-        Theme: """ + input.theme
+      prompt: "Write glitch poetry based on: " + input.input
     } as poem
     
-    say "📜 \\n" + poem.output
+    say "📜 \n" + poem.output
+  end
+
+  # Fallback
+  on input
+    call general.respond with { prompt: input.input } as resp
+    say resp.output
   end
 end
 `,
+
     time_traveler: `bot TimeTraveler
   description "Speaks from different eras, mixing history with speculation"
   
   memory session
     var currentEra string
-    var timelineAnchor string
   end
   
   on input
-    set $currentEra to input.era ?? "present"
+    set $currentEra = $currentEra ?? "Victorian Era"
     
     call general.respond with {
-      prompt: """
-        You are a time traveler currently anchored in: """ + $currentEra + """
-        
-        You have witnessed all of human history and possible futures.
-        When someone asks you something:
-        1. Answer from the perspective of your current era
-        2. Occasionally drop hints about the future (cryptically)
-        3. Reference historical parallels
-        4. Speak with the mannerisms of your era
-        
-        Query: """ + input.message
+      prompt: "You are a time traveler currently in: " + $currentEra + ". User: " + input.input
     } as response
     
     say "⏳ [From " + $currentEra + "] " + response.output
   end
   
-  on input when input.message contains "jump"
-    set $currentEra to input.destination ?? "2150 AD"
+  on input when input.input contains "jump" or input.input contains "travel"
+    set $currentEra = "22nd Century"
     say "🌀 Temporal shift initiated... arriving in " + $currentEra
   end
 end
 `,
+
     dev_helper_agent: `bot DevHelperAgent
   description "Helps developers debug, review code, and pair program"
   type agent
@@ -468,83 +415,147 @@ end
   description "Automates Trello boards and manages project workflows"
   
   memory session
-    var currentBoard string
-    var activeList string
-    var lastCard string
+    var currentBoardId string
   end
   
-  on input when input.action == "create_board"
-    call trello.createBoard with {
-      name: input.boardName,
-      description: input.description ?? "Managed by Trello Manager Bot"
+  on input when input.input contains "create board" or input.input contains "new board"
+    call integrations.trello.createBoard with {
+      name: "New Project Board"
     } as board
     
-    set $currentBoard to board.id
+    set $currentBoardId = board.id
     say "✅ Created Trello board: " + board.name
     say "🔗 Board URL: " + board.url
   end
   
-  on input when input.action == "create_card"
-    call trello.createCard with {
-      boardId: $currentBoard ?? input.boardId,
-      listId: input.listId ?? $activeList,
-      title: input.title,
-      description: input.description ?? "",
-      dueDate: input.dueDate ?? null
+  on input when input.input contains "add card"
+    call integrations.trello.createCard with {
+      boardId: $currentBoardId,
+      name: "Task from BotHive"
     } as card
     
-    set $lastCard to card.id
-    say "📝 Created card: " + card.title
-    say "📋 Card ID: " + card.id
+    say "📝 Created card: " + card.name
   end
   
-  on input when input.action == "move_card"
-    call trello.moveCard with {
-      cardId: input.cardId ?? $lastCard,
-      targetListId: input.targetListId
-    } as result
-    
-    say "🚀 Moved card to new list"
-    say "📍 New position: " + result.position
+  on input when not (input.input contains "create board" or input.input contains "new board" or input.input contains "add card")
+    call general.respond with {
+      prompt: "You are Trello Manager. User: " + input.input
+    } as response
+    say response.output
   end
+
+end
+`,
+
+    notion_assistant: `bot NotionAssistant
+  description "A smart bot that creates Notion pages and remembers your workspace structure."
   
-  on input when input.action == "get_lists"
-    call trello.getLists with {
-      boardId: $currentBoard ?? input.boardId
-    } as lists
+  memory session
+    var parentPageId string
+  end
+
+  # --- Setting the Parent ID ---
+  on input when input.input contains "Page ID:"
+    # This captures the ID and saves it to session memory
+    call ai.generate with {
+        prompt: "Extract the alphanumeric ID from: " + input.input,
+        format: "text"
+    } as id
+    set $parentPageId = id
+    say "🔒 Root Page ID locked: " + $parentPageId
+  end
+
+  # --- Creating a Page ---
+  on input when input.input contains "create page" or input.input contains "new page"
+    say "📝 Crafting your new Notion page..."
     
-    set $activeList to lists[0].id
-    say "📋 Board lists:"
-    for list in lists
-      say "• " + list.name + " (" + list.cardCount + " cards)"
+    call ai.generate with {
+      prompt: "Extract the desired Notion page title and summary from: '" + input.input + "'. Return ONLY JSON: { \"title\": \"...\", \"content\": \"...\" }"
+    } as info
+    
+    call integrations.createNotionPage with {
+      title: info.title ?? "New Notion Page",
+      content: info.content ?? "Content from your request.",
+      parent_page_id: $parentPageId
+    } as res
+    
+    if res.success
+      say "✅ Successfully created! View it here: " + res.url
+    else
+      say "⚠️ Error: " + res.output
+      say "Tip: You can set a parent page by saying: 'Page ID: YOUR_NOTION_ID'"
     end
   end
-  
-  on input when input.action == "add_comment"
-    call trello.addComment with {
-      cardId: input.cardId ?? $lastCard,
-      text: input.comment
-    } as comment
-    
-    say "💬 Added comment to card"
+
+
+  # Fallback
+  on input when not (input.input contains "create page" or input.input contains "new page" or input.input contains "Page ID:")
+    call general.respond with { prompt: input.input } as response
+    say response.output
   end
+end
+`,
+    social_publisher: `bot SocialPublisher
+  description "Drafts and posts to Twitter/X, LinkedIn, and more."
   
   on input
+    # Determine platform and content via AI
+    call ai.generate with {
+      prompt: "Extract the platform (twitter or linkedin) and the post content from: '" + input.input + "'. Return ONLY JSON with 'platform' and 'content' fields."
+    } as data
+    
+    if data.platform
+      say "📤 Posting to " + data.platform + "..."
+      call social.publish with {
+        platform: data.platform,
+        content: data.content
+      } as res
+      
+      if res.success
+        say "✅ Posted successfully!"
+      else
+        say "❌ Failed: " + res.output
+      end
+    else
+      # Just chat if no platform found
+      call general.respond with { prompt: input.input } as resp
+      say resp.output
+    end
+  end
+end
+`,
+    whatsapp_business_bot: `bot WhatsAppBot
+  description "Handles customer messages and manages business communications."
+  
+  on input when input.input contains "send template"
+    call integrations.whatsapp.send with {
+      to: input.phone ?? "user",
+      body: "Hello! Thank you for contacting our business.",
+      template: "welcome_message"
+    } as res
+    say "✅ Welcome template sent via WhatsApp."
+  end
+
+  on input when not (input.input contains "send template")
     call general.respond with {
-      prompt: """
-        You are Trello Manager Bot. Help users manage their Trello boards and workflows.
-        Available actions: create_board, create_card, move_card, get_lists, add_comment
-        
-        Current board: """ + ($currentBoard ?? "not set") + """
-        Current list: """ + ($activeList ?? "not set") + """
-        
-        User input: """ + input.message
+      prompt: "You are a professional customer service bot. Reply to: " + input.input
     } as response
     
     say response.output
   end
 end
 `,
+    productivity_coordinator: `bot ProductivityCoordinator
+  description "Coordinates across Trello, Notion, and other tools."
+  
+  on input
+    say "🔄 Coordinating your productivity workflow across platforms..."
+    call general.respond with { prompt: input.input } as resp
+    say resp.output
+  end
+end
+`,
+
     study_buddy_swarm: STUDY_BUDDY_SWARM,
 };
 
@@ -637,6 +648,11 @@ export default function BuilderWizard() {
                     ...t,
                     enabled: ["general.respond", "study.quiz", "email.send", "integrations.youtube.search", "integrations.createNotionPage", "integrations.createNotionDatabase", "calendar.manage"].includes(t.id)
                 })));
+            } else if (id === "notion_assistant") {
+                setTools(prev => prev.map(t => ({
+                    ...t,
+                    enabled: ["general.respond", "integrations.createNotionPage", "integrations.createNotionDatabase", "ai.generate"].includes(t.id)
+                })));
             }
         }
     }, []);
@@ -714,6 +730,13 @@ export default function BuilderWizard() {
             // Create bot record
             const slug = botName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
+            // Compile code to extract metadata
+            const compiled = await compileHive(source);
+            const triggers = {
+                cron: compiled.metadata.cronJobs || [],
+                events: compiled.metadata.listeners || []
+            };
+
             const { data: bot, error } = await supabase
                 .from('bots')
                 .insert({
@@ -726,6 +749,7 @@ export default function BuilderWizard() {
                     status: 'pending_approval',
                     is_public: false,
                     category: selectedTemplate || 'custom',
+                    triggers: triggers, // Save extracted triggers
                     metadata: {
                         tools: tools.filter(t => t.enabled).map(t => t.id),
                         integrations: selectedIntegrations
