@@ -23,7 +23,7 @@ export default function CTA() {
                 >
                     <div className="relative w-20 h-20 md:w-24 md:h-24">
                         <Image
-                            src="/colored-logo (2).png"
+                            src="/bothive-ai-logo.svg"
                             alt="Bothive Logo"
                             fill
                             className="object-contain drop-shadow-[0_0_30px_rgba(139,92,246,0.5)]"

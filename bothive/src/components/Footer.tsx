@@ -182,7 +182,7 @@ export default function Footer() {
                 transition={{ type: "spring", stiffness: 400 }}
               >
                 <Image
-                  src="/colored-logo (2).png"
+                  src="/bothive-ai-logo.svg"
                   alt="Bothive"
                   fill
                   className="object-contain"

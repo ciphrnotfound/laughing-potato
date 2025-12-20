@@ -32,6 +32,75 @@ export default function Home() {
       bg-[#fafafa] text-[#0C1024]
       dark:bg-[#030014] dark:text-white
     ">
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Bothive",
+            "url": "https://bothive.cloud",
+            "logo": "https://bothive.cloud/bothive-ai-logo.svg",
+            "description": "The operating system for the AI era. Build and deploy autonomous AI agents.",
+            "sameAs": [
+              "https://twitter.com/bothive",
+              "https://linkedin.com/company/bothive"
+            ]
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Bothive",
+            "url": "https://bothive.cloud",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://bothive.cloud/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "What is Bothive?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Bothive is the operating system for the AI era — a platform where autonomous agents connect, collaborate, and create new intelligence together."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need coding experience to use Bothive?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No! Bothive features a visual builder and HiveLang, a declarative language that makes it easy to build AI agents even with zero coding experience."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What AI models does Bothive support?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Bothive supports top-tier models from OpenAI, Anthropic, Groq, and xAI, allowing you to choose the best intelligence for your specific task."
+                }
+              }
+            ]
+          })
+        }}
+      />
       {/* Scroll Progress Bar */}
       <ScrollProgress color="bg-gradient-to-r from-violet-500 to-purple-500" />
 
@@ -117,7 +186,7 @@ export default function Home() {
         <div className="relative z-10 max-w-5xl mx-auto px-6 flex flex-col items-center gap-8 text-center">
           {/* Animated gradient text */}
           <TextReveal>
-            <h1
+            <h2
               className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter select-none bg-clip-text text-transparent"
               style={{
                 backgroundImage: "linear-gradient(90deg, #8B5CF6, #EC4899, #8B5CF6, #EC4899)",
@@ -126,7 +195,7 @@ export default function Home() {
               }}
             >
               BOTHIVE
-            </h1>
+            </h2>
           </TextReveal>
 
           <TextReveal>

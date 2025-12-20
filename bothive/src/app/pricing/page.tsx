@@ -5,7 +5,7 @@ import Navbar2 from "@/components/Navbar2";
 import Pricing from "@/components/Pricing";
 import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
-import { TrendingUp, DollarSign, Globe, ShieldCheck } from "lucide-react";
+import { TrendingUp, DollarSign, Globe } from "lucide-react";
 
 const revenueStreams = [
   {

@@ -162,7 +162,7 @@ function SignInContent() {
             <header className="relative z-10 flex items-center justify-between px-6 py-4 md:px-10 md:py-6">
               <Link href="/" className="flex items-center gap-2.5 group">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/20 transition-transform group-hover:scale-105">
-                  <Image src="/colored-logo (2).png" width={40} height={40} alt="Logo" />
+                  <Image src="/bothive-ai-logo.svg" width={40} height={40} alt="Logo" />
                 </div>
                 <span className="font-semibold uppercase text-lg tracking-tight hidden sm:block">Bothive</span>
               </Link>

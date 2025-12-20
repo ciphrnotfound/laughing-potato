@@ -76,7 +76,7 @@ const PaystackButton = dynamic(
         };
         return PaystackHookButton;
     }),
-    { ssr: false, loading: () => <button disabled className="w-full py-3.5 rounded-xl bg-zinc-900 border border-white/5 opacity-50 cursor-not-allowed flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin" /></button> }
+    { ssr: false, loading: () => <button disabled className="w-full py-6 rounded-[2rem] bg-zinc-900 border border-white/5 opacity-50 cursor-not-allowed flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></button> }
 );
 
 type CheckoutStep = 'address' | 'payment';

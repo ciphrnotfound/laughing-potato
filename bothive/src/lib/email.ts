@@ -8,26 +8,34 @@ export const EmailService = {
    * Send a Welcome Email on Signup
    */
   async sendWelcomeEmail(email: string, name: string) {
-    if (!process.env.RESEND_API_KEY) {
+    const hasApiKey = !!process.env.RESEND_API_KEY;
+    console.log(`[EMAIL] 🐝 Welcome Email Request: To=${email}, Name=${name}, HasKey=${hasApiKey}`);
+
+    if (!hasApiKey) {
       console.log('📧 [MOCK EMAIL] Welcome sent to:', email);
       return;
     }
 
     try {
-      await resend.emails.send({
-        from: 'Bothive <onboarding@resend.dev>',
+      const result = await resend.emails.send({
+        from: 'Bothive <hello@bothive.cloud>',
         to: email,
         subject: 'Welcome to the Hive 🐝',
         html: `
-          <div style="font-family: -apple-system, sans-serif; background: #000; color: #fff; padding: 40px; border-radius: 16px;">
-            <h1 style="color: #fff;">Welcome, ${name}! 🐝</h1>
-            <p style="color: #a1a1aa;">You've officially joined the swarm. Your digital workforce is ready.</p>
-            <a href="https://bothive.app/dashboard" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: linear-gradient(135deg, #8B5CF6, #A855F7); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">Enter Dashboard →</a>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; padding: 60px 40px; border-radius: 24px; text-align: center; max-width: 600px; margin: auto; border: 1px solid #222;">
+            <div style="margin-bottom: 30px;">
+               <img src="https://bothive.cloud/bothive-ai-logo.svg" alt="Bothive" style="width: 80px; height: 80px;" />
+            </div>
+            <h1 style="color: #fff; font-size: 32px; letter-spacing: -1px; margin-bottom: 16px;">Welcome, ${name}! 🐝</h1>
+            <p style="color: #a1a1aa; font-size: 18px; line-height: 1.6; margin-bottom: 32px;">You've officially joined the swarm. Your digital workforce is ready to be deployed.</p>
+            <a href="https://bothive.cloud/dashboard" style="display: inline-block; padding: 16px 32px; background: #9333ea; color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 10px 20px rgba(147, 51, 234, 0.3);">Enter Dashboard →</a>
+            <p style="margin-top: 40px; color: #52525b; font-size: 14px;">If you have any questions, feel free to reply to this email.</p>
           </div>
         `
       });
-    } catch (error) {
-      console.error('Failed to send welcome email:', error);
+      console.log('[EMAIL] ✅ Welcome Email Sent Successfully! ID:', result?.data?.id);
+    } catch (error: any) {
+      console.error('[EMAIL] ❌ Failed to send welcome email:', error?.message || error);
     }
   },
 
@@ -49,7 +57,7 @@ export const EmailService = {
     try {
       console.log('[EMAIL] Sending real email via Resend...');
       const result = await resend.emails.send({
-        from: 'Bothive <onboarding@resend.dev>',
+        from: 'Bothive <hello@bothive.cloud>',
         to: email,
         subject: `🐝 Welcome to ${plan} — You're In!`,
         html: `
@@ -158,7 +166,7 @@ export const EmailService = {
           <!-- CTA -->
           <tr>
             <td style="padding: 0 40px 32px;">
-              <a href="https://bothive.app/dashboard" style="display: block; padding: 16px 32px; background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%); color: white; text-decoration: none; text-align: center; border-radius: 12px; font-size: 15px; font-weight: 600; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);">
+              <a href="https://bothive.cloud/dashboard" style="display: block; padding: 16px 32px; background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%); color: white; text-decoration: none; text-align: center; border-radius: 12px; font-size: 15px; font-weight: 600; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);">
                 Open Your Dashboard →
               </a>
             </td>
@@ -198,14 +206,14 @@ export const EmailService = {
 
     try {
       await resend.emails.send({
-        from: 'Bothive <onboarding@resend.dev>',
+        from: 'Bothive <hello@bothive.cloud>',
         to: email,
         subject: `🚀 ${botName} is now live`,
         html: `
           <div style="font-family: -apple-system, sans-serif; background: #000; color: #fff; padding: 40px; border-radius: 16px;">
             <h1 style="color: #fff;">🚀 Deployment Successful</h1>
             <p style="color: #a1a1aa;"><strong style="color: #fff;">${botName}</strong> is now active and running.</p>
-            <a href="https://bothive.app/dashboard" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: linear-gradient(135deg, #8B5CF6, #A855F7); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">View Dashboard →</a>
+            <a href="https://bothive.cloud/dashboard" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background: linear-gradient(135deg, #8B5CF6, #A855F7); color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">View Dashboard →</a>
           </div>
         `
       });

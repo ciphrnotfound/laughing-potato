@@ -75,8 +75,8 @@ export default function Navbar() {
                   )}
                 />
                 <Image
-                  src="/colored-logo (2).png"
-                  alt="Bothive"
+                  src="/bothive-ai-logo.svg"
+                  alt="Bothive Logo"
                   width={36}
                   height={36}
                   className="relative z-[1] h-7 w-7"

@@ -1,0 +1,43 @@
+
+Find in logs
+CtrlF
+19:36:41.860 
+Running build in Washington, D.C., USA (East) – iad1
+19:36:41.862 
+Build machine configuration: 2 cores, 8 GB
+19:36:41.999 
+Cloning github.com/ciphrnotfound/laughing-potato (Branch: main, Commit: e736d8b)
+19:36:42.000 
+Previous build caches not available.
+19:36:45.054 
+Cloning completed: 3.055s
+19:36:46.019 
+Running "vercel build"
+19:36:47.131 
+Vercel CLI 50.1.3
+19:36:53.646 
+Installing dependencies...
+19:36:58.448 
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+19:36:58.640 
+npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+19:37:00.045 
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+19:37:00.064 
+npm warn deprecated @supabase/auth-helpers-shared@0.7.0: This package is now deprecated - please use the @supabase/ssr package instead.
+19:37:00.699 
+npm warn deprecated @supabase/auth-helpers-nextjs@0.10.0: This package is now deprecated - please use the @supabase/ssr package instead.
+19:37:24.724 
+dit the record
+Type*
+CNAME
+
+Name*
+www
+Target*
+bothive.cloud
+TTL*
+300
+
+Cancel
+Update

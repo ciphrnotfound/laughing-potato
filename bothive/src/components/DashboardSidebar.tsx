@@ -223,7 +223,7 @@ export const Logo = ({ role }: { role: string }) => {
       className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
     >
       {/* <div className="h-5 w-6 bg-black dark:bg-white rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" /> */}
-      <Image src="/colored-logo (2).png" alt="logo" width={40} height={40} />
+      <Image src="/bothive-ai-logo.svg" alt="logo" width={40} height={40} />
       <motion.span
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

@@ -9,17 +9,12 @@ import {
   Brain,
   Code2,
   ShieldCheck,
-  Zap,
   Share2,
   Bot,
-  Cpu,
-  ArrowRight
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-// --- Components ---
-
 import { SpotlightCard } from "@/components/ui/ThreeDCard";
 
 const FeatureCard = ({
@@ -42,7 +37,6 @@ const FeatureCard = ({
         className
       )}
     >
-      {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         <div className="mb-6 flex items-center justify-between">
           <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-white group-hover:bg-violet-500/20 group-hover:text-violet-300 transition-colors">
@@ -67,8 +61,6 @@ export default function FeaturesPage() {
       <Navbar2 />
 
       <main className="pt-32 pb-20 px-6">
-
-        {/* Header */}
         <div className="max-w-4xl mx-auto text-center mb-24">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -83,35 +75,28 @@ export default function FeaturesPage() {
             True <span className="text-violet-400">Agentic Intelligence.</span>
           </h1>
           <p className="text-lg text-white/50 max-w-2xl mx-auto">
-            Traditional bots are isolated and amnesic. BotHive creates a connected neural network of specialized agents that share memory, tools, and goals.
+            Traditional bots are isolated and amnesic. Bothive creates a connected neural network of specialized agents that share memory, tools, and goals.
           </p>
         </div>
 
-        {/* Bento Grid */}
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-6 auto-rows-[minmax(300px,auto)]">
-
-          {/* Card 1: Orchestration (Large) */}
           <FeatureCard
             className="md:col-span-6 lg:col-span-8 bg-gradient-to-br from-[#0a0a0f] to-[#0f0f16]"
             title="Neural Orchestration"
             description="Don't rely on a single prompt. Our Queen Bee One model dynamically routes tasks to specialized sub-agents based on intent, complexity, and required tools."
             icon={Network}
           >
-            {/* Visual: Simulated Nodes */}
             <div className="w-full h-48 rounded-xl bg-black/40 border border-white/5 relative overflow-hidden flex items-center justify-center">
               <div className="absolute inset-0 bg-[linear-gradient(rgba(139,92,246,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(139,92,246,0.1)_1px,transparent_1px)] bg-[size:20px_20px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]" />
-
               <div className="relative z-10 flex items-center gap-8">
                 <div className="w-16 h-16 rounded-2xl bg-[#1a1a20] border border-violet-500/50 flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.2)]">
                   <Network className="w-8 h-8 text-violet-400" />
                 </div>
-
                 <div className="flex flex-col gap-2">
                   <div className="w-16 h-1 bg-gradient-to-r from-violet-500/50 to-transparent rounded-full animate-pulse" />
                   <div className="w-16 h-1 bg-gradient-to-r from-violet-500/30 to-transparent rounded-full" />
                   <div className="w-16 h-1 bg-gradient-to-r from-violet-500/10 to-transparent rounded-full" />
                 </div>
-
                 <div className="grid grid-cols-2 gap-2">
                   {[1, 2, 3, 4].map(i => (
                     <div key={i} className="w-10 h-10 rounded-lg bg-[#1a1a20] border border-white/10 flex items-center justify-center">
@@ -123,7 +108,6 @@ export default function FeaturesPage() {
             </div>
           </FeatureCard>
 
-          {/* Card 2: HiveLang (Tall) */}
           <FeatureCard
             className="md:col-span-6 lg:col-span-4"
             title="HiveLang v1.0"
@@ -139,11 +123,7 @@ export default function FeaturesPage() {
               <br />
               &nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">call</span> <span className="text-yellow-200">browser.search</span>
               <br />
-              &nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">with</span> <span className="text-white">{"{"}</span>
-              <br />
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;query: <span className="text-orange-300">input.text</span>
-              <br />
-              &nbsp;&nbsp;&nbsp;&nbsp;<span className="text-white">{"}"}</span>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span className="text-green-400">with</span> <span className="text-white">{"}"}</span>
               <br />
               &nbsp;&nbsp;<span className="text-white">{"}"}</span>
               <br />
@@ -151,7 +131,6 @@ export default function FeaturesPage() {
             </div>
           </FeatureCard>
 
-          {/* Card 3: Memory (Medium) */}
           <FeatureCard
             className="md:col-span-4 lg:col-span-4"
             title="Graph Memory"
@@ -167,11 +146,10 @@ export default function FeaturesPage() {
             </div>
           </FeatureCard>
 
-          {/* Card 4: Security (Medium) */}
           <FeatureCard
             className="md:col-span-4 lg:col-span-4"
             title="Enterprise Security"
-            description="SOC 2 Type II compliant. Your data is encrypted at rest and in transit. We never train on customer data without explicit consent."
+            description="SOC 2 Type II compliant. Your data is encrypted at rest and in transit. We never train on customer data."
             icon={ShieldCheck}
           >
             <div className="mt-4 flex items-center gap-4">
@@ -183,11 +161,10 @@ export default function FeaturesPage() {
             </div>
           </FeatureCard>
 
-          {/* Card 5: Tools (Medium) */}
           <FeatureCard
             className="md:col-span-4 lg:col-span-4"
             title="100+ Integrations"
-            description="Web browsing, GitHub, Linear, Slack, Notion, and Google Drive. If it has an API, BotHive can use it."
+            description="Web browsing, GitHub, Linear, Slack, Notion, and Google Drive. If it has an API, Bothive can use it."
             icon={Share2}
           >
             <div className="grid grid-cols-4 gap-2 mt-4 opacity-50">
@@ -196,10 +173,8 @@ export default function FeaturesPage() {
               ))}
             </div>
           </FeatureCard>
-
         </div>
 
-        {/* CTA */}
         <div className="mt-24 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to build your swarm?</h2>
           <div className="flex items-center justify-center gap-4">
@@ -211,7 +186,6 @@ export default function FeaturesPage() {
             </Link>
           </div>
         </div>
-
       </main>
 
       <Footer />

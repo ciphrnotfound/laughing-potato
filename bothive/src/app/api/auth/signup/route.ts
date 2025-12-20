@@ -69,7 +69,12 @@ export async function POST(req: NextRequest) {
             }
 
             // Send Welcome Email
-            await EmailService.sendWelcomeEmail(email, firstName || 'User');
+            try {
+                await EmailService.sendWelcomeEmail(email, firstName || 'User');
+            } catch (emailErr) {
+                console.error('[SIGNUP] Welcome email sending failed:', emailErr);
+                // We don't block the response for email failure, but we log it heavily
+            }
         }
 
         return NextResponse.json({

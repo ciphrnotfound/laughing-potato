@@ -79,7 +79,7 @@ export function AuthLoader() {
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Image src="/colored-logo (2).png" alt="Bothive" width={32} height={32} className="h-8 w-8" />
+          <Image src="/bothive-ai-logo.svg" alt="Bothive" width={32} height={32} className="h-8 w-8" />
         </motion.div>
 
         <motion.div

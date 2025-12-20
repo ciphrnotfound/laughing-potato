@@ -300,6 +300,7 @@ const Hero = () => {
 
                         {/* Headline - tight leading and minimal gap */}
                         <div className="mt-4">
+                            <h1 className="sr-only">Bothive — Where AI Minds Collaborate</h1>
                             <Headline
                                 className="text-[36px] leading-[1.06] sm:text-[44px] md:text-[56px] xl:text-[68px]"
                                 duration={0.35}
@@ -347,9 +348,9 @@ const Hero = () => {
                     className="mt-16 sm:mt-20 px-6 sm:px-10"
                 >
                     <div className="max-w-5xl mx-auto">
-                        <VideoPlayer 
-                            videoUrl="/hero-demo.mp4" 
-                            className="w-full" 
+                        <VideoPlayer
+                            videoUrl="/hero-demo.mp4"
+                            className="w-full"
                         />
                     </div>
                 </motion.div>

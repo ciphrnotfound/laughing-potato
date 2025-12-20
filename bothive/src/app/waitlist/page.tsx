@@ -22,7 +22,7 @@ export default function WaitlistPage() {
                 >
                     {/* Logo */}
                     <div className="mb-8 flex justify-center">
-                        <Image src="/colored-logo (2).png" alt="Bothive" width={64} height={64} className="drop-shadow-2xl" />
+                        <Image src="/bothive-ai-logo.svg" alt="Bothive" width={64} height={64} className="drop-shadow-2xl" />
                     </div>
 
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-violet-300 mb-8 backdrop-blur-sm">
