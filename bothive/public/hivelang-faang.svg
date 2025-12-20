@@ -1,0 +1,53 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- The "Billion Dollar" Gradient (Sophisticated, Deep, Multi-layered) -->
+    <linearGradient id="faang_flow" x1="40" y1="40" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C084FC" /> <!-- Violet 400 -->
+      <stop offset="40%" stop-color="#9333EA" /> <!-- Purple 600 -->
+      <stop offset="100%" stop-color="#4F46E5" /> <!-- Indigo 600 -->
+    </linearGradient>
+
+    <!-- Professional Glass Glow (Subtle, not neon) -->
+    <filter id="glass_glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Mask to create the "Negative Space H" -->
+    <mask id="h_mask">
+      <rect width="200" height="200" fill="white" />
+      <!-- The H cutout -->
+      <rect x="85" y="70" width="30" height="60" rx="2" fill="black" />
+      <path d="M60 100H140" stroke="black" stroke-width="20" />
+    </mask>
+  </defs>
+
+  <!-- The "Prism Hexagon" - Continuous Flow -->
+  <!-- This represents a single thread of code orchestrating a hive -->
+  <g filter="url(#glass_glow)">
+    <!-- Layer 1: Ambient Depth -->
+    <path d="M100 20L170 60V140L100 180L30 140V60L100 20Z" 
+          fill="#030014" 
+          stroke="url(#faang_flow)" 
+          stroke-width="1.5" 
+          opacity="0.4" />
+
+    <!-- Layer 2: The Core Glyph (The "Flow") -->
+    <!-- Two interlocking S-curves that form a Hexagon + H -->
+    <path d="M100 20C130 20 170 40 170 80V120C170 160 130 180 100 180C70 180 30 160 30 120V80C30 40 70 20 100 20Z" 
+          stroke="url(#faang_flow)" 
+          stroke-width="24" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+          
+    <!-- Layer 3: The "Negative H" Intersect -->
+    <path d="M80 70V130M120 70V130M80 100H120" 
+          stroke="white" 
+          stroke-width="12" 
+          stroke-linecap="round" />
+  </g>
+
+  <!-- Final Node Points (Pure White for Contrast) -->
+  <circle cx="100" cy="20" r="3" fill="white" />
+  <circle cx="100" cy="180" r="3" fill="white" />
+</svg>

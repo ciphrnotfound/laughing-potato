@@ -1,0 +1,54 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="purple_glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C084FC" /> <!-- Violet 400 -->
+      <stop offset="100%" stop-color="#9333EA" /> <!-- Purple 600 -->
+    </linearGradient>
+    
+    <filter id="neon_glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Hexagonal Node Frame -->
+  <path d="M100 25L165 62.5V137.5L100 175L35 137.5V62.5L100 25Z" 
+        stroke="url(#purple_glow)" 
+        stroke-width="1.5" 
+        stroke-dasharray="2 4" 
+        opacity="0.4" />
+
+  <!-- The "Cyber-B" - Integrated with Hexagon Nodes -->
+  <g filter="url(#neon_glow)">
+    <!-- Main Hexagon B Outline -->
+    <path d="M100 45L145 70V130L100 155L55 130V70L100 45Z" 
+          stroke="url(#purple_glow)" 
+          stroke-width="5" 
+          stroke-linejoin="round" />
+    
+    <!-- Central Divider to form 'B' -->
+    <path d="M85 70L115 70C125 70 130 75 130 85C130 95 125 100 115 100H85V130H115C125 130 130 135 130 145C130 155 125 160 115 160H85" 
+          stroke="white" 
+          stroke-width="8" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          transform="translate(10, -5) scale(0.7)" />
+          
+    <!-- Neural Node Points -->
+    <circle cx="100" cy="45" r="3" fill="white" />
+    <circle cx="145" cy="70" r="3" fill="white" />
+    <circle cx="145" cy="130" r="3" fill="white" />
+    <circle cx="100" cy="155" r="3" fill="white" />
+    <circle cx="55" cy="130" r="3" fill="white" />
+    <circle cx="55" cy="70" r="3" fill="white" />
+  </g>
+
+  <!-- Pulse Effect -->
+  <circle cx="100" cy="100" r="60" stroke="#9333EA" stroke-width="1" opacity="0">
+    <animate attributeName="r" from="60" to="90" dur="3s" repeatCount="Infinity" />
+    <animate attributeName="opacity" from="0.5" to="0" dur="3s" repeatCount="Infinity" />
+  </circle>
+</svg>

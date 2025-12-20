@@ -1,0 +1,47 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Mathematical Precision Gradients -->
+    <linearGradient id="faang_purple" x1="40" y1="40" x2="160" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A855F7" /> <!-- Purple 500 -->
+      <stop offset="100%" stop-color="#6366F1" /> <!-- Indigo 500 -->
+    </linearGradient>
+    
+    <!-- Subtle depth shadow -->
+    <filter id="depth_shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.2" />
+    </filter>
+  </defs>
+
+  <!-- The "Infinite Hive" - A single continuous path forming a Hexagon + H -->
+  <!-- This uses a "Möbius" style overlap to feel like high-end orchestration -->
+  <g filter="url(#depth_shadow)">
+    <!-- Back Layer (Shadow/Depth) -->
+    <path d="M100 35L156.28 67.5V132.5L100 165L43.72 132.5V67.5L100 35Z" 
+          fill="#030014" 
+          stroke="url(#faang_purple)" 
+          stroke-width="1.5"
+          opacity="0.3" />
+
+    <!-- The Geometric 'H' Glyph -->
+    <!-- Using Negative Space and Precision Offsets -->
+    <path d="M70 65V135M130 65V135M70 100H130" 
+          stroke="white" 
+          stroke-width="14" 
+          stroke-linecap="round" />
+          
+    <!-- The "Hive Slash" - Intersecting with Mathematical Precision -->
+    <path d="M50 70L150 130" 
+          stroke="url(#faang_purple)" 
+          stroke-width="14" 
+          stroke-linecap="round" 
+          opacity="0.9" />
+  </g>
+
+  <!-- High-Tech "Precision" Markers (The FAANG Touch) -->
+  <circle cx="100" cy="35" r="2" fill="white" />
+  <circle cx="156.28" cy="67.5" r="2" fill="white" />
+  <circle cx="156.28" cy="132.5" r="2" fill="white" />
+  <circle cx="100" cy="165" r="2" fill="white" />
+  <circle cx="43.72" cy="132.5" r="2" fill="white" />
+  <circle cx="43.72" cy="67.5" r="2" fill="white" />
+</svg>

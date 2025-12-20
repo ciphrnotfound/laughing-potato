@@ -39,7 +39,7 @@ export const metadata: Metadata = {
         type: "website",
         images: [
             {
-                url: "/og-image.png", // User should add this image to /public
+                url: "/og-image.png",
                 width: 1200,
                 height: 630,
                 alt: "Bothive - AI Agent Platform",

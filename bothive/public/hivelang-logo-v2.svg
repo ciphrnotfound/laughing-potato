@@ -1,0 +1,32 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Precision Mathematical Grid -->
+  <defs>
+    <linearGradient id="hivelang_faang_grad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C084FC" />
+      <stop offset="100%" stop-color="#6366F1" />
+    </linearGradient>
+    
+    <clipPath id="inner_hex">
+       <path d="M100 20L170 60V140L100 180L30 140V60L100 20Z" />
+    </clipPath>
+  </defs>
+
+  <!-- The "Core" - Two Interlocking Slabs (represents logic/orchestration) -->
+  <g clip-path="url(#inner_hex)">
+    <!-- Slab 1 -->
+    <path d="M40 40L160 160" stroke="url(#hivelang_faang_grad)" stroke-width="40" stroke-linecap="butt" />
+    <!-- Slab 2 (Negative Space 'H') -->
+    <path d="M60 40V160M140 40V160M60 100H140" stroke="white" stroke-width="12" stroke-linecap="round" />
+  </g>
+
+  <!-- The "Perfect" Hexagon Frame -->
+  <path d="M100 20L170 60V140L100 180L30 140V60L100 20Z" 
+        stroke="white" 
+        stroke-width="1" 
+        opacity="0.2" />
+
+  <!-- The "Signal" Node (One single perfectly placed point) -->
+  <circle cx="100" cy="100" r="6" fill="white">
+     <animate attributeName="opacity" values="1;0.2;1" dur="4s" repeatCount="Infinity" />
+  </circle>
+</svg>

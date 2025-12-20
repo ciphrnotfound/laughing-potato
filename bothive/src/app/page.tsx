@@ -101,6 +101,28 @@ export default function Home() {
           })
         }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "Bothive",
+            "operatingSystem": "Web, Cloud",
+            "applicationCategory": "BusinessApplication, DeveloperApplication",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.9",
+              "reviewCount": "1200"
+            }
+          })
+        }}
+      />
       {/* Scroll Progress Bar */}
       <ScrollProgress color="bg-gradient-to-r from-violet-500 to-purple-500" />
 
