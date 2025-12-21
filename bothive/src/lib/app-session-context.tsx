@@ -69,30 +69,22 @@ export function AppSessionProvider({ children }: AppSessionProviderProps) {
 
       if (session?.user) {
         const { user } = session;
-        
-        // Skip profile fetching for now - table doesn't exist yet
-        // TODO: Enable this when user_profiles table is created
-        /*
+
         let profileData = null;
         try {
           const { data, error } = await supabase
             .from('user_profiles')
-            .select('role, onboarding_completed')
+            .select('role, onboarding_completed, first_name, last_name, team_name')
             .eq('user_id', user.id)
             .single();
-          
+
           if (!error) {
             profileData = data;
-          } else {
-            // Table doesn't exist or other error, use defaults
-            console.log('user_profiles table not found, using defaults');
           }
         } catch (error) {
-          // Unexpected error, use defaults
-          console.log('Unexpected error fetching profile, using defaults');
+          console.log('Error fetching profile:', error);
         }
-        */
-        
+
         setProfile({
           id: user.id,
           email: user.email ?? undefined,
@@ -119,30 +111,22 @@ export function AppSessionProvider({ children }: AppSessionProviderProps) {
 
       if (newSession?.user) {
         const { user } = newSession;
-        
-        // Skip profile fetching for now - table doesn't exist yet
-        // TODO: Enable this when user_profiles table is created
-        /*
+
         let profileData = null;
         try {
           const { data, error } = await supabase
             .from('user_profiles')
-            .select('role, onboarding_completed')
+            .select('role, onboarding_completed, first_name, last_name, team_name')
             .eq('user_id', user.id)
             .single();
-          
+
           if (!error) {
             profileData = data;
-          } else {
-            // Table doesn't exist or other error, use defaults
-            console.log('user_profiles table not found, using defaults');
           }
         } catch (error) {
-          // Unexpected error, use defaults
-          console.log('Unexpected error fetching profile, using defaults');
+          console.log('Error fetching profile:', error);
         }
-        */
-        
+
         setProfile({
           id: user.id,
           email: user.email ?? undefined,

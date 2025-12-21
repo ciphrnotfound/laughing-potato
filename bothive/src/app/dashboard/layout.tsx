@@ -33,10 +33,11 @@ export default function DashboardLayout({
 
         // TEMPORARY: Allow access if role override is present (for testing)
         const roleOverride = localStorage.getItem("bothive_role_override");
+        const hasInviteToken = localStorage.getItem("bothive_invite_token");
         const isAdmin = user.email === "akinlorinjeremiah@gmail.com";
 
-        if (!isAdmin && !roleOverride && process.env.NODE_ENV === "production") {
-          // Access Denied -> Waitlist (Only in production if not admin/overridden)
+        if (!isAdmin && !roleOverride && !hasInviteToken && process.env.NODE_ENV === "production") {
+          // Access Denied -> Waitlist (Only in production if not admin/overridden/invited)
           if (!pathname?.includes("/waitlist")) {
             router.push("/waitlist");
           }

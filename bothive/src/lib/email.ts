@@ -18,7 +18,7 @@ export const EmailService = {
 
     try {
       const { data, error } = await resend.emails.send({
-        from: 'Bothive <support@bothive.support.cloud>',
+        from: 'Bothive <support@bothive.cloud>',
         to: email,
         subject: 'Welcome to the Hive 🐝',
         html: `
@@ -62,7 +62,7 @@ export const EmailService = {
     try {
       console.log('[EMAIL] Sending real email via Resend...');
       const { data, error } = await resend.emails.send({
-        from: 'Bothive <support@bothive.support.cloud>',
+        from: 'Bothive <support@bothive.cloud>',
         to: email,
         subject: `🐝 Welcome to ${plan} — You're In!`,
         html: `
@@ -216,7 +216,7 @@ export const EmailService = {
 
     try {
       const { data, error } = await resend.emails.send({
-        from: 'Bothive <support@bothive.support.cloud>',
+        from: 'Bothive <support@bothive.cloud>',
         to: email,
         subject: `🚀 ${botName} is now live`,
         html: `
@@ -235,6 +235,60 @@ export const EmailService = {
       }
     } catch (error: any) {
       console.error('[EMAIL] ❌ Unexpected Error in Deploy email:', error?.message || error);
+    }
+  },
+
+  /**
+   * Send Waitlist Confirmation
+   */
+  async sendWaitlistEmail(email: string) {
+    const hasApiKey = !!process.env.RESEND_API_KEY;
+    console.log(`[EMAIL] 🐝 Waitlist Email Request: To=${email}, HasKey=${hasApiKey}`);
+
+    if (!hasApiKey) {
+      console.log('📧 [MOCK EMAIL] Waitlist welcome sent to:', email);
+      return;
+    }
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: 'Bothive <support@bothive.cloud>',
+        to: email,
+        subject: "You're on the list! 🐝",
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; padding: 60px 40px; border-radius: 24px; text-align: center; max-width: 600px; margin: auto; border: 1px solid #222;">
+            <div style="margin-bottom: 30px;">
+               <img src="https://bothive.cloud/bothive-ai-logo.svg" alt="Bothive" style="width: 80px; height: 80px;" />
+            </div>
+            <h1 style="color: #fff; font-size: 32px; letter-spacing: -1px; margin-bottom: 16px;">You're in the Swarm! 🐝</h1>
+            <p style="color: #a1a1aa; font-size: 18px; line-height: 1.6; margin-bottom: 32px;">Thanks for joining the Bothive waitlist. We're currently in private beta and rolling out access gradually.</p>
+            
+            <div style="background: #111; border: 1px solid #333; border-radius: 16px; padding: 24px; margin-bottom: 32px; text-align: left;">
+              <p style="color: #fff; font-size: 14px; font-weight: 600; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 1px;">What to expect:</p>
+              <ul style="color: #a1a1aa; font-size: 15px; margin: 0; padding-left: 20px;">
+                <li style="margin-bottom: 8px;">Exclusive early access to our agent marketplace.</li>
+                <li style="margin-bottom: 8px;">First look at the HiveMind intelligence engine.</li>
+                <li style="margin-bottom: 0;">Priority setup support when your invite arrives.</li>
+              </ul>
+            </div>
+
+            <p style="color: #a1a1aa; font-size: 16px; margin-bottom: 32px;">Keep an eye on your inbox—we'll notify you as soon as your spot is ready.</p>
+            
+            <div style="border-top: 1px solid #222; pt: 32px; margin-top: 32px;">
+              <p style="color: #52525b; font-size: 14px;">Follow us for updates:</p>
+              <a href="https://twitter.com/bothive" style="color: #9333ea; text-decoration: none; font-weight: 600;">Twitter (X)</a>
+            </div>
+          </div>
+        `
+      });
+
+      if (error) {
+        console.error('[EMAIL] ❌ Resend Error (Waitlist):', error);
+      } else {
+        console.log('[EMAIL] ✅ Waitlist Email Sent Successfully! ID:', data?.id);
+      }
+    } catch (err: any) {
+      console.error('[EMAIL] ❌ Unexpected Error in Waitlist email:', err?.message || err);
     }
   }
 };
