@@ -226,7 +226,7 @@ export async function POST(req: NextRequest) {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                from: "BotHive <notifications@bothive.app>", // Update with your verified domain
+                from: "Bothive <notifications@bothive.support.cloud>", // Update with your verified domain
                 to: [userEmail],
                 subject: `🎉 Your ${botType} "${botName}" is Live on BotHive!`,
                 html: emailHtml,

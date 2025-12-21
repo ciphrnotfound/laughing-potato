@@ -415,15 +415,15 @@ export function registerHiveLangLanguage(monaco: Monaco) {
     });
 }
 
-// Custom dark theme for HiveLang
+// Custom dark theme for HiveLang (Midnight Hive)
 export function registerHiveLangTheme(monaco: Monaco) {
     monaco.editor.defineTheme("hivelang-dark", {
         base: "vs-dark",
         inherit: true,
         rules: [
             { token: "comment", foreground: "6B7280", fontStyle: "italic" },
-            { token: "string", foreground: "34D399" },
-            { token: "string.escape", foreground: "6EE7B7" },
+            { token: "string", foreground: "10B981" },
+            { token: "string.escape", foreground: "34D399" },
             { token: "keyword", foreground: "A78BFA", fontStyle: "bold" },
             { token: "type", foreground: "60A5FA" },
             { token: "type.identifier", foreground: "F472B6", fontStyle: "bold" },
@@ -436,16 +436,52 @@ export function registerHiveLangTheme(monaco: Monaco) {
             { token: "identifier", foreground: "E2E8F0" },
         ],
         colors: {
-            "editor.background": "#0A0A0F",
+            "editor.background": "#08080C",
             "editor.foreground": "#E2E8F0",
-            "editor.lineHighlightBackground": "#1E1E2E",
+            "editor.lineHighlightBackground": "#111116",
             "editorCursor.foreground": "#A78BFA",
-            "editor.selectionBackground": "#A78BFA40",
-            "editor.inactiveSelectionBackground": "#A78BFA20",
-            "editorLineNumber.foreground": "#4B5563",
+            "editor.selectionBackground": "#A78BFA30",
+            "editor.inactiveSelectionBackground": "#A78BFA15",
+            "editorLineNumber.foreground": "#3F3F46",
             "editorLineNumber.activeForeground": "#A78BFA",
-            "editorIndentGuide.background": "#1F2937",
-            "editorIndentGuide.activeBackground": "#374151",
+            "editorIndentGuide.background": "#18181B",
+            "editorIndentGuide.activeBackground": "#27272A",
+            "editor.border": "#18181B",
+        },
+    });
+}
+
+// Custom light theme for HiveLang (Clean Hive)
+export function registerHiveLangLightTheme(monaco: Monaco) {
+    monaco.editor.defineTheme("hivelang-light", {
+        base: "vs",
+        inherit: true,
+        rules: [
+            { token: "comment", foreground: "94A3B8", fontStyle: "italic" },
+            { token: "string", foreground: "059669" },
+            { token: "string.escape", foreground: "10B981" },
+            { token: "keyword", foreground: "7C3AED", fontStyle: "bold" },
+            { token: "type", foreground: "2563EB" },
+            { token: "type.identifier", foreground: "DB2777", fontStyle: "bold" },
+            { token: "function", foreground: "D97706" },
+            { token: "variable", foreground: "0284C7" },
+            { token: "variable.predefined", foreground: "0891B2" },
+            { token: "constant", foreground: "EA580C" },
+            { token: "number", foreground: "EA580C" },
+            { token: "operator", foreground: "64748B" },
+            { token: "identifier", foreground: "1E293B" },
+        ],
+        colors: {
+            "editor.background": "#FAFAFA",
+            "editor.foreground": "#1E293B",
+            "editor.lineHighlightBackground": "#F1F5F9",
+            "editorCursor.foreground": "#7C3AED",
+            "editor.selectionBackground": "#7C3AED20",
+            "editor.inactiveSelectionBackground": "#7C3AED10",
+            "editorLineNumber.foreground": "#CBD5E1",
+            "editorLineNumber.activeForeground": "#7C3AED",
+            "editorIndentGuide.background": "#F1F5F9",
+            "editorIndentGuide.activeBackground": "#E2E8F0",
         },
     });
 }

@@ -74,6 +74,14 @@ export default function DeveloperConsole() {
 
           <div className="flex items-center gap-3">
             <Button
+              variant="outline"
+              onClick={() => router.push('/dashboard/developer/ide')}
+              className="bg-purple-600/10 border-purple-500/30 text-purple-400 hover:bg-purple-600 hover:text-white transition-all font-semibold"
+            >
+              <Cpu className="w-4 h-4 mr-2" />
+              Launch IDE
+            </Button>
+            <Button
               onClick={() => router.push('/dashboard/developer/editor/new')}
               className="bg-white text-black hover:bg-zinc-200 border-0 font-medium px-6"
             >

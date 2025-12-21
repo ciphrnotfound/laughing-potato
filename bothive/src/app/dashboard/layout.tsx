@@ -31,9 +31,12 @@ export default function DashboardLayout({
           return;
         }
 
-        // Strict Admin Check - The Gatekeeper
-        if (user.email !== "akinlorinjeremiah@gmail.com") {
-          // Access Denied -> Waitlist
+        // TEMPORARY: Allow access if role override is present (for testing)
+        const roleOverride = localStorage.getItem("bothive_role_override");
+        const isAdmin = user.email === "akinlorinjeremiah@gmail.com";
+
+        if (!isAdmin && !roleOverride && process.env.NODE_ENV === "production") {
+          // Access Denied -> Waitlist (Only in production if not admin/overridden)
           if (!pathname?.includes("/waitlist")) {
             router.push("/waitlist");
           }

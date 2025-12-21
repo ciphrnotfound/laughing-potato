@@ -25,33 +25,52 @@ export default function TermsOfServicePage() {
 
                         <h3>1. Agreement to Terms</h3>
                         <p>
-                            These Terms of Service constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("you") and Bothive ("we," "us" or "our"), concerning your access to and use of the Bothive website as well as any other media form, media channel, mobile website or mobile application related, linked, or otherwise connected thereto (collectively, the "Site").
+                            These Terms of Service constitute a legally binding agreement made between you ("User") and Bothive ("we"), concerning your access to and use of our AI agent ecosystem and HiveLang development tools.
                         </p>
 
-                        <h3>2. Intellectual Property Rights</h3>
+                        <h3>2. User Representations and Bot Creation</h3>
                         <p>
-                            Unless otherwise indicated, the Site is our proprietary property and all source code, databases, functionality, software, website designs, audio, video, text, photographs, and graphics on the Site (collectively, the "Content") and the trademarks, service marks, and logos contained therein (the "Marks") are owned or controlled by us or licensed to us, and are protected by copyright and trademark laws.
-                        </p>
-
-                        <h3>3. User Representations</h3>
-                        <p>
-                            By using the Site, you represent and warrant that:
+                            By creating or deploying a bot on Bothive, you represent and warrant that:
                         </p>
                         <ul>
-                            <li>All registration information you submit will be true, accurate, current, and complete.</li>
-                            <li>You will maintain the accuracy of such information and promptly update such registration information as necessary.</li>
-                            <li>You have the legal capacity and you agree to comply with these Terms of Service.</li>
-                            <li>You are not under the age of 13.</li>
+                            <li>You own or have the necessary licenses for all code and prompts included in your bot.</li>
+                            <li>Your bot does not violate any third-party rights or produce content that is illegal, harmful, or fraudulent.</li>
+                            <li>You are responsible for the actions initiated by your bots through connected integrations.</li>
                         </ul>
 
-                        <h3>4. Prohibited Activities</h3>
+                        <h3>3. Marketplace and Monetization</h3>
                         <p>
-                            You may not access or use the Site for any purpose other than that for which we make the Site available. The Site may not be used in connection with any commercial endeavors except those that are specifically endorsed or approved by us.
+                            If you publish a bot to the Hive Store:
                         </p>
+                        <ul>
+                            <li><strong>Revenue Share:</strong> Bothive may retain a platform fee on all paid installations.</li>
+                            <li><strong>Transfers:</strong> Purchases grant a license to use the bot but do not transfer underlying intellectual property unless explicitly stated.</li>
+                            <li><strong>Refunds:</strong> Due to the digital nature of AI agents, refunds are subject to our discretionary review and platform policy.</li>
+                        </ul>
 
-                        <h3>5. Contact Us</h3>
+                        <h3>4. AI Responsibility and Liability</h3>
                         <p>
-                            In order to resolve a complaint regarding the Site or to receive further information regarding use of the Site, please contact us at: <br />
+                            Bothive provides the infrastructure for AI execution. We are not liable for:
+                        </p>
+                        <ul>
+                            <li>Inaccuracies or hallucinations produced by large language models.</li>
+                            <li>Data loss or corruption resulting from the autonomous actions of bots integrated with third-party APIs.</li>
+                            <li>Service interruptions caused by underlying AI provider outages (e.g., OpenAI, Anthropic).</li>
+                        </ul>
+
+                        <h3>5. Prohibited Activities</h3>
+                        <p>
+                            You may not use Bothive to:
+                        </p>
+                        <ul>
+                            <li>Develop malware or phishing agents.</li>
+                            <li>Reverse engineer the Pulse Engine or HiveLang compiler.</li>
+                            <li>Scrape Bothive's proprietary marketplace data or user profiles.</li>
+                        </ul>
+
+                        <h3>6. Contact Us</h3>
+                        <p>
+                            For legal inquiries or complaints, contact us at: <br />
                             <a href="mailto:legal@bothive.com" className="text-violet-400 hover:text-violet-300">legal@bothive.com</a>
                         </p>
                     </div>

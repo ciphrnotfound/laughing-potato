@@ -46,25 +46,19 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
-
-  // Initialize theme on mount
-  useEffect(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     const stored = getStoredTheme();
-    const initial = stored || getSystemTheme();
-    setThemeState(initial);
-    applyTheme(initial);
-    setMounted(true);
-  }, []);
+    if (stored) return stored;
+    return getSystemTheme();
+  });
 
-  // Listen for system theme changes
   useEffect(() => {
-    if (!mounted) return;
+    applyTheme(theme);
+  }, [theme]);
 
+  useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = (e: MediaQueryListEvent) => {
-      // Only update if no stored preference
       if (!getStoredTheme()) {
         const newTheme = e.matches ? "dark" : "light";
         setThemeState(newTheme);
@@ -74,12 +68,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [mounted]);
+  }, []);
 
-  // Listen for storage changes (multi-tab sync)
   useEffect(() => {
-    if (!mounted) return;
-
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "theme" && e.newValue) {
         const newTheme = e.newValue as Theme;
@@ -90,7 +81,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, [mounted]);
+  }, []);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
@@ -104,15 +95,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
   }, [theme, setTheme]);
-
-  // Prevent flash by not rendering until mounted
-  if (!mounted) {
-    return (
-      <ThemeContext.Provider value={{ theme: "dark", toggleTheme: () => { }, setTheme: () => { }, isDark: true }}>
-        {children}
-      </ThemeContext.Provider>
-    );
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, isDark: theme === "dark" }}>

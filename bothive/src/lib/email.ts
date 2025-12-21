@@ -17,8 +17,8 @@ export const EmailService = {
     }
 
     try {
-      const result = await resend.emails.send({
-        from: 'Bothive <hello@bothive.cloud>',
+      const { data, error } = await resend.emails.send({
+        from: 'Bothive <support@bothive.support.cloud>',
         to: email,
         subject: 'Welcome to the Hive 🐝',
         html: `
@@ -33,9 +33,14 @@ export const EmailService = {
           </div>
         `
       });
-      console.log('[EMAIL] ✅ Welcome Email Sent Successfully! ID:', result?.data?.id);
-    } catch (error: any) {
-      console.error('[EMAIL] ❌ Failed to send welcome email:', error?.message || error);
+
+      if (error) {
+        console.error('[EMAIL] ❌ Resend Error (Welcome):', error);
+      } else {
+        console.log('[EMAIL] ✅ Welcome Email Sent Successfully! ID:', data?.id);
+      }
+    } catch (err: any) {
+      console.error('[EMAIL] ❌ Unexpected Error in Welcome email:', err?.message || err);
     }
   },
 
@@ -56,8 +61,8 @@ export const EmailService = {
 
     try {
       console.log('[EMAIL] Sending real email via Resend...');
-      const result = await resend.emails.send({
-        from: 'Bothive <hello@bothive.cloud>',
+      const { data, error } = await resend.emails.send({
+        from: 'Bothive <support@bothive.support.cloud>',
         to: email,
         subject: `🐝 Welcome to ${plan} — You're In!`,
         html: `
@@ -189,9 +194,14 @@ export const EmailService = {
 </html>
         `
       });
-      console.log('[EMAIL] ✅ Email sent successfully! ID:', result?.data?.id);
-    } catch (error: any) {
-      console.error('[EMAIL] ❌ Failed to send payment email:', error?.message || error);
+
+      if (error) {
+        console.error('[EMAIL] ❌ Resend Error (Payment):', error);
+      } else {
+        console.log('[EMAIL] ✅ Email sent successfully! ID:', data?.id);
+      }
+    } catch (err: any) {
+      console.error('[EMAIL] ❌ Unexpected Error in Payment email:', err?.message || err);
     }
   },
 
@@ -205,8 +215,8 @@ export const EmailService = {
     }
 
     try {
-      await resend.emails.send({
-        from: 'Bothive <hello@bothive.cloud>',
+      const { data, error } = await resend.emails.send({
+        from: 'Bothive <support@bothive.support.cloud>',
         to: email,
         subject: `🚀 ${botName} is now live`,
         html: `
@@ -217,8 +227,14 @@ export const EmailService = {
           </div>
         `
       });
-    } catch (error) {
-      console.error('Failed to send deploy email:', error);
+
+      if (error) {
+        console.error('[EMAIL] ❌ Resend Error (Deploy):', error);
+      } else {
+        console.log('[EMAIL] ✅ Deploy Email Sent Successfully! ID:', data?.id);
+      }
+    } catch (error: any) {
+      console.error('[EMAIL] ❌ Unexpected Error in Deploy email:', error?.message || error);
     }
   }
 };

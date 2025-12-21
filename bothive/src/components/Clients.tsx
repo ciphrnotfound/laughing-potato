@@ -43,7 +43,10 @@ export default function Clients() {
   const isInView = useInView(ref, { once: true });
 
   return (
-    <section ref={ref} className="relative py-24 bg-[#08080c] overflow-hidden">
+    <section
+      ref={ref}
+      className="relative py-24 overflow-hidden transition-colors duration-500 bg-[#f5f5fa] dark:bg-[#08080c]"
+    >
       {/* Animated border */}
       <div className="absolute top-0 left-0 right-0 h-px overflow-hidden">
         <motion.div
@@ -64,7 +67,7 @@ export default function Clients() {
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          className="text-center text-sm text-white/40 uppercase tracking-[0.2em] mb-12"
+          className="text-center text-sm text-black/40 dark:text-white/40 uppercase tracking-[0.2em] mb-12"
         >
           What developers are saying
         </motion.p>
@@ -73,8 +76,8 @@ export default function Clients() {
       {/* Marquee */}
       <div className="relative">
         {/* Gradient masks */}
-        <div className="absolute left-0 top-0 bottom-0 w-40 bg-gradient-to-r from-[#08080c] to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-40 bg-gradient-to-l from-[#08080c] to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-40 bg-gradient-to-r from-[#f5f5fa] dark:from-[#08080c] to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-40 bg-gradient-to-l from-[#f5f5fa] dark:from-[#08080c] to-transparent z-10 pointer-events-none" />
 
         <Marquee
           items={testimonials}
@@ -82,7 +85,10 @@ export default function Clients() {
           speed="slow"
           renderItem={(item) => (
             <motion.div
-              className="relative w-80 p-6 rounded-2xl border border-white/[0.04] bg-gradient-to-b from-white/[0.03] to-transparent overflow-hidden group"
+              className="relative w-80 p-6 rounded-2xl border overflow-hidden group
+                border-black/[0.06] bg-white/90 shadow-sm
+                dark:border-white/[0.04] dark:bg-gradient-to-b dark:from-white/[0.03] dark:to-transparent
+              "
               whileHover={{
                 y: -4,
                 borderColor: "rgba(139,92,246,0.2)",
@@ -94,7 +100,10 @@ export default function Clients() {
                 className="absolute inset-0 bg-gradient-to-br from-violet-600/5 to-purple-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
               />
 
-              <p className="relative z-10 text-sm text-white/60 leading-relaxed mb-4 group-hover:text-white/80 transition-colors">
+              <p className="relative z-10 text-sm leading-relaxed mb-4 transition-colors
+                text-black/60 group-hover:text-black/80
+                dark:text-white/60 dark:group-hover:text-white/80
+              ">
                 "{item.quote}"
               </p>
 
@@ -112,16 +121,20 @@ export default function Clients() {
                     animate={{ rotate: 360 }}
                     transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                   />
-                  <div className="absolute inset-[2px] rounded-full bg-gradient-to-br from-[#15131d] to-[#0d0d15] flex items-center justify-center">
-                    <span className="text-sm font-medium text-white/50 group-hover:text-violet-400 transition-colors">
+                  <div className="absolute inset-[2px] rounded-full bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-[#15131d] dark:to-[#0d0d15] flex items-center justify-center">
+                    <span className="text-sm font-medium text-zinc-700 group-hover:text-violet-600 dark:text-white/50 dark:group-hover:text-violet-400 transition-colors">
                       {item.name.charAt(0)}
                     </span>
                   </div>
                 </motion.div>
 
                 <div>
-                  <p className="text-sm font-medium text-white/80 group-hover:text-white transition-colors">{item.name}</p>
-                  <p className="text-xs text-white/30">{item.handle}</p>
+                  <p className="text-sm font-medium transition-colors text-black/80 group-hover:text-black dark:text-white/80 dark:group-hover:text-white">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-black/40 dark:text-white/30">
+                    {item.handle}
+                  </p>
                 </div>
               </div>
             </motion.div>

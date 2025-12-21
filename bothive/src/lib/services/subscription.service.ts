@@ -15,19 +15,45 @@ export class SubscriptionService {
      * Get user's current subscription plan
      */
     static async getUserSubscription(userId: string): Promise<SubscriptionPlan> {
-        const { data, error } = await supabase
-            .from('users')
-            .select('billing_plan')
-            .eq('id', userId)
-            .single();
+        try {
+            // 1. Primary Attempt: Fetch from 'users' table (canonical source)
+            const { data, error } = await supabase
+                .from('users')
+                .select('billing_plan')
+                .eq('id', userId)
+                .single();
 
-        if (error || !data) {
-            console.error('[SubscriptionService] Error fetching plan:', error);
-            return 'Starter'; // Default to free plan
+            if (!error && (data as any)?.billing_plan) {
+                return ((data as any).billing_plan as SubscriptionPlan);
+            }
+
+            if (error) {
+                console.warn('[SubscriptionService] Users table fetch failed (likely RLS):', error.message || error);
+            }
+
+            // 2. Fallback Attempt: Fetch from 'user_profiles' (usually has RLS enabled)
+            // We map 'role' to a reasonable plan name
+            const { data: profile, error: profileError } = await supabase
+                .from('user_profiles' as any)
+                .select('role')
+                .eq('user_id', userId)
+                .single();
+
+            if (profileError) {
+                console.error('[SubscriptionService] Profile fetch failed:', profileError.message || profileError);
+                return 'Starter';
+            }
+
+            const role = (profile as any)?.role?.toLowerCase();
+            if (role === 'developer') return 'Pro';
+            if (role === 'business') return 'Business';
+            if (role === 'enterprise') return 'Business'; // Map enterprise to highest current tier
+
+            return 'Starter';
+        } catch (err) {
+            console.error('[SubscriptionService] Unexpected error:', err);
+            return 'Starter';
         }
-
-        const userRecord = data as any;
-        return (userRecord.billing_plan as SubscriptionPlan) || 'Starter';
     }
 
     /**

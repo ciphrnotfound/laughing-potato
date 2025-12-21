@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Plus, Copy, Check, Trash2, AlertCircle, Terminal, Eye, EyeOff, Shield } from "lucide-react";
+import { Key, Plus, Copy, Check, Trash2, AlertCircle, Terminal, Eye, EyeOff, Shield, Code } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
 import { DashboardPageShell } from "@/components/DashboardPageShell";
@@ -238,6 +238,49 @@ export default function ApiKeysPage() {
                             <Key className="w-4 h-4" />
                             {creating ? "Creating..." : "Generate Key"}
                         </motion.button>
+                    </div>
+                </motion.div>
+
+                {/* Direct API Usage */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className={cn("p-6 rounded-2xl border", cardBg)}
+                >
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className={cn(
+                            "p-2.5 rounded-xl",
+                            isDark ? "bg-violet-500/10" : "bg-violet-50"
+                        )}>
+                            <Code className="w-5 h-5 text-violet-500" />
+                        </div>
+                        <h2 className={cn("text-lg font-semibold", textPrimary)}>Direct API Usage</h2>
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <p className={cn("text-sm mb-2 font-medium", textPrimary)}>With cURL:</p>
+                            <pre className={cn(
+                                "p-4 rounded-xl font-mono text-sm overflow-x-auto",
+                                isDark ? "bg-[#0a0a0f] text-emerald-400" : "bg-black text-emerald-400"
+                            )}>
+                                <code>curl -X GET https://api.bothive.ai/v1/agents \<br />
+                                    &nbsp;&nbsp;-H "x-api-key: your_api_key"</code>
+                            </pre>
+                        </div>
+                        <div>
+                            <p className={cn("text-sm mb-2 font-medium", textPrimary)}>With JavaScript:</p>
+                            <pre className={cn(
+                                "p-4 rounded-xl font-mono text-sm overflow-x-auto",
+                                isDark ? "bg-[#0a0a0f] text-amber-400" : "bg-black text-amber-400"
+                            )}>
+                                <code>fetch('https://api.bothive.ai/v1/agents', {"{"}<br />
+                                    &nbsp;&nbsp;headers: {"{"}<br />
+                                    &nbsp;&nbsp;&nbsp;&nbsp;'x-api-key': 'your_api_key'<br />
+                                    &nbsp;&nbsp;{"}"}<br />
+                                    {"}"})</code>
+                            </pre>
+                        </div>
                     </div>
                 </motion.div>
 

@@ -4,11 +4,11 @@ A platform where AI agents work together as a hive. Each bot has its own skill a
 
 ## Features
 
-- **Agent Builder**: Create AI agents using a no-code interface or SDK
+- **Agent Builder**: Create AI agents using a no-code interface or HiveLang
 - **Orchestrator**: Visual dashboard to drag, connect, and run multi-agent workflows
-- **Marketplace**: Discover, test, and integrate pre-built AI agents
-- **Memory System**: Agents remember user behavior and previous collaborations
-- **Integrations**: Connect to Slack, Notion, Discord, and other apps
+- **Hive Store**: Discover, monetize, and install pre-built AI agents
+- **Memory System**: Long-term memory and context awareness for agents
+- **Integrations**: Connect to Notion, WhatsApp, Trello, and more
 
 ## Getting Started
 
@@ -81,9 +81,9 @@ bothive/
 
 ### Data Storage
 
-- **File-based storage**: Data is stored in `.data/` directory (JSON files)
-- **Persistent**: Data persists across server restarts
-- **Upgradeable**: Can be migrated to a database later
+- **Supabase**: Persistent data storage using PostgreSQL
+- **RLS**: Row Level Security for multi-tenant data protection
+- **Neural History**: Versioned storage for agent execution logs
 
 ## API Endpoints
 

@@ -47,11 +47,14 @@ interface SidebarItem {
 
 // Menu Items Configuration
 const BASE_ITEMS: SidebarItem[] = [
+  { id: "workspace", label: "Workspace", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/workspace" },
   { id: "overview", label: "Overview", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard" },
   { id: "workforce", label: "My Workforce", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/workforce" },
   { id: "knowledge", label: "Knowledge", icon: <IconBrain className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/knowledge" },
   { id: "agents", label: "Agents", icon: <IconUserBolt className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/agents" },
   { id: "billing", label: "Billing", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/billing" },
+  { id: "wallet", label: "Wallet", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/wallet" },
+  { id: "affiliate", label: "Affiliate", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/affiliate" },
   { id: "orchestrator", label: "Orchestrator", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/orchestrator" },
 ];
 
@@ -76,7 +79,11 @@ const ROLE_CONFIG: Record<string, SidebarItem[]> = {
     { id: "api-keys", label: "API Keys", icon: <IconApi className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/api-keys" },
     { id: "webhooks", label: "Webhooks", icon: <IconWebhook className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/webhooks" },
     { id: "logs", label: "Live Logs", icon: <IconActivity className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/logs" },
-    { id: "documentation", label: "Docs", icon: <IconFiles className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/docs" },
+    { id: "documentation", label: "Docs", icon: <IconFiles className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/docs" },
+  ],
+  student: [
+    { id: "overview", label: "Student Hub", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/student" },
+    ...BASE_ITEMS.filter(item => !['workspace', 'overview'].includes(item.id)),
   ],
   enterprise: [
     ...BASE_ITEMS,
@@ -120,8 +127,14 @@ export default function DashboardSidebar() {
       if (user) {
         setUserEmail(user.email || "");
 
-        // TEMPORARY: For Development/Demo, checking if user wants to see teams view
-        if (user.email?.includes("founder") || localStorage.getItem("bothive_role_override") === "teams") {
+        // TEMPORARY: For Development/Demo, checking if user wants to see a specific view
+        const roleOverride = localStorage.getItem("bothive_role_override");
+        if (roleOverride && ROLE_CONFIG[roleOverride]) {
+          setRole(roleOverride);
+          return;
+        }
+
+        if (user.email?.includes("founder")) {
           setRole("teams");
           return;
         }

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -6,9 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2, ShieldCheck, Zap, PartyPopper, Sparkles, ArrowRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
-import { SubscriptionService } from "@/lib/services/subscription.service";
-import { supabase } from '@/lib/supabase';
+import { GlowingEffect } from "@/components/ui/glowing-effect";
+import { useAppSession } from "@/lib/app-session-context";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const PLANS = [
   {
@@ -35,7 +35,6 @@ const PLANS = [
 
 // Confetti component
 function Confetti() {
-  /* eslint-disable react-hooks/exhaustive-deps */
   const confettiPieces = useMemo(() => {
     const colors = ['#8B5CF6', '#A855F7', '#D946EF', '#22C55E', '#FBBF24', '#3B82F6'];
     return Array.from({ length: 100 }, (_, i) => ({
@@ -49,7 +48,6 @@ function Confetti() {
       borderRadius: Math.random() > 0.5 ? '50%' : '2px',
     }));
   }, []);
-  /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
@@ -80,7 +78,7 @@ function Confetti() {
   );
 }
 
-// Success Modal Component
+// Success Modal Component (Refined)
 function SuccessModal({ onClose }: { onClose: () => void }) {
   return (
     <AnimatePresence>
@@ -93,121 +91,38 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
       >
         <Confetti />
         <motion.div
-          initial={{ scale: 0.8, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative bg-zinc-950 border border-zinc-800 rounded-3xl p-8 md:p-12 max-w-lg w-full text-center shadow-2xl"
+          className="relative bg-[#0a0a0f] border border-white/[0.08] rounded-3xl p-8 max-w-md w-full text-center shadow-2xl"
         >
+          <div className="absolute inset-0 bg-violet-500/5 blur-3xl -z-10 rounded-3xl" />
+
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+            className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
 
-          {/* Success Icon */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', damping: 15 }}
-            className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-2xl shadow-green-500/30"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.4, type: 'spring' }}
-            >
-              <Check className="w-12 h-12 text-white" strokeWidth={3} />
-            </motion.div>
-          </motion.div>
-
-          {/* Celebration Icons */}
-          <div className="flex justify-center gap-2 mb-4">
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <PartyPopper className="w-6 h-6 text-yellow-500" />
-            </motion.div>
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-            >
-              <Sparkles className="w-6 h-6 text-violet-500" />
-            </motion.div>
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.7 }}
-            >
-              <PartyPopper className="w-6 h-6 text-pink-500" />
-            </motion.div>
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center border border-emerald-500/30">
+            <Check className="w-8 h-8 text-emerald-400" />
           </div>
 
-          {/* Title */}
-          <motion.h2
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-3xl md:text-4xl font-bold text-white mb-3"
-          >
-            Welcome to Premium!
-          </motion.h2>
+          <h2 className="text-2xl font-semibold text-white mb-2">
+            Welcome to Premium
+          </h2>
+          <p className="text-white/50 text-sm mb-8">
+            Your workspace has been successfully upgraded.
+          </p>
 
-          {/* Subtitle */}
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-zinc-400 text-lg mb-8"
-          >
-            Your plan has been successfully upgraded. Enjoy all the premium features!
-          </motion.p>
-
-          {/* Features Highlight */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 mb-8"
-          >
-            <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-4">You now have access to:</h3>
-            <div className="grid grid-cols-2 gap-3 text-left">
-              {['Unlimited Bots', 'HiveMind AI', 'Priority Support', 'Store Discounts'].map((feature, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-violet-600/20 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-3 h-3 text-violet-400" />
-                  </div>
-                  <span className="text-sm text-zinc-300">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* CTA Button */}
-          <motion.button
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.6 }}
+          <button
             onClick={onClose}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-lg flex items-center justify-center gap-2 hover:from-violet-500 hover:to-purple-500 transition-all shadow-lg shadow-violet-500/25 group"
+            className="w-full py-3 rounded-xl bg-white text-black font-medium text-sm hover:bg-neutral-200 transition-colors"
           >
-            Start Exploring
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </motion.button>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="mt-4 text-xs text-zinc-600"
-          >
-            A confirmation email has been sent to your inbox.
-          </motion.p>
+            Continue to Dashboard
+          </button>
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -217,160 +132,147 @@ function SuccessModal({ onClose }: { onClose: () => void }) {
 const BillingContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClientComponentClient();
+  const { profile } = useAppSession();
+
   const [loading, setLoading] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  // Default to Starter, in a real app fetch from DB
   const [currentPlanName, setCurrentPlanName] = useState<string>('Starter');
-  const [fetchingPlan, setFetchingPlan] = useState(true);
-
-  // Fetch current plan on mount
-  useEffect(() => {
-    const fetchPlan = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            // Use shared service
-            const plan = await SubscriptionService.getUserSubscription(user.id);
-            setCurrentPlanName(plan);
-        }
-      } catch (e) {
-        console.error("Error fetching plan:", e);
-      } finally {
-        setFetchingPlan(false);
-      }
-    };
-
-    fetchPlan();
-  }, []);
 
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       setShowSuccess(true);
-      // Clean up the URL
       window.history.replaceState({}, '', '/dashboard/billing');
-      // Refresh plan after successful payment
       const newPlan = searchParams.get('plan');
       if (newPlan) setCurrentPlanName(newPlan);
     }
   }, [searchParams]);
 
   const handleUpgrade = (plan: typeof PLANS[0]) => {
-    if (plan.name === currentPlanName) {
-      toast.info(`You're already on the ${plan.name} plan.`);
-      return;
-    }
-
-    // Prevent downgrading via this flow for now (or handle differently)
-    if (plan.price === 0) {
-      toast.info("Please contact support to downgrade to the Starter plan.");
-      return;
-    }
+    if (plan.name === currentPlanName) return;
+    if (plan.price === 0) return;
 
     setLoading(plan.name);
     router.push(`/dashboard/billing/checkout?plan=${plan.name}&amount=${plan.price * 100}`);
   };
 
   return (
-    <div className="min-h-screen w-full bg-background p-6 md:p-12 font-sans relative">
-      {/* Success Modal */}
-      {showSuccess && <SuccessModal onClose={() => setShowSuccess(false)} />}
-
-      <div className="max-w-6xl mx-auto mb-16 pt-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight mb-4 text-foreground">
-          Simple, Transparent Pricing
-        </h1>
-        <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto">
-          Choose the plan that fits your ambition. Upgrade anytime as you scale your swarm.
-        </p>
+    <div className="min-h-screen w-full bg-[#0a0a0f] text-white p-6 md:p-12 font-sans relative">
+      {/* Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#1a1025] rounded-full blur-[200px]"
+          animate={{ opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
       </div>
 
-      {fetchingPlan ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+      {showSuccess && <SuccessModal onClose={() => setShowSuccess(false)} />}
+
+      <div className="relative max-w-6xl mx-auto z-10">
+        <div className="text-center mb-16 pt-8">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <p className="text-white/40 text-sm uppercase mb-4">Billing & Plans</p>
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white mb-4">
+              Manage your subscription
+            </h1>
+            <p className="text-white/50 max-w-xl mx-auto">
+              Simple pricing for every stage of your autonomous workforce.
+            </p>
+          </motion.div>
         </div>
-      ) : (
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-20">
-          {PLANS.map((plan) => {
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {PLANS.map((plan, index) => {
             const isCurrentPlan = plan.name === currentPlanName;
 
             return (
               <motion.div
                 key={plan.name}
-                whileHover={{ y: -5 }}
-                className={cn(
-                  "relative rounded-3xl p-8 flex flex-col justify-between border transition-all",
-                  plan.highlight && !isCurrentPlan
-                    ? "bg-foreground text-background shadow-2xl scale-105 z-10 border-transparent"
-                    : "bg-card border-border text-foreground hover:border-foreground/20",
-                  isCurrentPlan && "border-violet-500/50 bg-violet-500/5"
-                )}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="relative h-full"
               >
-                {plan.highlight && !isCurrentPlan && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                    Most Popular
-                  </div>
-                )}
+                <div className={cn(
+                  "relative h-full rounded-3xl border bg-[#0a0a0f] p-1",
+                  isCurrentPlan ? "border-emerald-500/50" : plan.highlight ? "border-violet-500/50" : "border-white/[0.04]"
+                )}>
+                  <GlowingEffect
+                    spread={40}
+                    glow={true}
+                    disabled={false}
+                    proximity={64}
+                    inactiveZone={0.01}
+                  />
 
-                {isCurrentPlan && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-lg shadow-violet-500/20">
-                    <Check className="w-3 h-3" /> Current Plan
-                  </div>
-                )}
+                  <div className="relative h-full flex flex-col justify-between rounded-[1.3rem] p-8 bg-[#0a0a0f] overflow-hidden">
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-medium text-white">{plan.name}</h3>
+                        {isCurrentPlan ? (
+                          <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20 flex items-center gap-1">
+                            <Check className="w-3 h-3" /> Current
+                          </span>
+                        ) : plan.highlight && (
+                          <span className="px-3 py-1 rounded-full bg-violet-500/10 text-violet-400 text-xs font-semibold border border-violet-500/20">
+                            Recommended
+                          </span>
+                        )}
+                      </div>
 
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                  <p className={cn("text-sm mb-6", plan.highlight && !isCurrentPlan ? "text-background/70" : "text-muted-foreground")}>
-                    {plan.description}
-                  </p>
-                  <div className="flex items-baseline gap-1 mb-8">
-                    <span className="text-4xl font-bold">
-                      {plan.price === 0 ? "Free" : `₦${plan.price.toLocaleString()}`}
-                    </span>
-                    {plan.price > 0 && <span className="text-sm opacity-60">/month</span>}
-                  </div>
+                      <div className="flex items-baseline gap-1 mb-6">
+                        <span className="text-4xl font-semibold text-white">
+                          {plan.price === 0 ? "Free" : `₦${plan.price.toLocaleString()}`}
+                        </span>
+                        {plan.price > 0 && <span className="text-sm text-white/40">/month</span>}
+                      </div>
 
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-3 text-sm">
-                        <Check className={cn("w-5 h-5", plan.highlight && !isCurrentPlan ? "text-violet-300" : "text-violet-600")} />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                      <ul className="space-y-4 mb-8">
+                        {plan.features.map((feature) => (
+                          <li key={feature} className="flex items-center gap-3 text-sm text-white/70">
+                            <div className="w-5 h-5 rounded-full bg-white/[0.05] flex items-center justify-center flex-shrink-0">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <button
+                      onClick={() => handleUpgrade(plan)}
+                      disabled={!!loading || isCurrentPlan}
+                      className={cn(
+                        "w-full py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2",
+                        isCurrentPlan
+                          ? "bg-white/[0.05] text-white/40 cursor-default"
+                          : plan.highlight
+                            ? "bg-white text-black hover:bg-neutral-200"
+                            : "bg-white/[0.05] text-white hover:bg-white/[0.1] border border-white/[0.05]"
+                      )}
+                    >
+                      {loading === plan.name ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : isCurrentPlan ? (
+                        "Active Plan"
+                      ) : (
+                        <>
+                          Upgrade <Zap className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-
-                <button
-                  onClick={() => handleUpgrade(plan)}
-                  disabled={!!loading || isCurrentPlan}
-                  className={cn(
-                    "w-full py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2",
-                    plan.highlight && !isCurrentPlan
-                      ? "bg-background text-foreground hover:bg-neutral-200"
-                      : "bg-neutral-900 dark:bg-white text-white dark:text-black hover:opacity-90",
-                    isCurrentPlan && "opacity-50 cursor-default bg-neutral-200 dark:bg-zinc-800 text-neutral-500 hover:opacity-50 hover:bg-neutral-200 dark:hover:bg-zinc-800"
-                  )}
-                >
-                  {loading === plan.name ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : isCurrentPlan ? (
-                    "Current Plan"
-                  ) : (
-                    <>
-                      Upgrade to {plan.name} <Zap className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-
-                {plan.highlight && !isCurrentPlan && (
-                  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-background/60">
-                    <ShieldCheck className="w-3 h-3" />
-                    Secure payment via Paystack
-                  </div>
-                )}
               </motion.div>
             )
           })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -378,8 +280,8 @@ const BillingContent = () => {
 export default function BillingPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-white/20" />
       </div>
     }>
       <BillingContent />

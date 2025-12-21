@@ -39,6 +39,10 @@ interface ConfigurePanelProps {
     onToolToggle: (id: string) => void;
     selectedIntegrations?: string[];
     onIntegrationToggle?: (id: string) => void;
+    pricingModel: "free" | "paid";
+    onPricingModelChange: (model: "free" | "paid") => void;
+    price: number;
+    onPriceChange: (price: number) => void;
 }
 
 const MEMORY_OPTIONS = [
@@ -60,6 +64,10 @@ export default function ConfigurePanel({
     onToolToggle,
     selectedIntegrations = [],
     onIntegrationToggle,
+    pricingModel,
+    onPricingModelChange,
+    price,
+    onPriceChange,
 }: ConfigurePanelProps) {
     const [userIntegrations, setUserIntegrations] = useState<UserIntegration[]>([]);
     const [loadingIntegrations, setLoadingIntegrations] = useState(true);
@@ -238,6 +246,63 @@ export default function ConfigurePanel({
                     rows={5}
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/50 transition-colors resize-none font-mono text-sm"
                 />
+            </div>
+
+            {/* Pricing Configuration */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-white/70">
+                    <Database className="h-4 w-4" />
+                    Monetization
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        type="button"
+                        onClick={() => onPricingModelChange("free")}
+                        className={cn(
+                            "p-3 rounded-xl border text-center transition-all",
+                            pricingModel === "free"
+                                ? "border-violet-500 bg-violet-500/10"
+                                : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                        )}
+                    >
+                        <div className="text-sm font-medium text-white">Free</div>
+                        <div className="text-[10px] text-white/40 mt-0.5">Open to all</div>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onPricingModelChange("paid")}
+                        className={cn(
+                            "p-3 rounded-xl border text-center transition-all",
+                            pricingModel === "paid"
+                                ? "border-emerald-500 bg-emerald-500/10"
+                                : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                        )}
+                    >
+                        <div className="text-sm font-medium text-white">Paid / License</div>
+                        <div className="text-[10px] text-white/40 mt-0.5">Community buy-in</div>
+                    </button>
+                </div>
+
+                {pricingModel === "paid" && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-2 pt-1"
+                    >
+                        <label className="text-xs font-medium text-white/50">Set Price (₦ or USD equivalent)</label>
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 font-semibold">₦</span>
+                            <input
+                                type="number"
+                                value={price}
+                                onChange={(e) => onPriceChange(Number(e.target.value))}
+                                placeholder="0.00"
+                                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                            />
+                        </div>
+                        <p className="text-[10px] text-white/30 italic">Platform takes a small fee on every sale.</p>
+                    </motion.div>
+                )}
             </div>
 
             {/* Memory Strategy */}

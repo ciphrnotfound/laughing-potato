@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PaystackService } from '@/lib/paystack-service';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { EmailService } from '@/lib/email';
 
@@ -31,24 +31,11 @@ export async function POST(req: NextRequest) {
 
         console.log(`Paystack Webhook received: ${eventType}`);
 
-        // Initialize Supabase
-        const cookieStore = await cookies();
-        const supabase = createServerClient(
+        // Initialize Supabase Admin Client (Service Role)
+        // Webhooks are unauthenticated requests from Paystack, they don't have user cookies.
+        const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value;
-                    },
-                    set(name: string, value: string, options: any) {
-                        cookieStore.set({ name, value, ...options });
-                    },
-                    remove(name: string, options: any) {
-                        cookieStore.set({ name, value: '', ...options });
-                    },
-                },
-            }
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
         // Handle events
@@ -85,27 +72,47 @@ async function handleChargeSuccess(data: any, supabase: any) {
     if (metadata?.plan_name && metadata?.user_id) {
         console.log(`Processing Plan Upgrade: ${metadata.plan_name} for user ${metadata.user_id}`);
 
+        // Determine role mapping
+        let targetRole = 'developer';
+        if (metadata.plan_name.toLowerCase().includes('business')) targetRole = 'business';
+        if (metadata.plan_name.toLowerCase().includes('student')) targetRole = 'student';
+        if (metadata.plan_name.toLowerCase().includes('enterprise')) targetRole = 'enterprise';
+
         const updates: any = {
             billing_plan: metadata.plan_name,
+            role: targetRole,
             updated_at: new Date().toISOString(),
         };
 
-        // Auto-upgrade role for Business plan
-        if (metadata.plan_name.toLowerCase() === 'business') {
-            updates.role = 'business';
+        const updateOps = [
+            supabase.from('users').update(updates).eq('id', metadata.user_id),
+            supabase.from('user_profiles').update({ role: targetRole }).eq('user_id', metadata.user_id)
+        ];
+
+        // Invalidate Coupon if present in metadata
+        if (metadata.coupon_code) {
+            updateOps.push(
+                supabase.from('coupons')
+                    .update({ is_active: false })
+                    .eq('code', metadata.coupon_code.toUpperCase())
+            );
+            console.log(`[PAYSTACK-WEBHOOK] Invalidating coupon: ${metadata.coupon_code}`);
         }
 
-        const { data: updatedUser, error } = await supabase
-            .from('profiles')
-            .update(updates)
-            .eq('id', metadata.user_id)
-            .select('email, full_name')
-            .single();
+        const results = await Promise.all(updateOps);
+        const hasError = results.some(r => r.error);
 
-        if (error) {
-            console.error('Failed to update user plan:', error);
+        if (hasError) {
+            console.error('Failed to update some tables:', results.map(r => r.error).filter(Boolean));
         } else {
-            console.log(`Successfully upgraded user ${metadata.user_id} to ${metadata.plan_name}`);
+            console.log(`Successfully upgraded user ${metadata.user_id} and profile to ${metadata.plan_name}`);
+
+            // Fetch user for email if needed
+            const { data: updatedUser } = await supabase
+                .from('users')
+                .select('email')
+                .eq('id', metadata.user_id)
+                .single();
 
             // Send Confirmation Email
             if (updatedUser?.email) {
@@ -116,8 +123,6 @@ async function handleChargeSuccess(data: any, supabase: any) {
                     reference
                 );
                 console.log(`Receipt sent to ${updatedUser.email}`);
-            } else {
-                console.log('No email found for user, receipt skipped.');
             }
         }
 

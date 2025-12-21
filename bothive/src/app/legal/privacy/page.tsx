@@ -28,34 +28,47 @@ export default function PrivacyPolicyPage() {
 
                         <h3>1. Information We Collect</h3>
                         <p>
-                            We collect information that you voluntarily provide to us when you register on the website, express an interest in obtaining information about us or our products and services, when you participate in activities on the website, or otherwise when you contact us.
+                            We collect information that you voluntarily provide to us when you register on the website, express an interest in obtaining information about us or our products and services, or otherwise when you contact us.
                         </p>
                         <ul>
-                            <li><strong>Personal Data:</strong> Personally identifiable information, such as your name, shipping address, email address, and telephone number.</li>
-                            <li><strong>Derivative Data:</strong> Information our servers automatically collect when you access the Site, such as your IP address, your browser type, your operating system, your access times, and the pages you have viewed directly before and after accessing the Site.</li>
+                            <li><strong>Identity Data:</strong> Includes full name, email address, and profile pictures.</li>
+                            <li><strong>Neural Network Data:</strong> Interaction history with bots, system prompts you create, and HiveLang scripts.</li>
+                            <li><strong>Integration Data:</strong> Metadata from connected services (Notion, WhatsApp, etc.), though we never store your third-party credentials in plain text.</li>
+                            <li><strong>Usage Data:</strong> Information about how you use our Site, products, and services, including bot execution logs and performance metrics.</li>
                         </ul>
 
-                        <h3>2. Use of Your Information</h3>
+                        <h3>2. AI Data Usage and Training</h3>
                         <p>
-                            Having accurate information about you permits us to provide you with a smooth, efficient, and customized experience. Specifically, we may use information collected about you via the Site to:
+                            Bothive uses advanced AI models to provide services. Please note:
                         </p>
                         <ul>
-                            <li>Create and manage your account.</li>
-                            <li>Compile anonymous statistical data and analysis for use internally or with third parties.</li>
-                            <li>Email you regarding your account or order.</li>
-                            <li>Enable user-to-user communications.</li>
-                            <li>Monitor and analyze usage and trends to improve your experience with the Site.</li>
+                            <li><strong>Training:</strong> We may use anonymized interaction logs to improve HiveLang's orchestration capabilities and our Pulse Engine.</li>
+                            <li><strong>Privacy by Design:</strong> Your private system prompts and proprietary code are kept confidential and are not shared with other users or used to train public models without explicit consent.</li>
                         </ul>
 
-                        <h3>3. Disclosure of Your Information</h3>
+                        <h3>3. How We Use Your Information</h3>
                         <p>
-                            We may share information we have collected about you in certain situations. Your information may be disclosed as follows:
+                            We use collected information to:
                         </p>
                         <ul>
-                            <li><strong>By Law or to Protect Rights:</strong> If we believe the release of information about you is necessary to respond to legal process, to investigate or remedy potential violations of our policies, or to protect the rights, property, and safety of others, we may share your information as permitted or required by any applicable law, rule, or regulation.</li>
+                            <li>Provide, operate, and maintain our AI agent ecosystem.</li>
+                            <li>Improve, personalize, and expand our platform capabilities.</li>
+                            <li>Analyze how you use Bothive to prevent fraud and ensure security.</li>
+                            <li>Process your marketplace transactions and payouts.</li>
+                            <li>Communicate with you regarding updates, security alerts, and support.</li>
                         </ul>
 
-                        <h3>4. Contact Us</h3>
+                        <h3>4. Data Security</h3>
+                        <p>
+                            We implement a variety of security measures to maintain the safety of your personal information. All sensitive information (like API keys or tokens) is encrypted at rest using industry-standard protocols.
+                        </p>
+
+                        <h3>5. Your Rights</h3>
+                        <p>
+                            Depending on your location (e.g., GDPR, CCPA), you may have the right to access, correct, or delete your personal data. You can manage most of these settings directly through your dashboard.
+                        </p>
+
+                        <h3>6. Contact Us</h3>
                         <p>
                             If you have questions or comments about this Privacy Policy, please contact us at: <br />
                             <a href="mailto:privacy@bothive.com" className="text-violet-400 hover:text-violet-300">privacy@bothive.com</a>

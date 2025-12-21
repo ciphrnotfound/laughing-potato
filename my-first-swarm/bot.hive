@@ -1,0 +1,8 @@
+bot "Researcher"
+  description "A helpful assistant."
+  
+  on input
+    say "Processing: " + input
+    // call google.search(query: input)
+  end
+end

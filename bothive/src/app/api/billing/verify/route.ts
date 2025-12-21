@@ -3,11 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { PaystackService } from "@/lib/paystack-service";
 import { EmailService } from "@/lib/email";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 export async function POST(req: NextRequest) {
     try {
-        const { reference, plan } = await req.json();
+        const { reference, plan, couponCode } = await req.json();
 
         if (!reference) {
             return NextResponse.json({ error: "No reference provided" }, { status: 400 });
@@ -61,18 +62,45 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "User session required for plan update" }, { status: 401 });
         }
 
-        // 3. Update User Subscription in DB
-        const { error: updateError } = await supabase
-            .from('users')
-            .update({ billing_plan: plan })
-            .eq('id', user.id);
+        // 3. Update User Subscription in DB using Admin privileges
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
 
-        if (updateError) {
-            console.error("Failed to update user plan:", updateError);
-            // Don't fail the request, but log critical error
-        } else {
-            console.log(`✅ Plan updated for user ${user.id} to ${plan}`);
+        const updates = { billing_plan: plan };
+
+        let targetRole = 'developer';
+        if (plan.toLowerCase().includes('business')) targetRole = 'business';
+        if (plan.toLowerCase().includes('student')) targetRole = 'student';
+        if (plan.toLowerCase().includes('enterprise')) targetRole = 'enterprise';
+
+        const roleUpdate = { role: targetRole };
+
+        const updateOps: any[] = [
+            supabaseAdmin.from('users').update({
+                billing_plan: plan,
+                updated_at: new Date().toISOString()
+            }).eq('id', user.id),
+            supabaseAdmin.from('user_profiles').update({
+                role: targetRole,
+                updated_at: new Date().toISOString()
+            }).eq('user_id', user.id)
+        ];
+
+        // Invalidate coupon if used
+        if (couponCode) {
+            updateOps.push(
+                supabaseAdmin.from('coupons')
+                    .update({ is_active: false })
+                    .eq('code', couponCode.toUpperCase())
+            );
+            console.log(`[VERIFY] Invalidating coupon: ${couponCode}`);
         }
+
+        await Promise.all(updateOps);
+
+        console.log(`✅ Plan and Role updated for user ${user.id} to ${plan}`);
 
         // 4. Send Receipt Email
         await EmailService.sendPaymentSuccessEmail(

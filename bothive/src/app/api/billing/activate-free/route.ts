@@ -73,27 +73,48 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Coupon is not 100% off. Payment required." }, { status: 400 });
         }
 
-        // 3. Activate subscription using ONLY columns that exist in user_subscriptions
-        // Based on the billing webhook, these columns exist: user_id, status, current_period_end
+        // 3. Activate subscription across all relevant tables
         const subscriptionData = {
             user_id: user.id,
             status: 'active',
             current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         };
 
-        console.log("[ACTIVATE-FREE] Upserting subscription:", subscriptionData);
+        console.log("[ACTIVATE-FREE] Synchronizing tables for user:", user.id);
 
-        const { error: updateError } = await supabaseAdmin
-            .from('user_subscriptions')
-            .upsert(subscriptionData, { onConflict: 'user_id' });
+        // Map plan to role
+        let targetRole = 'developer';
+        if (plan.toLowerCase().includes('business')) targetRole = 'business';
+        if (plan.toLowerCase().includes('student')) targetRole = 'student';
+        if (plan.toLowerCase().includes('enterprise')) targetRole = 'enterprise';
 
-        if (updateError) {
-            console.error("[ACTIVATE-FREE] Subscription upsert failed:", updateError);
-            // Even if this fails, we'll still consider it a success as long as coupon was valid
-            // The user may not have the user_subscriptions table set up yet
-            console.log("[ACTIVATE-FREE] Continuing anyway since coupon was valid...");
+        const updateOps = [
+            // 1. Dedicated subscription table
+            supabaseAdmin.from('user_subscriptions').upsert(subscriptionData, { onConflict: 'user_id' }),
+
+            // 2. Primary users table (for billing_plan)
+            supabaseAdmin.from('users').update({
+                billing_plan: plan,
+                updated_at: new Date().toISOString()
+            }).eq('id', user.id),
+
+            // 3. Profiles table (for role/UI)
+            supabaseAdmin.from('user_profiles').update({
+                role: targetRole,
+                updated_at: new Date().toISOString()
+            }).eq('user_id', user.id),
+
+            // 4. INVALIDATE COUPON (Set is_active = false)
+            supabaseAdmin.from('coupons').update({ is_active: false }).eq('code', coupon.code)
+        ];
+
+        const results = await Promise.all(updateOps);
+        const firstError = results.find(r => r.error);
+
+        if (firstError) {
+            console.error("[ACTIVATE-FREE] Synchronization error:", firstError.error);
         } else {
-            console.log("[ACTIVATE-FREE] Subscription activated successfully!");
+            console.log("[ACTIVATE-FREE] All tables updated and coupon invalidated successfully!");
         }
 
         console.log(`[ACTIVATE-FREE] SUCCESS - User ${user.id} activated ${plan} with coupon ${couponCode}`);
@@ -110,7 +131,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: `${plan} plan activated! You now have premium access.`
+            message: `${plan} plan activated! Your dashboard will reflect the changes immediately.`
         });
 
     } catch (error: any) {

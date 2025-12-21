@@ -42,9 +42,16 @@ interface AIInsights {
   recommendations: string[];
 }
 
-export default function AIChatInterface({ botCapabilities = ["chat", "help", "information"], hivelangCode }: {
+export default function AIChatInterface({
+  botCapabilities = ["chat", "help", "information"],
+  hivelangCode,
+  botName = "AI Assistant",
+  botIcon
+}: {
   botCapabilities?: string[];
   hivelangCode?: string;
+  botName?: string;
+  botIcon?: string;
 }) {
   const { profile } = useAppSession();
   const { theme } = useTheme();
@@ -284,17 +291,21 @@ export default function AIChatInterface({ botCapabilities = ["chat", "help", "in
       )}>
         <div className="flex items-center gap-3">
           <div className={cn(
-            "flex items-center justify-center w-8 h-8 rounded-full",
-            "bg-gradient-to-r from-[#6C43FF] to-[#8A63FF]"
+            "flex items-center justify-center w-8 h-8 rounded-full overflow-hidden",
+            !botIcon && "bg-gradient-to-r from-[#6C43FF] to-[#8A63FF]"
           )}>
-            <Bot className="w-4 h-4 text-white" />
+            {botIcon ? (
+              <img src={botIcon} alt={botName} className="w-full h-full object-cover" />
+            ) : (
+              <Bot className="w-4 h-4 text-white" />
+            )}
           </div>
           <div>
             <h3 className={cn(
               "font-semibold",
               isDark ? "text-white" : "text-gray-900"
             )}>
-              AI Assistant
+              {botName}
             </h3>
             <p className={cn(
               "text-xs",
@@ -382,10 +393,14 @@ export default function AIChatInterface({ botCapabilities = ["chat", "help", "in
             >
               {message.role === 'assistant' && (
                 <div className={cn(
-                  "flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 mt-1",
-                  "bg-gradient-to-r from-[#6C43FF] to-[#8A63FF]"
+                  "flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 mt-1 overflow-hidden",
+                  !botIcon && "bg-gradient-to-r from-[#6C43FF] to-[#8A63FF]"
                 )}>
-                  <Bot className="w-3 h-3 text-white" />
+                  {botIcon ? (
+                    <img src={botIcon} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Bot className="w-3 h-3 text-white" />
+                  )}
                 </div>
               )}
 
