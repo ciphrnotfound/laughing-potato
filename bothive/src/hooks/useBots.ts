@@ -59,7 +59,7 @@ export function useBots(options?: {
             }
 
             const data = await response.json();
-            setBots(data.bots);
+            setBots(data.bots || []);
             setError(null);
         } catch (err) {
             setError(err instanceof Error ? err : new Error('Unknown error'));

@@ -104,7 +104,18 @@ export async function POST(req: NextRequest) {
                 updated_at: new Date().toISOString()
             }).eq('user_id', user.id),
 
-            // 4. INVALIDATE COUPON (Set is_active = false)
+            // 4. Create Invoice Record
+            supabaseAdmin.from('user_invoices').insert([{
+                user_id: user.id,
+                amount: 0,
+                plan_name: plan,
+                reference: `FREE-${coupon.code}-${Date.now()}`,
+                invoice_number: `INV-${Math.floor(100000 + Math.random() * 900000)}`,
+                status: 'paid',
+                applied_coupon: coupon.code
+            }]),
+
+            // 5. INVALIDATE COUPON (Set is_active = false)
             supabaseAdmin.from('coupons').update({ is_active: false }).eq('code', coupon.code)
         ];
 

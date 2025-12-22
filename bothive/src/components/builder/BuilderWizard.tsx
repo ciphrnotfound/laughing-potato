@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Home, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useAppSession } from "@/lib/app-session-context";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
@@ -16,6 +17,7 @@ import ConfigurePanel, { ToolEntry } from "./ConfigurePanel";
 import TestPlayground from "./TestPlayground";
 import DeployStep from "./DeployStep";
 import SwarmComposer from "./SwarmComposer";
+import MonetizationPanel, { MonetizationConfig, DEFAULT_MONETIZATION_CONFIG } from "./MonetizationPanel";
 import { registerHiveLangLanguage, registerHiveLangTheme } from "@/lib/monaco-hivelang";
 import type { Monaco } from "@monaco-editor/react";
 
@@ -582,8 +584,9 @@ export default function BuilderWizard() {
   const [source, setSource] = useState(TEMPLATE_SOURCES.custom || "");
   const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
-  const [pricingModel, setPricingModel] = useState<"free" | "paid">("free");
-  const [price, setPrice] = useState<number>(0);
+
+  // Monetization config (new comprehensive system)
+  const [monetization, setMonetization] = useState<MonetizationConfig>(DEFAULT_MONETIZATION_CONFIG);
 
   // Deployment state
   const [isDeploying, setIsDeploying] = useState(false);
@@ -647,7 +650,7 @@ export default function BuilderWizard() {
   }, []);
 
   const goNext = useCallback(() => {
-    const steps: BuilderStep[] = ["template", "configure", "test", "deploy"];
+    const steps: BuilderStep[] = ["template", "configure", "test", "publish", "deploy"];
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]!);
@@ -655,7 +658,7 @@ export default function BuilderWizard() {
   }, [step]);
 
   const goBack = useCallback(() => {
-    const steps: BuilderStep[] = ["template", "configure", "test", "deploy"];
+    const steps: BuilderStep[] = ["template", "configure", "test", "publish", "deploy"];
     const currentIndex = steps.indexOf(step);
     if (currentIndex > 0) {
       setStep(steps[currentIndex - 1]!);
@@ -706,10 +709,15 @@ export default function BuilderWizard() {
           is_public: false,
           category: selectedTemplate || 'custom',
           metadata: {
-            tools: tools.filter(t => t.enabled).map(t => t.id),
+            tools: (tools || []).filter(t => t.enabled).map(t => t.id),
             integrations: selectedIntegrations,
-            pricing_model: pricingModel,
-            price: price
+            monetization: {
+              model: monetization.model,
+              currency: monetization.currency,
+              oneTimePrice: monetization.oneTimePrice,
+              subscription: monetization.subscription,
+              userFormFields: monetization.userFormFields,
+            }
           }
         })
         .select()
@@ -730,7 +738,7 @@ export default function BuilderWizard() {
     } finally {
       setIsDeploying(false);
     }
-  }, [botName, description, systemPrompt, source, selectedTemplate, tools, selectedIntegrations, supabase, isAuthenticated, profile]);
+  }, [botName, description, systemPrompt, source, selectedTemplate, tools, selectedIntegrations, monetization, supabase, isAuthenticated, profile]);
 
   // Can continue to next step?
   const canContinue = useMemo(() => {
@@ -741,6 +749,8 @@ export default function BuilderWizard() {
         return !!botName.trim();
       case "test":
         return true;
+      case "publish":
+        return true; // Always can proceed from publish
       case "deploy":
         return isDeployed;
       default:
@@ -756,11 +766,11 @@ export default function BuilderWizard() {
       )}
     >
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-black/5 dark:border-white/10 bg-white/90 dark:bg-[#0a0a0f]/90 backdrop-blur-xl transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-zinc-500 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors"
           >
             <Home className="h-5 w-5" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -768,7 +778,9 @@ export default function BuilderWizard() {
 
           <StepIndicator currentStep={step} onStepClick={goToStep} />
 
-          <div className="w-24" /> {/* Spacer for centering */}
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -893,13 +905,14 @@ export default function BuilderWizard() {
                       onSystemPromptChange={setSystemPrompt}
                       memoryStrategy={memoryStrategy}
                       onMemoryStrategyChange={setMemoryStrategy}
+                      tools={tools}
                       onToolToggle={handleToolToggle}
                       selectedIntegrations={selectedIntegrations}
                       onIntegrationToggle={handleIntegrationToggle}
-                      pricingModel={pricingModel}
-                      onPricingModelChange={setPricingModel}
-                      price={price}
-                      onPriceChange={setPrice}
+                      pricingModel={monetization.model === 'free' ? 'free' : 'paid'}
+                      onPricingModelChange={() => { }}
+                      price={monetization.oneTimePrice}
+                      onPriceChange={() => { }}
                     />
                   </div>
                 )}
@@ -965,9 +978,60 @@ export default function BuilderWizard() {
                   whileTap={{ scale: 0.98 }}
                   className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-violet-600 text-white hover:bg-violet-500 transition-all"
                 >
-                  Continue to Deploy
+                  Continue to Publish
                   <ArrowRight className="h-5 w-5" />
                 </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === "publish" && (
+            <motion.div
+              key="publish"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="max-w-2xl mx-auto px-6">
+                <div className="text-center mb-10">
+                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                    Publish Settings
+                  </h1>
+                  <p className="text-white/50">
+                    Set up pricing, subscriptions, and collect user information before they use your bot.
+                  </p>
+                </div>
+
+                {/* Monetization Panel */}
+                <div className="p-6 rounded-2xl border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl">
+                  <MonetizationPanel
+                    config={monetization}
+                    onChange={setMonetization}
+                  />
+                </div>
+
+                {/* Navigation */}
+                <div className="flex justify-between mt-10">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                    Back
+                  </button>
+                  <motion.button
+                    type="button"
+                    onClick={goNext}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-emerald-600 text-white hover:bg-emerald-500 transition-all"
+                  >
+                    Deploy Bot
+                    <ArrowRight className="h-5 w-5" />
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           )}

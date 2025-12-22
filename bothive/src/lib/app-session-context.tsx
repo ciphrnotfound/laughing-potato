@@ -60,92 +60,95 @@ export function AppSessionProvider({ children }: AppSessionProviderProps) {
 
     const resolveSession = async () => {
       setLoading(true);
-      const { data: sessionResult } = await supabase.auth.getSession();
-      const session = sessionResult?.session ?? null;
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (session?.user) {
         const { user } = session;
 
-        let profileData = null;
-        try {
-          const { data, error } = await supabase
-            .from('user_profiles')
-            .select('role, onboarding_completed, first_name, last_name, team_name')
-            .eq('user_id', user.id)
-            .single();
-
-          if (!error) {
-            profileData = data;
-          }
-        } catch (error) {
-          console.log('Error fetching profile:', error);
-        }
-
+        // 🚀 Optimistic Hydration: Set basic info immediately
         setProfile({
           id: user.id,
           email: user.email ?? undefined,
           fullName: user.user_metadata?.full_name ?? undefined,
           avatarUrl: user.user_metadata?.avatar_url ?? undefined,
-          role: undefined, // TODO: Get from user_profiles when table exists
-          onboardingCompleted: false, // TODO: Get from user_profiles when table exists
+          role: undefined,
+          onboardingCompleted: true, // Optimistically assume true
         });
-        await syncBackendSession(session);
+        setLoading(false);
+
+        try {
+          // Fetch real profile data in background
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('role, onboarding_completed')
+            .eq('user_id', user.id)
+            .single();
+
+          if (isMounted && !error && data) {
+            setProfile(prev => ({
+              ...prev!,
+              role: data.role,
+              onboardingCompleted: data.onboarding_completed,
+            }));
+          }
+        } catch (err) {
+          console.error('Error fetching profile:', err);
+        }
+        void syncBackendSession(session);
       } else {
         setProfile(null);
-        lastLinkedToken.current = null;
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     void resolveSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      if (!isMounted) {
-        return;
-      }
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      if (!isMounted) return;
 
       if (newSession?.user) {
         const { user } = newSession;
-
-        let profileData = null;
-        try {
-          const { data, error } = await supabase
-            .from('user_profiles')
-            .select('role, onboarding_completed, first_name, last_name, team_name')
-            .eq('user_id', user.id)
-            .single();
-
-          if (!error) {
-            profileData = data;
-          }
-        } catch (error) {
-          console.log('Error fetching profile:', error);
-        }
 
         setProfile({
           id: user.id,
           email: user.email ?? undefined,
           fullName: user.user_metadata?.full_name ?? undefined,
           avatarUrl: user.user_metadata?.avatar_url ?? undefined,
-          role: undefined, // TODO: Get from user_profiles when table exists
-          onboardingCompleted: false, // TODO: Get from user_profiles when table exists
+          role: undefined,
+          onboardingCompleted: true,
         });
+        setLoading(false);
+
+        try {
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('role, onboarding_completed')
+            .eq('user_id', user.id)
+            .single();
+
+          if (isMounted && !error && data) {
+            setProfile(prev => ({
+              ...prev!,
+              role: data.role,
+              onboardingCompleted: data.onboarding_completed,
+            }));
+          }
+        } catch (err) {
+          console.error('Error fetching profile:', err);
+        }
         void syncBackendSession(newSession);
       } else {
         setProfile(null);
         lastLinkedToken.current = null;
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => {
       isMounted = false;
-      listener.subscription.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, [syncBackendSession]);
 

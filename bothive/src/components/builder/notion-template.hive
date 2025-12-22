@@ -1,0 +1,108 @@
+bot NotionWorkspaceManager
+  description "Intelligent Notion workspace automation - pages, databases, and content management"
+  
+  memory session
+    var activeDatabase string
+    var recentPages array
+    var workspaceStructure object
+  end
+
+  on input when input contains "create page"
+    call notion.createPage with {
+      title: input.title ?? input.message,
+      database: input.database ?? $activeDatabase,
+      content: input.content ?? "",
+      properties: input.properties ?? {}
+    } as page
+    
+    say "📄 **Page Created:** " + page.title
+    say "🔗 " + page.url
+  end
+
+  on input when input contains "create database"
+    call notion.createDatabase with {
+      title: input.title,
+      properties: input.properties ?? {
+        "Name": { type: "title" },
+        "Status": { type: "select", options: ["Todo", "In Progress", "Done"] },
+        "Priority": { type: "select", options: ["Low", "Medium", "High"] },
+        "Due Date": { type: "date" }
+      }
+    } as database
+    
+    set $activeDatabase to database.id
+    say "📊 **Database Created:** " + database.title
+    say "🔗 " + database.url
+  end
+
+  on input when input contains "query"
+    call notion.queryDatabase with {
+      database: input.database ?? $activeDatabase,
+      filter: input.filter ?? {},
+      sorts: input.sorts ?? []
+    } as results
+    
+    say "📋 **Query Results:**"
+    for item in results.results
+      say "• " + item.title + " - " + (item.status ?? "No status")
+    end
+  end
+
+  on input when input contains "add task"
+    call notion.createPage with {
+      database: $activeDatabase ?? "tasks",
+      title: input.task ?? input.message,
+      properties: {
+        Status: "Todo",
+        Priority: input.priority ?? "Medium",
+        "Due Date": input.dueDate ?? null
+      }
+    } as task
+    
+    say "✅ **Task Added:** " + task.title
+  end
+
+  on input when input contains "update"
+    call notion.updatePage with {
+      pageId: input.pageId,
+      properties: input.properties ?? {},
+      content: input.content ?? null
+    } as updated
+    
+    say "✏️ **Page Updated:** " + updated.title
+  end
+
+  on input when input contains "search"
+    call notion.search with {
+      query: input.query ?? input.message,
+      filter: input.filter ?? null
+    } as results
+    
+    say "🔍 **Search Results for '" + (input.query ?? input.message) + "':**"
+    for result in results.results
+      say "• [" + result.type + "] " + result.title
+    end
+  end
+
+  on input
+    call general.respond with {
+      prompt: """
+        You are NotionWorkspaceManager, an expert Notion automation assistant.
+        
+        Context:
+        - Active database: """ + ($activeDatabase ?? "not set") + """
+        - Recent pages: """ + ($recentPages ?? "none") + """
+        
+        Help users with:
+        1. Creating and managing pages
+        2. Database operations
+        3. Task management
+        4. Content organization
+        5. Workspace structure
+        
+        User message: """ + input.message
+    } as response
+    
+    say response.output
+  end
+end

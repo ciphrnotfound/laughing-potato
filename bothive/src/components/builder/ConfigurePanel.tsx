@@ -535,11 +535,11 @@ export default function ConfigurePanel({
                         Tools & Capabilities
                     </div>
                     <span className="text-xs text-white/40">
-                        {tools.filter((t) => t.enabled).length} active
+                        {(tools || []).filter((t) => t.enabled).length} active
                     </span>
                 </div>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {tools.map((tool) => (
+                    {(tools || []).map((tool) => (
                         <motion.button
                             key={tool.id}
                             type="button"

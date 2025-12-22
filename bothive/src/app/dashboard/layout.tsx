@@ -6,10 +6,11 @@ import DashboardSidebar from "@/components/DashboardSidebar";
 import HiveMind from "@/components/HiveMind";
 import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
+import { useAppSession } from "@/lib/app-session-context";
+import { toast } from "sonner";
+import FullPageLoader from "@/components/FullPageLoader";
 import { DeadlineProvider } from "@/lib/deadline-context";
 import DeadlineTicker from "@/components/DeadlineTicker";
-import { toast } from "sonner";
 
 export default function DashboardLayout({
   children,
@@ -21,55 +22,37 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [checking, setChecking] = useState(true);
+  const { profile, loading: sessionLoading, isAuthenticated } = useAppSession();
 
   useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          router.push("/signin");
-          return;
-        }
+    if (sessionLoading) return;
 
-        // TEMPORARY: Allow access if role override is present (for testing)
-        const roleOverride = localStorage.getItem("bothive_role_override");
-        const hasInviteToken = localStorage.getItem("bothive_invite_token");
-        const isAdmin = user.email === "akinlorinjeremiah@gmail.com";
+    if (!isAuthenticated) {
+      router.push("/signin");
+      return;
+    }
 
-        if (!isAdmin && !roleOverride && !hasInviteToken && process.env.NODE_ENV === "production") {
-          // Access Denied -> Waitlist (Only in production if not admin/overridden/invited)
-          if (!pathname?.includes("/waitlist")) {
-            router.push("/waitlist");
-          }
-          setChecking(false);
-          return;
-        }
+    // Waitlist restriction removed as per user request
 
-        // If Admin, proceed to standard checks (like onboarding, though Admin likely stays)
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("onboarding_completed")
-          .eq("user_id", user.id)
-          .single();
+    // Admin bypass for onboarding
+    const isAdmin = profile?.email === "akinlorinjeremiah@gmail.com";
+    if (isAdmin) {
+      setChecking(false);
+      return;
+    }
 
-        if (!profile || !profile.onboarding_completed) {
-          if (!pathname?.includes("/onboarding")) {
-            toast("Please complete your setup first.");
-            router.push("/onboarding");
-          }
-        }
-      } catch (error) {
-        console.error("Error checking access:", error);
-      } finally {
-        setChecking(false);
+    if (!profile?.onboardingCompleted) {
+      if (!pathname?.includes("/onboarding")) {
+        toast("Please complete your setup first.");
+        router.push("/onboarding");
       }
-    };
+    }
 
-    checkAccess();
-  }, [router, pathname]);
+    setChecking(false);
+  }, [router, pathname, profile, sessionLoading, isAuthenticated]);
 
-  if (checking) {
-    return null; // Or a loading spinner
+  if (sessionLoading) {
+    return <FullPageLoader />;
   }
 
   return (

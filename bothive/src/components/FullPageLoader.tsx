@@ -8,27 +8,27 @@ export default function FullPageLoader() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setProgress((prev) => (prev >= 100 ? 100 : prev + 10));
-    }, 150);
+      setProgress((prev) => (prev >= 100 ? 100 : prev + 5));
+    }, 30);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-bg text-white">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background text-foreground">
       <div className="mb-8 flex items-center gap-3">
-        <IconLoader2 className="h-8 w-8 animate-spin text-brand-500" />
+        <IconLoader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="text-2xl font-semibold">Bothive</span>
       </div>
 
       <div className="w-80">
         <div className="mb-2 flex justify-between text-sm">
-          <span>Loading workspace…</span>
+          <span className="text-muted-foreground">Loading workspace…</span>
           <span>{progress}%</span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-bg-paper">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-600 transition-all duration-300"
+            className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import dynamic from 'next/dynamic';
 import { useAppSession } from "@/lib/app-session-context";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 // Dynamically import Paystack to avoid SSR issues
 const PaystackButton = dynamic(
@@ -38,6 +39,45 @@ function CheckoutContent() {
     const planName = searchParams.get('plan');
     const amount = Number(searchParams.get('amount'));
     const [email, setEmail] = useState('');
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+    const [isApplying, setIsApplying] = useState(false);
+
+    // Calculate discounted amount
+    const discountAmount = appliedCoupon ? Math.floor(amount * (appliedCoupon.discount / 100)) : 0;
+    const finalAmount = amount - discountAmount;
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode) return;
+        setIsApplying(true);
+
+        try {
+            const response = await fetch('/api/coupons/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: couponCode }),
+            });
+
+            const data = await response.json();
+
+            if (data.valid) {
+                setAppliedCoupon({
+                    code: data.code,
+                    discount: data.discount_percent
+                });
+                toast.success(`Coupon ${data.code} applied! ${data.discount_percent}% discount added.`);
+            } else {
+                toast.error(data.message || 'Invalid coupon code.');
+                setAppliedCoupon(null);
+            }
+        } catch (error) {
+            console.error('Coupon verification error:', error);
+            toast.error('Failed to verify coupon. Please try again.');
+            setAppliedCoupon(null);
+        } finally {
+            setIsApplying(false);
+        }
+    };
 
     // Redirect if invalid params
     useEffect(() => {
@@ -52,14 +92,62 @@ function CheckoutContent() {
     const config = {
         reference: (new Date()).getTime().toString(),
         email: email || "user@example.com",
-        amount: amount, // Paystack amount is in kobo
-        publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder', // Ensure this is set in your .env
+        amount: finalAmount, // Use final calculation
+        publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_test_placeholder',
     };
 
-    const handleSuccess = (reference: any) => {
+    const handleSuccess = async (reference: any) => {
         toast.success("Payment successful!");
-        // Verify payment on backend here
+
+        // Save to user_invoices table
+        try {
+            const supabase = createClientComponentClient();
+            const invoiceNumber = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
+
+            await supabase.from('user_invoices').insert([{
+                user_id: profile?.id,
+                amount: finalAmount,
+                plan_name: planName,
+                reference: reference.reference,
+                invoice_number: invoiceNumber,
+                status: 'paid',
+                applied_coupon: appliedCoupon?.code || null
+            }]);
+        } catch (error) {
+            console.error("Error saving invoice:", error);
+        }
+
         router.push('/dashboard/billing?success=true&plan=' + planName);
+    };
+
+    const handleFreeActivation = async () => {
+        if (!appliedCoupon || finalAmount > 0) return;
+        setIsApplying(true);
+
+        try {
+            const response = await fetch('/api/billing/activate-free', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    plan: planName,
+                    couponCode: appliedCoupon.code
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success(data.message || "Plan activated successfully!");
+                router.push('/dashboard/billing?success=true&plan=' + planName);
+            } else {
+                toast.error(data.error || "Failed to activate plan.");
+                setIsApplying(false);
+            }
+        } catch (error) {
+            console.error("Free activation error:", error);
+            toast.error("An unexpected error occurred.");
+            setIsApplying(false);
+        }
     };
 
     const handleClose = () => {
@@ -114,27 +202,89 @@ function CheckoutContent() {
                             </div>
                         </div>
 
-                        <ul className="space-y-3 mb-8">
+                        <ul className="space-y-3 mb-6">
                             <li className="flex justify-between text-sm">
                                 <span className="text-white/60">Subtotal</span>
                                 <span className="text-white">₦{(amount / 100).toLocaleString()}</span>
                             </li>
+                            {appliedCoupon && (
+                                <motion.li
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="flex justify-between text-sm text-violet-400"
+                                >
+                                    <span>Discount ({appliedCoupon.code})</span>
+                                    <span>- ₦{(discountAmount / 100).toLocaleString()}</span>
+                                </motion.li>
+                            )}
                             <li className="flex justify-between text-sm">
                                 <span className="text-white/60">Tax</span>
                                 <span className="text-white">₦0.00</span>
                             </li>
                             <li className="flex justify-between text-lg font-medium pt-4 border-t border-white/[0.06]">
                                 <span className="text-white">Total</span>
-                                <span className="text-white">₦{(amount / 100).toLocaleString()}</span>
+                                <span className="text-white">₦{(finalAmount / 100).toLocaleString()}</span>
                             </li>
                         </ul>
 
-                        <PaystackButton
-                            className="w-full py-4 rounded-xl bg-white text-black font-semibold text-sm hover:bg-neutral-200 transition-all flex items-center justify-center gap-2 shadow-lg shadow-white/5"
-                            {...{ config, onSuccess: handleSuccess, onClose: handleClose }}
-                        >
-                            Pay with Paystack <CreditCard className="w-4 h-4" />
-                        </PaystackButton>
+                        {/* Coupon Input */}
+                        <div className={cn(
+                            "mb-8 p-1.5 rounded-xl border flex items-center gap-2 transition-all",
+                            appliedCoupon
+                                ? "border-emerald-500/50 bg-emerald-500/5"
+                                : "border-white/[0.04] bg-white/[0.02] focus-within:border-violet-500/50"
+                        )}>
+                            <div className="flex-1 flex items-center px-3 gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Coupon code"
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value)}
+                                    className="bg-transparent border-none outline-none text-sm w-full text-white placeholder:text-white/20 uppercase"
+                                />
+                                {appliedCoupon && <Check className="w-3 h-3 text-emerald-400" />}
+                            </div>
+                            <button
+                                onClick={handleApplyCoupon}
+                                disabled={isApplying || !!(appliedCoupon && couponCode.toUpperCase() === appliedCoupon.code)}
+                                className={cn(
+                                    "px-4 py-2 rounded-lg text-xs font-semibold transition-all border",
+                                    appliedCoupon
+                                        ? "bg-emerald-500 text-white border-emerald-400"
+                                        : "bg-white/5 hover:bg-white/10 text-white border-white/[0.05]"
+                                )}
+                            >
+                                {isApplying ? <Loader2 className="w-3 h-3 animate-spin" /> : appliedCoupon ? 'Applied' : 'Apply'}
+                            </button>
+                        </div>
+
+                        {finalAmount === 0 ? (
+                            <button
+                                onClick={handleFreeActivation}
+                                disabled={isApplying}
+                                className={cn(
+                                    "w-full py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg",
+                                    isApplying
+                                        ? "bg-white/10 text-white/20 cursor-not-allowed"
+                                        : "bg-violet-600 text-white hover:bg-violet-500 shadow-violet-500/20"
+                                )}
+                            >
+                                {isApplying ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Start Free Trial <Sparkles className="w-4 h-4" /></>}
+                            </button>
+                        ) : (
+                            <PaystackButton
+                                disabled={isApplying}
+                                className={cn(
+                                    "w-full py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg",
+                                    isApplying
+                                        ? "bg-white/10 text-white/20 cursor-not-allowed"
+                                        : "bg-white text-black hover:bg-neutral-200 shadow-white/5"
+                                )}
+                                {...{ config, onSuccess: handleSuccess, onClose: handleClose }}
+                            >
+                                {isApplying ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Pay with Paystack <CreditCard className="w-4 h-4" /></>}
+                            </PaystackButton>
+                        )}
 
                         <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-white/20">
                             <ShieldCheck className="w-3 h-3" />

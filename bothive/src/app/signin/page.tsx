@@ -33,9 +33,7 @@ function SignInContent() {
         // User is already logged in: Show Welcome Animation then redirect
         setUserMetadata(session.user.user_metadata);
         setIsSuccess(true);
-        setTimeout(() => {
-          router.push("/passkey");
-        }, 2000);
+        router.push("/passkey");
       } else {
         setMounted(true);
       }

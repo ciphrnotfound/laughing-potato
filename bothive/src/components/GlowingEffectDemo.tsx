@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 
 export function GlowingEffectDemo() {
     return (
-        <section className="relative py-24 bg-[#0a0a0f]">
+        <section className="relative py-24 bg-white dark:bg-[#0a0a0f] transition-colors duration-500">
             {/* Subtle background pulse */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <motion.div
@@ -23,7 +23,7 @@ export function GlowingEffectDemo() {
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
-                        className="text-sm text-white/40 uppercase tracking-[0.2em] mb-4"
+                        className="text-sm text-black/40 dark:text-white/40 uppercase tracking-[0.2em] mb-4"
                     >
                         Platform
                     </motion.p>
@@ -31,7 +31,7 @@ export function GlowingEffectDemo() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-3xl md:text-4xl font-semibold text-white tracking-tight"
+                        className="text-3xl md:text-4xl font-semibold text-black dark:text-white tracking-tight"
                     >
                         Built for the future
                     </motion.h2>
@@ -102,7 +102,7 @@ const GridItem = ({ area, icon, title, description, delay = 0 }: GridItemProps) 
             className={`min-h-[14rem] list-none ${area}`}
         >
             <motion.div
-                className="relative h-full rounded-2xl border border-white/[0.04] bg-[#0a0a0f] p-2 md:rounded-3xl md:p-3 group"
+                className="relative h-full rounded-2xl border bg-white border-black/[0.06] dark:bg-[#0a0a0f] dark:border-white/[0.04] p-2 md:rounded-3xl md:p-3 group transition-colors duration-500"
                 whileHover={{ borderColor: "rgba(255,255,255,0.08)" }}
                 transition={{ duration: 0.3 }}
             >
@@ -116,16 +116,16 @@ const GridItem = ({ area, icon, title, description, delay = 0 }: GridItemProps) 
                 <div className="relative flex h-full flex-col justify-between gap-6 overflow-hidden rounded-xl p-6 md:p-6">
                     <div className="relative flex flex-1 flex-col justify-between gap-3">
                         <motion.div
-                            className="w-fit rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 text-white/30 group-hover:text-white/60 group-hover:border-white/10 transition-all duration-300"
+                            className="w-fit rounded-xl border border-black/[0.06] bg-black/[0.02] text-black/50 dark:border-white/[0.06] dark:bg-white/[0.02] dark:text-white/30 p-2.5 group-hover:text-black/70 dark:group-hover:text-white/60 group-hover:border-black/[0.16] dark:group-hover:border-white/10 transition-all duration-300"
                             whileHover={{ scale: 1.05 }}
                         >
                             {icon}
                         </motion.div>
                         <div className="space-y-3">
-                            <h3 className="font-medium text-xl text-white group-hover:text-white transition-colors">
+                            <h3 className="font-medium text-xl text-black dark:text-white group-hover:text-black dark:group-hover:text-white transition-colors">
                                 {title}
                             </h3>
-                            <p className="text-sm text-white/40 leading-relaxed group-hover:text-white/60 transition-colors">
+                            <p className="text-sm text-black/60 dark:text-white/40 leading-relaxed group-hover:text-black/80 dark:group-hover:text-white/60 transition-colors">
                                 {description}
                             </p>
                         </div>

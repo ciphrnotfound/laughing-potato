@@ -149,18 +149,20 @@ export default function Footer() {
   const brandText = "BOTHIVE";
 
   return (
-    <footer ref={ref} className="relative bg-gradient-to-b from-[#0a0812] via-[#080510] to-[#050508] border-t border-violet-500/10 overflow-hidden">
-      {/* Stars background */}
-      <StarsBackground />
+    <footer ref={ref} className="relative bg-[#fafafa] dark:bg-[#050508] border-t border-black/5 dark:border-violet-500/10 overflow-hidden transition-colors duration-500">
+      {/* Stars background - Dark mode only */}
+      <div className="hidden dark:block">
+        <StarsBackground />
+      </div>
 
-      {/* Purple ambient glow */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/8 rounded-full blur-[120px] pointer-events-none" />
+      {/* Purple ambient glow - Theme aware */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/[0.03] dark:bg-violet-500/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/[0.03] dark:bg-purple-500/8 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Animated gradient accent */}
       <div className="absolute top-0 left-0 right-0 h-px overflow-hidden">
         <motion.div
-          className="h-full w-1/3 bg-gradient-to-r from-transparent via-violet-500/50 to-transparent"
+          className="h-full w-1/3 bg-gradient-to-r from-transparent via-violet-500/30 dark:via-violet-500/50 to-transparent"
           animate={{ x: ["-100%", "400%"] }}
           transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
         />
@@ -188,11 +190,11 @@ export default function Footer() {
                   className="object-contain"
                 />
               </motion.div>
-              <span className="text-xl font-semibold text-white group-hover:text-white/80 transition-colors">
+              <span className="text-xl font-semibold text-black dark:text-white group-hover:text-violet-600 dark:group-hover:text-white/80 transition-colors">
                 Bothive
               </span>
             </Link>
-            <p className="text-sm text-white/40 max-w-xs leading-relaxed mb-6">
+            <p className="text-sm text-black/60 dark:text-white/40 max-w-xs leading-relaxed mb-6">
               The operating system for the AI workforce. Build, deploy, and scale autonomous agents.
             </p>
 
@@ -201,12 +203,12 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/50 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/[0.06] dark:border-white/[0.06] text-sm text-black dark:text-white placeholder:text-black/30 dark:placeholder:text-white/30 focus:outline-none focus:border-violet-500/50 transition-colors"
               />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-4 py-2.5 rounded-xl bg-white text-[#050508] text-sm font-medium hover:bg-white/90 transition-colors"
+                className="px-4 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-[#050508] text-sm font-medium hover:bg-black/90 dark:hover:bg-white/90 transition-colors"
               >
                 Subscribe
               </motion.button>
@@ -221,7 +223,7 @@ export default function Footer() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.1 + sectionIndex * 0.1, duration: 0.6 }}
             >
-              <h4 className="text-xs font-medium text-white/60 uppercase tracking-wider mb-5">
+              <h4 className="text-xs font-medium text-black/60 dark:text-white/60 uppercase tracking-wider mb-5">
                 {section.title}
               </h4>
               <ul className="space-y-3">
@@ -234,10 +236,10 @@ export default function Footer() {
                   >
                     <Link
                       href={link.href}
-                      className="group inline-flex items-center gap-1 text-sm text-white/40 hover:text-white transition-colors"
+                      className="group inline-flex items-center gap-1 text-sm text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors"
                     >
                       <span>{link.label}</span>
-                      <ArrowUpRight className="w-3 h-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
+                      <ArrowUpRight className="w-3 h-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-opacity" />
                     </Link>
                   </motion.li>
                 ))}
@@ -248,12 +250,12 @@ export default function Footer() {
 
         {/* Bottom */}
         <motion.div
-          className="mt-16 pt-8 border-t border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-6"
+          className="mt-16 pt-8 border-t border-black/[0.04] dark:border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-6"
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : {}}
           transition={{ delay: 0.6, duration: 0.6 }}
         >
-          <p className="text-xs text-white/30">
+          <p className="text-xs text-black/30 dark:text-white/30">
             © {new Date().getFullYear()} Bothive Inc. All rights reserved.
           </p>
 
@@ -269,7 +271,7 @@ export default function Footer() {
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.7 + i * 0.1 }}
                 whileHover={{ scale: 1.2, y: -2 }}
-                className="p-2 rounded-lg text-white/30 hover:text-white hover:bg-white/[0.05] transition-all"
+                className="p-2 rounded-lg text-black/30 dark:text-white/30 hover:text-black dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-all"
                 aria-label={social.label}
               >
                 <social.icon className="w-4 h-4" />

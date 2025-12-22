@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type BuilderStep = "template" | "configure" | "test" | "deploy";
+export type BuilderStep = "template" | "configure" | "test" | "publish" | "deploy";
 
 interface StepIndicatorProps {
     currentStep: BuilderStep;
@@ -16,7 +16,8 @@ const STEPS: { id: BuilderStep; label: string; number: number }[] = [
     { id: "template", label: "Template", number: 1 },
     { id: "configure", label: "Configure", number: 2 },
     { id: "test", label: "Test", number: 3 },
-    { id: "deploy", label: "Deploy", number: 4 },
+    { id: "publish", label: "Publish", number: 4 },
+    { id: "deploy", label: "Deploy", number: 5 },
 ];
 
 export default function StepIndicator({ currentStep, onStepClick }: StepIndicatorProps) {

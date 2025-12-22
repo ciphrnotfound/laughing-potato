@@ -106,9 +106,7 @@ export default function WaitlistPage() {
                                             if (code === 'BOTHIVE-EARLY') {
                                                 localStorage.setItem('bothive_invite_token', 'valid');
                                                 toast.success("Access Granted! Redirecting...");
-                                                setTimeout(() => {
-                                                    window.location.href = '/dashboard';
-                                                }, 1000);
+                                                window.location.href = '/dashboard';
                                             } else {
                                                 toast.error("Invalid invite code");
                                             }

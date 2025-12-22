@@ -92,13 +92,13 @@ export default function HiveLangShowcase() {
     return (
         <section
             ref={ref}
-            className="relative py-24 md:py-32 overflow-hidden bg-[#08080c]"
+            className="relative py-24 md:py-32 overflow-hidden bg-[#fafafa] dark:bg-[#08080c] text-[#0a0a0f] dark:text-white transition-colors duration-500"
         >
             {/* Background grid */}
             <div
                 className="absolute inset-0 opacity-[0.03]"
                 style={{
-                    backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 1px)`,
+                    backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 1px)`,
                     backgroundSize: "24px 24px",
                 }}
             />
@@ -118,10 +118,10 @@ export default function HiveLangShowcase() {
                         <Code2 className="w-4 h-4 text-violet-400" />
                         <span className="text-xs font-medium text-violet-400">Introducing HiveLang</span>
                     </div>
-                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-white mb-4">
+                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight text-[#0a0a0f] dark:text-white mb-4">
                         Code that thinks
                     </h2>
-                    <p className="text-base md:text-lg text-white/40 max-w-xl mx-auto">
+                    <p className="text-base md:text-lg text-black/60 dark:text-white/40 max-w-xl mx-auto">
                         A declarative language designed for AI agents. Write once, deploy everywhere.
                     </p>
                 </motion.div>
@@ -208,21 +208,21 @@ export default function HiveLangShowcase() {
                                 title: "Tool orchestration",
                                 description: "Call any API, database, or service. Chain tools together seamlessly."
                             },
-                        ].map((feature, i) => (
+                                ].map((feature, i) => (
                             <motion.div
                                 key={feature.title}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                                 transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
-                                className="p-6 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                                className="p-6 rounded-xl border bg-white border-black/5 hover:bg-black/[0.03] dark:bg-white/[0.02] dark:border-white/5 dark:hover:bg-white/[0.04] transition-colors"
                             >
                                 <div className="flex items-start gap-4">
                                     <div className="p-2.5 rounded-lg bg-violet-500/10 border border-violet-500/20">
                                         <feature.icon className="w-5 h-5 text-violet-400" />
                                     </div>
                                     <div>
-                                        <h3 className="font-medium text-white mb-1">{feature.title}</h3>
-                                        <p className="text-sm text-white/40 leading-relaxed">{feature.description}</p>
+                                        <h3 className="font-medium text-[#0a0a0f] dark:text-white mb-1">{feature.title}</h3>
+                                        <p className="text-sm text-black/60 dark:text-white/40 leading-relaxed">{feature.description}</p>
                                     </div>
                                 </div>
                             </motion.div>

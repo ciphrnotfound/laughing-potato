@@ -209,7 +209,7 @@ function SwarmComposerInner({ value, onChange }: SwarmComposerProps) {
         const botNameMatch = code.match(/bot\s+([A-Za-z0-9_]+)/);
         const botName = botNameMatch ? botNameMatch[1] : "HiveSwarm";
 
-        const sequence = [botName, ...nodes.filter(n => n.id !== botName).map(n => n.id)];
+        const sequence = [botName, ...(nodes || []).filter(n => n.id !== botName).map(n => n.id)];
 
         for (let i = 0; i < sequence.length; i++) {
             const id = sequence[i];

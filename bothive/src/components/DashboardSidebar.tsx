@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import ThemeToggle from "@/components/ThemeToggle";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
   IconArrowLeft,
@@ -47,23 +48,24 @@ interface SidebarItem {
 
 // Menu Items Configuration
 const BASE_ITEMS: SidebarItem[] = [
-  { id: "workspace", label: "Workspace", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/workspace" },
-  { id: "overview", label: "Overview", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard" },
-  { id: "workforce", label: "My Workforce", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/workforce" },
-  { id: "knowledge", label: "Knowledge", icon: <IconBrain className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/knowledge" },
-  { id: "agents", label: "Agents", icon: <IconUserBolt className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/agents" },
-  { id: "billing", label: "Billing", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/billing" },
-  { id: "wallet", label: "Wallet", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/wallet" },
-  { id: "affiliate", label: "Affiliate", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/affiliate" },
-  { id: "orchestrator", label: "Orchestrator", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/orchestrator" },
+  { id: "workspace", label: "Workspace", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/workspace" },
+  { id: "overview", label: "Overview", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard" },
+  { id: "workforce", label: "My Workforce", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/workforce" },
+  { id: "knowledge", label: "Knowledge", icon: <IconBrain className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/knowledge" },
+  { id: "agents", label: "Agents", icon: <IconUserBolt className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/agents" },
+  { id: "billing", label: "Billing", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/billing" },
+  { id: "invoices", label: "Invoices", icon: <IconFiles className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/billing/invoices" },
+  { id: "wallet", label: "Wallet", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/wallet" },
+  { id: "affiliate", label: "Affiliate", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/affiliate" },
+  { id: "orchestrator", label: "Orchestrator", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/orchestrator" },
 ];
 
-const MARKETPLACE_ITEM: SidebarItem = { id: "marketplace", label: "Marketplace", icon: <IconBuildingStore className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/marketplace" };
-const INTEGRATIONS_ITEM: SidebarItem = { id: "integrations", label: "Integrations", icon: <IconPlug className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/integrations" };
+const MARKETPLACE_ITEM: SidebarItem = { id: "marketplace", label: "Marketplace", icon: <IconBuildingStore className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/marketplace" };
+const INTEGRATIONS_ITEM: SidebarItem = { id: "integrations", label: "Integrations", icon: <IconPlug className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/integrations" };
 
 
-const EMPLOYEES_ITEM: SidebarItem = { id: "employees", label: "Employees", icon: <IconBriefcase className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/employees" };
-const TASKS_ITEM: SidebarItem = { id: "tasks", label: "Task Board", icon: <IconClipboardList className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/tasks" };
+const EMPLOYEES_ITEM: SidebarItem = { id: "employees", label: "Employees", icon: <IconBriefcase className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/employees" };
+const TASKS_ITEM: SidebarItem = { id: "tasks", label: "Task Board", icon: <IconClipboardList className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/tasks" };
 
 const ROLE_CONFIG: Record<string, SidebarItem[]> = {
   business: [
@@ -76,41 +78,41 @@ const ROLE_CONFIG: Record<string, SidebarItem[]> = {
   ],
   developer: [
     ...BASE_ITEMS,
-    { id: "api-keys", label: "API Keys", icon: <IconApi className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/api-keys" },
-    { id: "webhooks", label: "Webhooks", icon: <IconWebhook className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/webhooks" },
-    { id: "logs", label: "Live Logs", icon: <IconActivity className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/developer/logs" },
-    { id: "documentation", label: "Docs", icon: <IconFiles className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/docs" },
+    { id: "api-keys", label: "API Keys", icon: <IconApi className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/developer/api-keys" },
+    { id: "webhooks", label: "Webhooks", icon: <IconWebhook className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/developer/webhooks" },
+    { id: "logs", label: "Live Logs", icon: <IconActivity className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/developer/logs" },
+    { id: "documentation", label: "Docs", icon: <IconFiles className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/docs" },
   ],
   student: [
-    { id: "overview", label: "Student Hub", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/student" },
+    { id: "overview", label: "Student Hub", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/student" },
     ...BASE_ITEMS.filter(item => !['workspace', 'overview'].includes(item.id)),
   ],
   enterprise: [
     ...BASE_ITEMS,
     EMPLOYEES_ITEM,
     TASKS_ITEM,
-    { id: "analytics", label: "Analytics", icon: <IconChartBar className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/enterprise/analytics" },
-    { id: "compliance", label: "Compliance", icon: <IconShieldLock className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/enterprise/compliance" },
-    { id: "sso", label: "SSO Settings", icon: <IconLock className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/enterprise/sso" },
-    { id: "audit", label: "Audit Logs", icon: <IconListCheck className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/enterprise/audit" },
+    { id: "analytics", label: "Analytics", icon: <IconChartBar className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/enterprise/analytics" },
+    { id: "compliance", label: "Compliance", icon: <IconShieldLock className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/enterprise/compliance" },
+    { id: "sso", label: "SSO Settings", icon: <IconLock className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/enterprise/sso" },
+    { id: "audit", label: "Audit Logs", icon: <IconListCheck className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/enterprise/audit" },
   ],
   admin: [
-    { id: "global-overview", label: "Global Status", icon: <IconWorld className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/status" },
-    { id: "users", label: "User Management", icon: <IconUsers className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/users" },
-    { id: "tenants", label: "Tenants", icon: <IconBuildingStore className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/tenants" },
-    { id: "approvals", label: "Pending Approvals", icon: <IconListCheck className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/approvals" },
+    { id: "global-overview", label: "Global Status", icon: <IconWorld className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/admin/status" },
+    { id: "users", label: "User Management", icon: <IconUsers className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/admin/users" },
+    { id: "tenants", label: "Tenants", icon: <IconBuildingStore className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/admin/tenants" },
+    { id: "approvals", label: "Pending Approvals", icon: <IconListCheck className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/admin/approvals" },
     ...BASE_ITEMS,
     INTEGRATIONS_ITEM,
-    { id: "system-logs", label: "System Logs", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/admin/logs" },
+    { id: "system-logs", label: "System Logs", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/admin/logs" },
   ],
   teams: [
-    { id: "startup-overview", label: "Command Center", icon: <IconActivity className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard" },
-    { id: "swarms", label: "Bot Swarms", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/swarms" },
-    { id: "team", label: "Team & Roles", icon: <IconUsers className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/team" },
-    { id: "funding", label: "Capital & Credits", icon: <IconChartBar className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/funding" },
-    { id: "deployments", label: "Deployments", icon: <IconRocket className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/deployments" },
+    { id: "startup-overview", label: "Command Center", icon: <IconActivity className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard" },
+    { id: "swarms", label: "Bot Swarms", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/swarms" },
+    { id: "team", label: "Team & Roles", icon: <IconUsers className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/team" },
+    { id: "funding", label: "Capital & Credits", icon: <IconChartBar className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/funding" },
+    { id: "deployments", label: "Deployments", icon: <IconRocket className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/deployments" },
     INTEGRATIONS_ITEM,
-    { id: "settings", label: "Startup Settings", icon: <IconSettings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />, href: "/dashboard/settings" },
+    { id: "settings", label: "Startup Settings", icon: <IconSettings className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/settings" },
   ]
 };
 
@@ -193,7 +195,7 @@ export default function DashboardSidebar() {
             link={{
               label: "Settings",
               href: "/dashboard/settings",
-              icon: <IconSettings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+              icon: <IconSettings className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />
             }}
           />
           <div onClick={handleSignOut} className="cursor-pointer">
@@ -201,7 +203,7 @@ export default function DashboardSidebar() {
               link={{
                 label: "Logout",
                 href: "#",
-                icon: <IconArrowLeft className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" />
+                icon: <IconArrowLeft className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />
               }}
             />
           </div>

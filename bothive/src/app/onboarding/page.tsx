@@ -54,8 +54,14 @@ export default function OnboardingPage() {
   const progress = ((stepIndex + 1) / steps.length) * 100;
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) router.push("/signin");
-  }, [loading, isAuthenticated, router]);
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.push("/signin");
+      } else if (profile?.onboardingCompleted) {
+        router.push("/dashboard");
+      }
+    }
+  }, [loading, isAuthenticated, profile, router]);
 
   const handleNext = () => {
     if (currentStep === "welcome") setCurrentStep("identity");

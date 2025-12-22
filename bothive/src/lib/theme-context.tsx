@@ -52,29 +52,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return getSystemTheme();
   });
 
+  // Track if user has manually set the theme in this session
+  // This ensures that even if localStorage is blocked/cleared, the user's choice persists for the session
+  const manualOverride = React.useRef(false);
+
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (!getStoredTheme()) {
-        const newTheme = e.matches ? "dark" : "light";
-        setThemeState(newTheme);
-        applyTheme(newTheme);
-      }
-    };
+  // System theme listener - REMOVED to prevent "too strong" overriding
+  // We only check system theme on initial load (in useState)
+  // detailed in layout.tsx script for FOUC prevention
 
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
 
+  // Storage listener (for syncing across tabs)
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "theme" && e.newValue) {
         const newTheme = e.newValue as Theme;
         setThemeState(newTheme);
+        manualOverride.current = true; // Treat cross-tab sync as a manual override
         applyTheme(newTheme);
       }
     };
@@ -85,6 +82,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
+    manualOverride.current = true; // Mark as manually set
     applyTheme(newTheme);
     try {
       localStorage.setItem("theme", newTheme);
