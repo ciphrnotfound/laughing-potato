@@ -124,53 +124,86 @@ export default function DashboardSidebar() {
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("[DashboardSidebar] Fetching user role...");
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-      if (user) {
-        setUserEmail(user.email || "");
-
-        // TEMPORARY: For Development/Demo, checking if user wants to see a specific view
-        const roleOverride = localStorage.getItem("bothive_role_override");
-        if (roleOverride && ROLE_CONFIG[roleOverride]) {
-          setRole(roleOverride);
-          return;
-        }
-
-        if (user.email?.includes("founder")) {
-          setRole("teams");
-          return;
-        }
-
-        // Strict Admin Check
-        if (user.email === "akinlorinjeremiah@gmail.com") {
-          setRole("admin");
-          return;
-        }
-
-        // Database Check
-        const { data: userProfile } = await supabase
-          .from("user_profiles")
-          .select("role, team_name, preferred_name")
-          .eq("user_id", user.id)
-          .single();
-
-        if (userProfile?.role) {
-          setRole(userProfile.role);
-        } else {
-          // Safe Fallback if profile exists but no role (legacy users)
-          // Ideally should be handled by Onboarding, but for safety:
-          setRole("business");
-        }
-
-        if (userProfile?.team_name) setTeamName(userProfile.team_name);
-        else if (userProfile?.preferred_name) setTeamName(userProfile.preferred_name);
+      if (authError) {
+        console.error("[DashboardSidebar] Auth error:", authError);
+        setRole("business"); // Fallback
+        return;
       }
+
+      if (!user) {
+        console.warn("[DashboardSidebar] No user found, using fallback role");
+        setRole("business"); // Fallback so sidebar still renders
+        return;
+      }
+
+      console.log("[DashboardSidebar] User found:", user.email);
+      setUserEmail(user.email || "");
+
+      // TEMPORARY: For Development/Demo, checking if user wants to see a specific view
+      const roleOverride = localStorage.getItem("bothive_role_override");
+      if (roleOverride && ROLE_CONFIG[roleOverride]) {
+        console.log("[DashboardSidebar] Using role override:", roleOverride);
+        setRole(roleOverride);
+        return;
+      }
+
+      if (user.email?.includes("founder")) {
+        setRole("teams");
+        return;
+      }
+
+      // Strict Admin Check
+      if (user.email === "akinlorinjeremiah@gmail.com") {
+        setRole("admin");
+        return;
+      }
+
+      // Database Check
+      const { data: userProfile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("role, team_name, preferred_name")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileError) {
+        console.error("[DashboardSidebar] Profile fetch error:", profileError);
+        setRole("business"); // Fallback
+        return;
+      }
+
+      if (userProfile?.role) {
+        console.log("[DashboardSidebar] Role from profile:", userProfile.role);
+        setRole(userProfile.role);
+      } else {
+        // Safe Fallback if profile exists but no role (legacy users)
+        console.log("[DashboardSidebar] No role in profile, using business fallback");
+        setRole("business");
+      }
+
+      if (userProfile?.team_name) setTeamName(userProfile.team_name);
+      else if (userProfile?.preferred_name) setTeamName(userProfile.preferred_name);
     };
     fetchUserRole();
   }, []);
 
-  // While loading role, return null or a skeleton to prevent flash of wrong content
-  if (!role) return null;
+  // While loading role, show a skeleton sidebar
+  if (!role) {
+    return (
+      <div className="h-full px-4 py-4 hidden md:flex md:flex-col bg-white dark:bg-[#0a0a0f] border-r border-black/[0.06] dark:border-white/[0.06] w-[60px] shrink-0">
+        <div className="flex flex-col gap-4 animate-pulse">
+          <div className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+          <div className="mt-6 space-y-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="w-8 h-8 bg-neutral-200 dark:bg-neutral-800 rounded-lg" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const links = ROLE_CONFIG[role] || ROLE_CONFIG.business;
 

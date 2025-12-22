@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-    IconFileText,
+    IconReceipt2,
     IconDownload,
-    IconCreditCard,
     IconSearch,
-    IconFilter,
+    IconCalendar,
     IconLoader2,
-    IconChevronRight
+    IconCheck,
+    IconClock,
+    IconSparkles
 } from "@tabler/icons-react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { GlowingEffect } from "@/components/ui/glowing-effect";
 
 interface Invoice {
     id: string;
@@ -32,6 +32,7 @@ export default function InvoicesPage() {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
     const supabase = createClientComponentClient();
 
     useEffect(() => {
@@ -62,154 +63,195 @@ export default function InvoicesPage() {
         inv.applied_coupon?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    return (
-        <div className="min-h-screen bg-[#0a0a0f] text-white p-6 md:p-12 font-sans relative">
-            {/* Ambient Background */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-violet-600/5 rounded-full blur-[120px]" />
-                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px]" />
-            </div>
+    const totalSpent = invoices.reduce((sum, inv) => sum + (inv.status === 'paid' ? inv.amount : 0), 0);
 
-            <div className="relative max-w-5xl mx-auto z-10">
-                {/* Header */}
-                <div className="mb-12">
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col md:flex-row md:items-end justify-between gap-6"
-                    >
+    return (
+        <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-white">
+            {/* Header */}
+            <header className="border-b border-neutral-200 dark:border-neutral-800">
+                <div className="max-w-6xl mx-auto px-6 py-8">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                         <div>
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-[10px] font-bold uppercase tracking-widest text-violet-400 mb-4">
-                                <IconCreditCard className="w-3.5 h-3.5" />
-                                <span>Billing History</span>
-                            </div>
-                            <h1 className="text-4xl font-bold tracking-tight text-white mb-2">Invoices</h1>
-                            <p className="text-white/50 text-sm max-w-md">
-                                Manage your subscription receipts and download detailed transaction history.
+                            <h1 className="text-3xl font-semibold tracking-tight mb-2">Invoices</h1>
+                            <p className="text-neutral-500 dark:text-neutral-400 text-sm">
+                                View and download your billing history
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <div className="relative group">
-                                <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-violet-400 transition-colors" />
-                                <input
-                                    type="text"
-                                    placeholder="Search invoices..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-violet-500/50 transition-all w-64"
-                                />
-                            </div>
-                            <button className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors text-white/60 hover:text-white">
-                                <IconFilter className="w-5 h-5" />
-                            </button>
+                        {/* Search */}
+                        <div className="relative">
+                            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                            <input
+                                type="text"
+                                placeholder="Search invoices..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full md:w-64 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg pl-9 pr-4 py-2 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-all"
+                            />
                         </div>
-                    </motion.div>
+                    </div>
+                </div>
+            </header>
+
+            <main className="max-w-6xl mx-auto px-6 py-8">
+                {/* Stats Row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="p-5 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                        <div className="text-sm text-neutral-500 dark:text-neutral-400 mb-1">Total Invoices</div>
+                        <div className="text-2xl font-semibold">{invoices.length}</div>
+                    </div>
+                    <div className="p-5 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                        <div className="text-sm text-neutral-500 dark:text-neutral-400 mb-1">Total Spent</div>
+                        <div className="text-2xl font-semibold">
+                            ₦{(totalSpent / 100).toLocaleString()}
+                        </div>
+                    </div>
+                    <div className="p-5 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                        <div className="text-sm text-neutral-500 dark:text-neutral-400 mb-1">Last Payment</div>
+                        <div className="text-2xl font-semibold">
+                            {invoices[0] ? format(new Date(invoices[0].created_at), "MMM d, yyyy") : "—"}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Invoices List */}
-                <div className="space-y-4">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 gap-4">
-                            <IconLoader2 className="w-8 h-8 text-violet-500 animate-spin" />
-                            <p className="text-white/30 text-sm animate-pulse">Retrieving billing history...</p>
-                        </div>
-                    ) : filteredInvoices.length > 0 ? (
-                        filteredInvoices.map((invoice, index) => (
-                            <motion.div
-                                key={invoice.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                className="group relative rounded-2xl border border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03] transition-all"
-                            >
-                                <GlowingEffect spread={40} glow={true} disabled={false} proximity={64} inactiveZone={0.01} />
+                {/* Invoices Table */}
+                <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+                    {/* Table Header */}
+                    <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-neutral-50 dark:bg-neutral-900 text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                        <div className="col-span-4">Invoice</div>
+                        <div className="col-span-2">Date</div>
+                        <div className="col-span-2">Amount</div>
+                        <div className="col-span-2">Status</div>
+                        <div className="col-span-2 text-right">Actions</div>
+                    </div>
 
-                                <div className="relative px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-6">
-                                    <div className="flex items-center gap-5 w-full md:w-auto">
-                                        <div className={cn(
-                                            "w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center transition-all",
-                                            invoice.amount === 0 ? "text-emerald-400 border-emerald-500/30" : "text-white/40 group-hover:text-violet-400 group-hover:border-violet-500/30"
-                                        )}>
-                                            <IconFileText className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-semibold text-white">{invoice.plan_name} Plan</h3>
-                                                {invoice.applied_coupon && (
-                                                    <span className="px-2 py-0.5 rounded text-[10px] bg-violet-500/10 border border-violet-500/20 text-violet-400 font-medium">
-                                                        {invoice.applied_coupon}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-3 text-xs text-white/30">
-                                                <span>{invoice.invoice_number}</span>
-                                                <span className="w-1 h-1 rounded-full bg-white/10" />
-                                                <span>{format(new Date(invoice.created_at), "MMM dd, yyyy")}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between md:justify-end gap-8 w-full md:w-auto md:flex-1 px-4 md:px-0">
-                                        <div className="text-right">
-                                            {invoice.amount === 0 ? (
-                                                <p className="text-lg font-bold text-emerald-400 tracking-tight">
-                                                    FREE TRIAL
-                                                </p>
-                                            ) : (
-                                                <p className="text-lg font-bold text-white tracking-tight">
-                                                    {invoice.currency === 'NGN' ? '₦' : '$'}{(invoice.amount / 100).toLocaleString()}
-                                                </p>
-                                            )}
-                                            <span className={cn(
-                                                "text-[10px] font-bold uppercase tracking-widest",
-                                                invoice.status === 'paid' ? "text-emerald-400" : "text-amber-400"
+                    {/* Table Body */}
+                    <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                        {loading ? (
+                            <div className="flex items-center justify-center py-20">
+                                <IconLoader2 className="w-6 h-6 text-violet-500 animate-spin" />
+                            </div>
+                        ) : filteredInvoices.length > 0 ? (
+                            <AnimatePresence>
+                                {filteredInvoices.map((invoice, i) => (
+                                    <motion.div
+                                        key={invoice.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.03 }}
+                                        onClick={() => setSelectedInvoice(selectedInvoice === invoice.id ? null : invoice.id)}
+                                        className={cn(
+                                            "grid grid-cols-1 md:grid-cols-12 gap-4 px-6 py-4 cursor-pointer transition-colors",
+                                            "hover:bg-neutral-50 dark:hover:bg-neutral-900/50",
+                                            selectedInvoice === invoice.id && "bg-violet-50 dark:bg-violet-500/5"
+                                        )}
+                                    >
+                                        {/* Invoice Info */}
+                                        <div className="col-span-4 flex items-center gap-4">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-lg flex items-center justify-center",
+                                                invoice.status === 'paid'
+                                                    ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                                    : "bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
                                             )}>
-                                                {invoice.status}
+                                                <IconReceipt2 className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-neutral-900 dark:text-white">
+                                                    {invoice.plan_name} Plan
+                                                </div>
+                                                <div className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-2">
+                                                    <span>{invoice.invoice_number}</span>
+                                                    {invoice.applied_coupon && (
+                                                        <span className="px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 text-[10px] font-medium">
+                                                            {invoice.applied_coupon}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Date */}
+                                        <div className="col-span-2 flex items-center text-sm text-neutral-600 dark:text-neutral-400">
+                                            <IconCalendar className="w-4 h-4 mr-2 md:hidden" />
+                                            {format(new Date(invoice.created_at), "MMM d, yyyy")}
+                                        </div>
+
+                                        {/* Amount */}
+                                        <div className="col-span-2 flex items-center">
+                                            {invoice.amount === 0 ? (
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                                                    <IconSparkles className="w-3 h-3" />
+                                                    Free Trial
+                                                </span>
+                                            ) : (
+                                                <span className="font-semibold text-neutral-900 dark:text-white">
+                                                    {invoice.currency === 'NGN' ? '₦' : '$'}{(invoice.amount / 100).toLocaleString()}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Status */}
+                                        <div className="col-span-2 flex items-center">
+                                            <span className={cn(
+                                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
+                                                invoice.status === 'paid'
+                                                    ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                                    : "bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                            )}>
+                                                {invoice.status === 'paid'
+                                                    ? <IconCheck className="w-3 h-3" />
+                                                    : <IconClock className="w-3 h-3" />
+                                                }
+                                                {invoice.status === 'paid' ? 'Paid' : 'Pending'}
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center gap-3">
+                                        {/* Actions */}
+                                        <div className="col-span-2 flex items-center justify-end">
                                             <button
-                                                className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Download logic here
+                                                }}
+                                                className="p-2 rounded-lg text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                                                 title="Download Invoice"
                                             >
-                                                <IconDownload className="w-5 h-5" />
+                                                <IconDownload className="w-4 h-4" />
                                             </button>
-                                            <IconChevronRight className="w-5 h-5 text-white/10" />
                                         </div>
-                                    </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                <div className="w-14 h-14 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-400 mb-4">
+                                    <IconReceipt2 className="w-7 h-7" />
                                 </div>
-                            </motion.div>
-                        ))
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-24 text-center">
-                            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/20 mb-6">
-                                <IconFileText className="w-8 h-8" />
+                                <h3 className="text-lg font-medium mb-2">No invoices yet</h3>
+                                <p className="text-neutral-500 dark:text-neutral-400 text-sm max-w-sm mb-6">
+                                    Your billing history is empty. Subscribe to a plan to get started.
+                                </p>
+                                <button
+                                    onClick={() => window.location.href = '/dashboard/billing'}
+                                    className="px-5 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
+                                >
+                                    View Plans
+                                </button>
                             </div>
-                            <h3 className="text-xl font-semibold mb-2">No invoices yet</h3>
-                            <p className="text-white/40 text-sm max-w-xs mx-auto">
-                                Your billing history is currently empty. Subscribe to a plan to start your digital workforce.
-                            </p>
-                            <button
-                                onClick={() => window.location.href = '/dashboard/billing'}
-                                className="mt-8 px-6 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition-colors"
-                            >
-                                View Plans
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Footer Info */}
-                <div className="mt-12 pt-8 border-t border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/20">
-                    <p>© 2025 Bothive Billing. All payments are secured by Paystack.</p>
-                    <div className="flex items-center gap-6">
-                        <a href="/legal/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
-                        <a href="/legal/terms" className="hover:text-white transition-colors">Terms of Service</a>
+                        )}
                     </div>
                 </div>
-            </div>
+
+                {/* Footer */}
+                <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
+                    <p>All payments are secured by Paystack.</p>
+                    <div className="flex items-center gap-6">
+                        <a href="/legal/privacy" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Privacy</a>
+                        <a href="/legal/terms" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Terms</a>
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }
