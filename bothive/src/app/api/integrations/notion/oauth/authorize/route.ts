@@ -1,22 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import { Database } from "@/lib/database.types";
 
 // GET /api/integrations/notion/oauth/authorize - Redirect to Notion OAuth
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const userId = searchParams.get("user_id");
+        const userId = searchParams.get("user_id") || searchParams.get("state");
 
         if (!userId) {
-            return NextResponse.json({ error: "user_id is required" }, { status: 400 });
+            return NextResponse.json({ error: "user_id or state is required" }, { status: 400 });
         }
-
-        const notionClientId = process.env.NOTION_CLIENT_ID;
-        console.log("NOTION_AUTH_DEBUG: Reading Client ID...");
-        console.log(`NOTION_AUTH_DEBUG: ID Length: ${notionClientId?.length || 0}`);
-        console.log(`NOTION_AUTH_DEBUG: ID Value (first 5): ${notionClientId?.substring(0, 5)}...`);
 
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
         const redirectUri = `${appUrl}/api/integrations/notion/oauth/callback`;
+
+        // 1. Fetch integration and secrets from DB
+        const supabase = createRouteHandlerClient<Database>({ cookies });
+        const { data: integration } = await supabase
+            .from("integrations")
+            .select("id, slug")
+            .eq("slug", "notion")
+            .single();
+
+        let notionClientId = process.env.NOTION_CLIENT_ID;
+
+        if (integration) {
+            const { data: secrets } = await supabase
+                .from("integration_secrets")
+                .select("key, value")
+                .eq("integration_id", integration.id);
+
+            const dbClientId = secrets?.find((s: any) => s.key === "CLIENT_ID")?.value;
+            if (dbClientId) notionClientId = dbClientId;
+        }
 
         if (!notionClientId) {
             return NextResponse.json(

@@ -496,6 +496,7 @@ export interface Database {
                     setup_time: string | null
                     hivelang_code: string | null
                     is_active: boolean
+                    developer_id: string | null
                     created_at: string
                 }
                 Insert: {
@@ -511,6 +512,7 @@ export interface Database {
                     setup_time?: string | null
                     hivelang_code?: string | null
                     is_active?: boolean
+                    developer_id?: string | null
                     created_at?: string
                 }
                 Update: {
@@ -526,6 +528,7 @@ export interface Database {
                     setup_time?: string | null
                     hivelang_code?: string | null
                     is_active?: boolean
+                    developer_id?: string | null
                     created_at?: string
                 }
             }
@@ -565,6 +568,29 @@ export interface Database {
                     status?: string
                     created_at?: string
                     updated_at?: string
+                }
+            }
+            integration_secrets: {
+                Row: {
+                    id: string
+                    integration_id: string
+                    key: string
+                    value: string
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    integration_id: string
+                    key: string
+                    value: string
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    integration_id?: string
+                    key?: string
+                    value?: string
+                    created_at?: string
                 }
             }
         }

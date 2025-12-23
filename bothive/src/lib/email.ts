@@ -18,7 +18,7 @@ export const EmailService = {
 
     try {
       const { data, error } = await resend.emails.send({
-        from: 'Bothive <support@bothive.cloud>',
+        from: 'Bothive <noreply@support.bothive.cloud>',
         to: email,
         subject: 'Welcome to the Hive 🐝',
         html: `
@@ -62,7 +62,7 @@ export const EmailService = {
     try {
       console.log('[EMAIL] Sending real email via Resend...');
       const { data, error } = await resend.emails.send({
-        from: 'Bothive <support@bothive.cloud>',
+        from: 'Bothive <noreply@support.bothive.cloud>',
         to: email,
         subject: `🐝 Welcome to ${plan} — You're In!`,
         html: `
@@ -216,7 +216,7 @@ export const EmailService = {
 
     try {
       const { data, error } = await resend.emails.send({
-        from: 'Bothive <support@bothive.cloud>',
+        from: 'Bothive <noreply@support.bothive.cloud>',
         to: email,
         subject: `🚀 ${botName} is now live`,
         html: `
@@ -252,7 +252,7 @@ export const EmailService = {
 
     try {
       const { data, error } = await resend.emails.send({
-        from: 'Bothive <support@bothive.cloud>',
+        from: 'Bothive <noreply@support.bothive.cloud>',
         to: email,
         subject: "You're on the list! 🐝",
         html: `

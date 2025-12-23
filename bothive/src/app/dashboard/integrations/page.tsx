@@ -58,12 +58,16 @@ import {
   Copy,
   Trash2,
   Edit,
-  MoreVertical
+  MoreVertical,
+  Lock
 } from "lucide-react";
+import { CredentialForm, Field } from "@/components/integrations/CredentialForm";
+import { getAuthFields } from "@/lib/integrations/auth-parser";
 
 // Types for integrations
 interface Integration {
   id: string;
+  slug: string;
   name: string;
   description: string;
   category: 'communication' | 'productivity' | 'development' | 'analytics' | 'payment' | 'storage' | 'ai' | 'other';
@@ -100,116 +104,24 @@ interface WebhookConfig {
   triggerCount: number;
 }
 
-// Available integrations (Static Data)
-const AVAILABLE_INTEGRATIONS: Integration[] = [
-  {
-    id: 'slack',
-    name: 'Slack',
-    description: 'Team communication and collaboration platform with message automation and workflow triggers.',
-    category: 'communication',
-    type: 'oauth',
-    status: 'disconnected',
-    icon: <Slack className="w-6 h-6" />,
-    features: ['Message posting automation', 'Channel monitoring', 'Workflow triggers', 'File sharing', 'User presence tracking'],
-    pricing: 'freemium',
-    documentation: 'https://api.slack.com',
-    setupTime: '2 minutes',
-    errorCount: 0,
-    usageCount: 0
-  },
-  {
-    id: 'twitter',
-    name: 'Twitter/X',
-    description: 'Social media platform for automated posting, monitoring, and engagement tracking.',
-    category: 'communication',
-    type: 'oauth',
-    status: 'connected',
-    icon: <Twitter className="w-6 h-6" />,
-    features: ['Automated posting', 'Tweet monitoring', 'Engagement tracking', 'Hashtag analysis', 'Direct message automation'],
-    pricing: 'free',
-    documentation: 'https://developer.twitter.com',
-    setupTime: '3 minutes',
-    lastSync: '2024-11-20T10:30:00Z',
-    errorCount: 0,
-    usageCount: 156
-  },
-  {
-    id: 'github',
-    name: 'GitHub',
-    description: 'Code hosting and version control with repository management and CI/CD integration.',
-    category: 'development',
-    type: 'oauth',
-    status: 'connected',
-    icon: <Github className="w-6 h-6" />,
-    features: ['Repository management', 'Issue tracking', 'Pull request automation', 'CI/CD integration', 'Code review automation'],
-    pricing: 'freemium',
-    documentation: 'https://docs.github.com',
-    setupTime: '2 minutes',
-    lastSync: '2024-11-20T09:15:00Z',
-    errorCount: 1,
-    usageCount: 89
-  },
-  {
-    id: 'google-drive',
-    name: 'Google Drive',
-    description: 'Cloud storage and file management with document collaboration and sharing capabilities.',
-    category: 'storage',
-    type: 'oauth',
-    status: 'disconnected',
-    icon: <Cloud className="w-6 h-6" />,
-    features: ['File storage and sync', 'Document collaboration', 'Folder automation', 'File sharing', 'Version history'],
-    pricing: 'freemium',
-    documentation: 'https://developers.google.com/drive',
-    setupTime: '3 minutes',
-    errorCount: 0,
-    usageCount: 0
-  },
-  {
-    id: 'stripe',
-    name: 'Stripe',
-    description: 'Payment processing and financial services with subscription management and billing automation.',
-    category: 'payment',
-    type: 'api_key',
-    status: 'connected',
-    icon: <CreditCard className="w-6 h-6" />,
-    features: ['Payment processing', 'Subscription management', 'Invoice automation', 'Customer management', 'Financial reporting'],
-    pricing: 'paid',
-    documentation: 'https://stripe.com/docs',
-    setupTime: '5 minutes',
-    lastSync: '2024-11-20T11:45:00Z',
-    errorCount: 0,
-    usageCount: 234
-  },
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    description: 'Advanced AI language models for content generation, analysis, and conversation.',
-    category: 'ai',
-    type: 'api_key',
-    status: 'connected',
-    icon: <Bot className="w-6 h-6" />,
-    features: ['Text generation', 'Code completion', 'Image generation', 'Embeddings', 'Fine-tuning'],
-    pricing: 'paid',
-    documentation: 'https://platform.openai.com/docs',
-    setupTime: '2 minutes',
-    lastSync: '2024-11-20T12:00:00Z',
-    errorCount: 0,
-    usageCount: 1543
-  }
-];
-
 // Categories configuration
 const CATEGORIES = [
   { id: 'all', name: 'All Apps', icon: Grid3x3 },
   { id: 'communication', name: 'Communication', icon: MessageSquare },
   { id: 'productivity', name: 'Productivity', icon: Calendar },
-  { id: 'development', name: 'Development', icon: Code },
+  { id: 'developer', name: 'Development', icon: Code },
   { id: 'analytics', name: 'Analytics', icon: BarChart3 },
   { id: 'payment', name: 'Payment', icon: CreditCard },
-  { id: 'storage', name: 'Storage', icon: DbIcon }, // using Database icon alias
+  { id: 'storage', name: 'Storage', icon: DbIcon },
   { id: 'ai', name: 'AI / ML', icon: Bot },
   { id: 'other', name: 'Other', icon: Plug }
 ];
+
+// Helper to get category icon
+const getCategoryIcon = (category: string) => {
+  const cat = CATEGORIES.find(c => c.id === category);
+  return cat ? <cat.icon className="w-6 h-6" /> : <Plug className="w-6 h-6" />;
+};
 
 // Type configurations
 const TYPE_CONFIGS = {
@@ -218,6 +130,9 @@ const TYPE_CONFIGS = {
   webhook: { label: 'Webhook', color: 'bg-purple-500 text-purple-400', icon: Webhook },
   custom: { label: 'Custom', color: 'bg-green-500 text-green-400', icon: Code }
 };
+
+// Fallback empty list
+const AVAILABLE_INTEGRATIONS: Integration[] = [];
 
 export default function IntegrationsPage() {
   const { profile } = useAppSession();
@@ -228,47 +143,56 @@ export default function IntegrationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [loading, setLoading] = useState(false);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
-  // Fetch integrations from Supabase and merge
+  // Fetch integrations from Supabase
   useEffect(() => {
     const fetchIntegrations = async () => {
       if (!profile) return;
 
       const supabase = createClientComponentClient<Database>();
-      const { data: dbIntegrations, error } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('status', 'active');
 
-      if (error) {
-        console.error("Error fetching integrations:", error);
+      // 1. Fetch available integrations
+      const { data: dbIntegrations, error: integrationsError } = await supabase
+        .from('integrations')
+        .select('*, hivelang_code')
+        .eq('is_active', true);
+
+      if (integrationsError) {
+        console.error("Error fetching integrations:", integrationsError);
         return;
       }
 
-      if (dbIntegrations) {
-        const mapped: Integration[] = dbIntegrations.map(di => ({
-          id: di.id,
-          name: di.name,
-          description: di.description || "",
-          category: (di.category as any) || 'other',
-          type: (di.type as any) || 'custom',
-          status: 'connected', // Active means connected/available in this context
-          icon: <Plug className="w-6 h-6" />,
-          features: di.features ? (di.features as string[]) : [],
-          pricing: (di.pricing_model as any) || 'free',
-          documentation: di.documentation_url || '#',
-          setupTime: di.setup_time || '5 minutes',
-          errorCount: 0,
-          usageCount: 0
-        }));
+      // 2. Fetch user connections
+      const { data: userConns, error: userError } = await supabase
+        .from('user_integrations')
+        .select('integration_id, status')
+        .eq('user_id', profile.id);
 
-        setIntegrations(prev => {
-          // Filter out any duplicates based on ID (though IDs should be unique UUIDs for DB items)
-          const existingIds = new Set(prev.map(i => i.id));
-          const newItems = mapped.filter(i => !existingIds.has(i.id));
-          return [...prev, ...newItems];
+      if (dbIntegrations) {
+        const mapped: Integration[] = dbIntegrations.map(di => {
+          const userConn = userConns?.find(uc => uc.integration_id === di.id);
+
+          return {
+            id: di.id,
+            slug: di.slug, // Storing slug for router
+            name: di.name,
+            description: di.description || "",
+            category: (di.category as any) || 'other',
+            type: (di.type as any) || 'custom',
+            status: userConn ? (userConn.status as any) : 'disconnected',
+            icon: getCategoryIcon(di.category || 'other'),
+            features: Array.isArray(di.features) ? (di.features as string[]) : [],
+            pricing: (di.pricing_model as any) || 'free',
+            documentation: di.documentation_url || '#',
+            setupTime: di.setup_time || '5 minutes',
+            errorCount: 0,
+            usageCount: 0
+          };
         });
+
+        setIntegrations(mapped);
       }
     };
     fetchIntegrations();
@@ -282,21 +206,48 @@ export default function IntegrationsPage() {
     return matchesCategory && matchesSearch;
   });
 
+
   const handleConnect = useCallback(async (integrationId: string) => {
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setIntegrations(prev => prev.map(integration =>
-        integration.id === integrationId
-          ? { ...integration, status: 'connected' }
-          : integration
-      ));
-    } catch (error) {
-      console.error('Connection failed:', error);
-    } finally {
-      setLoading(false);
+    const integration = integrations.find(i => i.id === integrationId);
+    if (!integration) return;
+
+    setConnectingId(integrationId);
+
+    if (integration.type === 'oauth') {
+      // Trigger OAuth redirect
+      router.push(`/api/integrations/${integration.slug?.toLowerCase() || integration.name.toLowerCase()}/oauth/authorize?state=${profile?.id}`);
+    } else {
+      // Show credential form for API key / Custom
+      setSelectedIntegration(integration);
+      setConnectingId(null);
     }
-  }, []);
+  }, [integrations, profile, router]);
+
+  const handleSaveCredentials = async (data: Record<string, string>) => {
+    if (!profile || !selectedIntegration) return;
+
+    const supabase = createClientComponentClient<Database>();
+
+    // Save to user_integrations
+    const { error } = await supabase
+      .from('user_integrations')
+      .upsert({
+        user_id: profile.id,
+        integration_id: selectedIntegration.id,
+        access_token: data.apiKey || data.access_token || JSON.stringify(data),
+        additional_config: data,
+        status: 'active'
+      }, { onConflict: 'user_id, integration_id' });
+
+    if (error) throw error;
+
+    // Update local state
+    setIntegrations(prev => prev.map(i =>
+      i.id === selectedIntegration.id ? { ...i, status: 'connected' } : i
+    ));
+
+    return Promise.resolve();
+  };
 
   const handleDisconnect = useCallback(async (integrationId: string) => {
     setLoading(true);
@@ -443,9 +394,20 @@ export default function IntegrationsPage() {
                           ) : (
                             <button
                               onClick={() => handleConnect(integration.id)}
-                              className="flex-1 px-3 py-2 text-sm rounded-lg bg-[#6C43FF] text-white hover:bg-[#5a36db]"
+                              disabled={connectingId === integration.id}
+                              className="flex-1 px-3 py-2 text-sm rounded-lg bg-[#6C43FF] text-white hover:bg-[#5a36db] disabled:opacity-50 flex items-center justify-center gap-2"
                             >
-                              Connect
+                              {connectingId === integration.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>Connecting...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plug className="w-4 h-4" />
+                                  <span>Connect</span>
+                                </>
+                              )}
                             </button>
                           )}
                         </div>
@@ -458,6 +420,20 @@ export default function IntegrationsPage() {
           </div>
         </div>
       </div>
+      {/* Dynamic Credential Modal */}
+      <AnimatePresence>
+        {selectedIntegration && (
+          <CredentialForm
+            integration={selectedIntegration}
+            isDark={theme === 'dark'}
+            onClose={() => setSelectedIntegration(null)}
+            onSubmit={handleSaveCredentials}
+            fields={getAuthFields(
+              (integrations.find(i => i.id === selectedIntegration.id) as any)?.hivelang_code
+            )}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

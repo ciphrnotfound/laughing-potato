@@ -78,6 +78,7 @@ const ROLE_CONFIG: Record<string, SidebarItem[]> = {
   ],
   developer: [
     ...BASE_ITEMS,
+    INTEGRATIONS_ITEM,
     { id: "api-keys", label: "API Keys", icon: <IconApi className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/developer/api-keys" },
     { id: "webhooks", label: "Webhooks", icon: <IconWebhook className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/developer/webhooks" },
     { id: "logs", label: "Live Logs", icon: <IconActivity className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/developer/logs" },
@@ -86,11 +87,13 @@ const ROLE_CONFIG: Record<string, SidebarItem[]> = {
   student: [
     { id: "overview", label: "Student Hub", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/student" },
     ...BASE_ITEMS.filter(item => !['workspace', 'overview'].includes(item.id)),
+    INTEGRATIONS_ITEM,
   ],
   enterprise: [
     ...BASE_ITEMS,
     EMPLOYEES_ITEM,
     TASKS_ITEM,
+    INTEGRATIONS_ITEM,
     { id: "analytics", label: "Analytics", icon: <IconChartBar className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/enterprise/analytics" },
     { id: "compliance", label: "Compliance", icon: <IconShieldLock className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/enterprise/compliance" },
     { id: "sso", label: "SSO Settings", icon: <IconLock className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/enterprise/sso" },

@@ -75,13 +75,21 @@ export async function POST(req: NextRequest) {
         if (plan.toLowerCase().includes('student')) targetRole = 'student';
         if (plan.toLowerCase().includes('enterprise')) targetRole = 'enterprise';
 
-        const roleUpdate = { role: targetRole };
+        const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
+        // Only update tables that definitely exist
         const updateOps: any[] = [
-            supabaseAdmin.from('users').update({
-                billing_plan: plan,
+            // 1. user_subscriptions - main subscription tracking
+            supabaseAdmin.from('user_subscriptions').upsert({
+                user_id: user.id,
+                subscription_status: 'active',
+                tier: plan,
+                current_period_end: currentPeriodEnd,
+                cancel_at_period_end: !!couponCode,
                 updated_at: new Date().toISOString()
-            }).eq('id', user.id),
+            }, { onConflict: 'user_id' }),
+
+            // 2. user_profiles - for role/UI
             supabaseAdmin.from('user_profiles').update({
                 role: targetRole,
                 updated_at: new Date().toISOString()

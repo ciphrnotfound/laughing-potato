@@ -133,12 +133,92 @@ const BillingContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClientComponentClient();
-  const { profile } = useAppSession();
+  const { profile, loading: sessionLoading } = useAppSession();
 
   const [loading, setLoading] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  // Default to Starter, in a real app fetch from DB
+  // Default to Starter, sync will update if needed
   const [currentPlanName, setCurrentPlanName] = useState<string>('Starter');
+  const [isSyncing, setIsSyncing] = useState(true);
+
+  // Safety timeout - don't show loading spinner forever
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isSyncing) {
+        console.log('[BillingPage] Safety timeout - stopping sync');
+        setIsSyncing(false);
+      }
+    }, 3000);
+    return () => clearTimeout(timeout);
+  }, [isSyncing]);
+
+  useEffect(() => {
+    const syncPlan = async () => {
+      // If session is still loading, wait for it
+      if (sessionLoading) {
+        return;
+      }
+
+      // If no profile, just show Starter
+      if (!profile?.id) {
+        setIsSyncing(false);
+        return;
+      }
+
+      console.log('[BillingPage] Fetching plan for user:', profile.id);
+
+      try {
+        // Try user_subscriptions first
+        const { data: subscription, error: subError } = await supabase
+          .from('user_subscriptions')
+          .select('tier, subscription_status, current_period_end')
+          .eq('user_id', profile.id)
+          .maybeSingle();
+
+        if (!subError && subscription?.tier) {
+          const tier = subscription.tier;
+          const status = (subscription as any).subscription_status;
+
+          // Only use if active and not expired
+          if (status === 'active') {
+            const periodEnd = subscription.current_period_end;
+            if (!periodEnd || new Date(periodEnd) >= new Date()) {
+              const lower = tier.toLowerCase();
+              if (lower === 'pro' || lower.includes('pro')) {
+                setCurrentPlanName('Pro');
+              } else if (lower === 'business' || lower.includes('business')) {
+                setCurrentPlanName('Business');
+              }
+            }
+          }
+        }
+
+        // Also check user_profiles as backup
+        if (currentPlanName === 'Starter') {
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('user_id', profile.id)
+            .maybeSingle();
+
+          if (profileData?.role) {
+            const role = profileData.role.toLowerCase();
+            if (role === 'business' || role === 'enterprise') {
+              setCurrentPlanName('Business');
+            } else if (role === 'developer') {
+              setCurrentPlanName('Pro');
+            }
+          }
+        }
+
+      } catch (err) {
+        console.error('[BillingPage] Error:', err);
+      }
+
+      setIsSyncing(false);
+    };
+    syncPlan();
+  }, [profile?.id, sessionLoading]);
 
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
@@ -214,7 +294,11 @@ const BillingContent = () => {
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-xl font-medium text-white">{plan.name}</h3>
-                        {isCurrentPlan ? (
+                        {isSyncing ? (
+                          <span className="px-3 py-1 rounded-full bg-white/5 text-white/20 text-xs flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          </span>
+                        ) : isCurrentPlan ? (
                           <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20 flex items-center gap-1">
                             <Check className="w-3 h-3" /> Current
                           </span>

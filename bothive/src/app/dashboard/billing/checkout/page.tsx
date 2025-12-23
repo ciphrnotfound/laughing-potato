@@ -97,27 +97,36 @@ function CheckoutContent() {
     };
 
     const handleSuccess = async (reference: any) => {
-        toast.success("Payment successful!");
+        setIsApplying(true); // Show loader
+        toast.info("Verifying payment...");
 
-        // Save to user_invoices table
         try {
-            const supabase = createClientComponentClient();
-            const invoiceNumber = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
+            // 1. Verify payment and update plan in DB
+            const verifyResponse = await fetch('/api/billing/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reference: reference.reference,
+                    plan: planName,
+                    couponCode: appliedCoupon?.code
+                }),
+            });
 
-            await supabase.from('user_invoices').insert([{
-                user_id: profile?.id,
-                amount: finalAmount,
-                plan_name: planName,
-                reference: reference.reference,
-                invoice_number: invoiceNumber,
-                status: 'paid',
-                applied_coupon: appliedCoupon?.code || null
-            }]);
+            const verifyData = await verifyResponse.json();
+
+            if (!verifyData.success) {
+                toast.error(verifyData.error || "Verification failed. Please contact support.");
+                setIsApplying(false);
+                return;
+            }
+
+            toast.success("Payment successful and plan activated!");
+            router.push('/dashboard/billing?success=true&plan=' + planName);
         } catch (error) {
-            console.error("Error saving invoice:", error);
+            console.error("Error finalizing checkout:", error);
+            toast.error("An error occurred during verification.");
+            setIsApplying(false);
         }
-
-        router.push('/dashboard/billing?success=true&plan=' + planName);
     };
 
     const handleFreeActivation = async () => {

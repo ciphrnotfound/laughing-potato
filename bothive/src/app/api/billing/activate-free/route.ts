@@ -61,7 +61,8 @@ export async function POST(req: NextRequest) {
             .select('*')
             .eq('code', couponCode.toUpperCase())
             .eq('is_active', true)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
         console.log("[ACTIVATE-FREE] Coupon check:", { coupon: coupon?.code, couponError: couponError?.message });
 
@@ -76,46 +77,32 @@ export async function POST(req: NextRequest) {
         // 3. Activate subscription across all relevant tables
         const subscriptionData = {
             user_id: user.id,
-            status: 'active',
+            subscription_status: 'active',
+            tier: plan,
             current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            cancel_at_period_end: true // Coupons are non-renewing
         };
 
         console.log("[ACTIVATE-FREE] Synchronizing tables for user:", user.id);
 
-        // Map plan to role
+        // Map plan to role for user_profiles
         let targetRole = 'developer';
         if (plan.toLowerCase().includes('business')) targetRole = 'business';
         if (plan.toLowerCase().includes('student')) targetRole = 'student';
         if (plan.toLowerCase().includes('enterprise')) targetRole = 'enterprise';
 
+        // Only update tables that definitely exist
         const updateOps = [
-            // 1. Dedicated subscription table
+            // 1. user_subscriptions - main subscription tracking
             supabaseAdmin.from('user_subscriptions').upsert(subscriptionData, { onConflict: 'user_id' }),
 
-            // 2. Primary users table (for billing_plan)
-            supabaseAdmin.from('users').update({
-                billing_plan: plan,
-                updated_at: new Date().toISOString()
-            }).eq('id', user.id),
-
-            // 3. Profiles table (for role/UI)
+            // 2. user_profiles - for role/UI
             supabaseAdmin.from('user_profiles').update({
                 role: targetRole,
                 updated_at: new Date().toISOString()
             }).eq('user_id', user.id),
 
-            // 4. Create Invoice Record
-            supabaseAdmin.from('user_invoices').insert([{
-                user_id: user.id,
-                amount: 0,
-                plan_name: plan,
-                reference: `FREE-${coupon.code}-${Date.now()}`,
-                invoice_number: `INV-${Math.floor(100000 + Math.random() * 900000)}`,
-                status: 'paid',
-                applied_coupon: coupon.code
-            }]),
-
-            // 5. INVALIDATE COUPON (Set is_active = false)
+            // 3. coupons - invalidate after use
             supabaseAdmin.from('coupons').update({ is_active: false }).eq('code', coupon.code)
         ];
 
@@ -124,10 +111,13 @@ export async function POST(req: NextRequest) {
 
         if (firstError) {
             console.error("[ACTIVATE-FREE] Synchronization error:", firstError.error);
-        } else {
-            console.log("[ACTIVATE-FREE] All tables updated and coupon invalidated successfully!");
+            return NextResponse.json({
+                error: `Failed to activate plan: ${firstError.error?.message || 'Unknown error'}`,
+                success: false
+            }, { status: 500 });
         }
 
+        console.log("[ACTIVATE-FREE] All tables updated and coupon invalidated successfully!");
         console.log(`[ACTIVATE-FREE] SUCCESS - User ${user.id} activated ${plan} with coupon ${couponCode}`);
 
         // 4. Send Confirmation Email (non-blocking)

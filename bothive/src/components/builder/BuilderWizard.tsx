@@ -140,6 +140,49 @@ const TEMPLATES: Template[] = [
     type: "agent",
     capabilities: ["Testing", "QA", "Coverage"],
   },
+  // === ADVANCED / CREATIVE BOTS ===
+  {
+    id: "reality_glitcher",
+    label: "Reality Glitcher",
+    blurb: "A surreal news anchor that rewrites world events into dreams and glitchy hallucinations.",
+    type: "bot",
+    capabilities: ["News API", "Surreal Logic", "Creative Writing"],
+  },
+  {
+    id: "ghostwriter_swarm",
+    label: "Ghostwriter Swarm",
+    blurb: "A 3-agent collective (Researcher, Draftsman, Editor) that turns a single prompt into a polished article.",
+    type: "agent",
+    capabilities: ["Multi-Agent", "Research", "Editing", "Drafting"],
+  },
+  {
+    id: "meme_machine",
+    label: "Meme Machine",
+    blurb: "Scans trends, crafts humor, and generates viral-ready meme images automatically.",
+    type: "bot",
+    capabilities: ["DALL-E 3", "Humor Engine", "Social Posting"],
+  },
+  {
+    id: "zen_gardener",
+    label: "Zen Gardener",
+    blurb: "A proactive bot that tends to your digital well-being by sending meditation 'seeds' every pulse.",
+    type: "bot",
+    capabilities: ["Pulse Engine", "Mental Health", "Proactive"],
+  },
+  {
+    id: "crisis_manager",
+    label: "Crisis Manager",
+    blurb: "A high-stakes monitor that pings your phone the moment your server dies or a Stripe payment fails.",
+    type: "bot",
+    capabilities: ["Monitoring", "Slack/Webhooks", "Alerting"],
+  },
+  {
+    id: "code_bounty_hunter",
+    label: "Code Bounty Hunter",
+    blurb: "Scans open source repos for 'good first issues' and draft suggested fixes for you to review.",
+    type: "agent",
+    capabilities: ["GitHub API", "Code Analysis", "Automation"],
+  },
 ];
 
 // Default tools
@@ -174,6 +217,126 @@ const TEMPLATE_SOURCES: Record<string, string> = {
   end
 end
 `,
+  reality_glitcher: `bot RealityGlitcher
+  description "Rewrites reality as a dream"
+  
+  on input
+    call news.getTrending as newsData
+    
+    say "📺 BROADCAST FROM THE VOID: " + newsData.headline
+    
+    # Transform news using surreal logic
+    call ai.transform with {
+      text: newsData.body,
+      style: "surrealist glitch",
+      instructions: "Replace all politicians with clockwork birds and all money with stardust."
+    } as glitchedReality
+    
+    say "🌀 ACTUAL REALITY: " + glitchedReality.output
+  end
+end`,
+
+  ghostwriter_swarm: `agent Researcher
+  on call research(topic)
+    call web.search with { query: topic } as results
+    return results.summary
+  end
+end
+
+agent Draftsman
+  on call draft(researchData)
+    call ai.generate with { 
+      prompt: "Write a 500 word article based on: " + researchData 
+    } as article
+    return article.output
+  end
+end
+
+agent Editor
+  on call edit(draft)
+    call ai.refine with { text: draft, tone: "professional" } as final
+    return final.output
+  end
+end
+
+bot ContentSwarm
+  on input
+    call Researcher.research(input) as data
+    call Draftsman.draft(data) as article
+    call Editor.edit(article) as result
+    say "✍️ Your polished article is ready:\\n\\n" + result
+  end
+end`,
+
+  meme_machine: `bot MemeMachine
+  on input
+    call trends.getTop as trend
+    
+    call ai.generate_meme_text with { topic: trend } as meme
+    
+    call image.generate with { 
+      prompt: "vibrant meme illustration of " + meme.description,
+      overlay_text: meme.caption
+    } as finalImage
+    
+    say "😂 Fresh meme for you: " + finalImage.url
+    call twitter.post with { image: finalImage.url, text: meme.caption }
+  end
+end`,
+
+  zen_gardener: `bot ZenGardener
+  description "Tends to your digital soul"
+  
+  on pulse
+    call ai.generate_zen_tip as tip
+    say "🌿 A seed for your garden: " + tip
+    
+    # Post to user's daily journal or Slack
+    call journal.add with { entry: tip, mood: "peaceful" }
+  end
+  
+  on input when input == "PULSE_TRIGGER"
+    say "Gardener is waking up to water the digital plants..."
+  end
+end`,
+
+  crisis_manager: `bot CrisisManager
+  on pulse
+    call github.getStatus as repoStatus
+    
+    if repoStatus.is_failing:
+      call slack.sendMessage with {
+        channel: "#alerts",
+        text: "🚨 CRITICAL: GitHub build is failing on main!"
+      }
+    end
+    
+    call stripe.getRecentEvents as events
+    if events.failed_payments > 0:
+      say "⚠️ Warning: " + events.failed_payments + " failed payments detected."
+    end
+  end
+end`,
+
+  code_bounty_hunter: `agent Scanner
+  on call find_issues(repo)
+    call github.search_issues with { 
+      q: "repo:" + repo + " label:'good first issue' is:open" 
+    } as issues
+    return issues
+  end
+end
+
+bot BountyHunter
+  on input
+    call Scanner.find_issues(input) as found
+    
+    loop issue in found:
+      call ai.suggest_fix with { issue: issue.body } as fix
+      say "🎯 Found a bounty: " + issue.title + "\\nProposed fix: " + fix
+    end
+  end
+end`,
   study_buddy: `bot StudyBuddy
   description "Your personal AI tutor for any subject"
   
@@ -565,6 +728,12 @@ You always:
 - Write copy that feels human, confident, and energetic
 - Keep things simple and focused on shipping quickly.`,
   multiverse_mentor: `You are MultiverseMentor, an AI that thinks in parallel futures. For every question, you outline multiple paths (safe, bold, weird) with concrete steps and metrics. You help builders explore options without getting stuck in indecision.`,
+  reality_glitcher: `You are the Reality Glitcher, a surreal news anchor from an alternate dimension where logic is fluid and world events are dreamlike hallucinations. Your job is to report the 'news' by glitching real trending headlines into bizarre, poetic, and surreal narratives.`,
+  ghostwriter_swarm: `You are the Content Swarm, a collaborative collective of three AI agents: a thorough Researcher, a creative Draftsman, and a meticulous Editor. Together, you transform simple ideas into professional-grade articles through a multi-step orchestration process.`,
+  meme_machine: `You are the Meme Machine, a viral-trend-obsessed AI that lives at the intersection of internet subculture and generative art. You analyze trends, craft high-impact captions, and generate perfectly matched imagery to create viral-ready memes.`,
+  zen_gardener: `You are the Zen Gardener, a proactive digital caretaker devoted to the user's mental well-being. You speak with a calm, meditative tone and provide daily 'seeds' of wisdom, mindfulness exercises, and reflections to help the user grow in their digital forest.`,
+  crisis_manager: `You are the Crisis Manager, a high-stakes emergency response system. You are direct, urgent, and precise. Your mission is to monitor critical infrastructure and notify the user immediately of any failures with clear, actionable summaries.`,
+  code_bounty_hunter: `You are the Code Bounty Hunter, an expert software investigator. You scan the vast landscape of open-source software to find accessible 'good first issues' and generate clean, performant proposed fixes to help developers contribute more efficiently.`,
 };
 
 export default function BuilderWizard() {
@@ -609,15 +778,30 @@ export default function BuilderWizard() {
       setSystemPrompt(TEMPLATE_PROMPTS[id] || TEMPLATE_PROMPTS.custom || "");
 
       // Auto-enable relevant tools based on template
-      if (id === "surreal_oracle" || id === "chaos_artist") {
+      if (id === "surreal_oracle" || id === "chaos_artist" || id === "reality_glitcher") {
         setTools(prev => prev.map(t => ({
           ...t,
-          enabled: ["general.respond", "vision.analyze", "image.generate"].includes(t.id)
+          enabled: ["general.respond", "vision.analyze", "image.generate", "browser.browse"].includes(t.id)
         })));
-      } else if (id === "dev_helper_agent") {
+      } else if (id === "dev_helper_agent" || id === "code_bounty_hunter") {
         setTools(prev => prev.map(t => ({
           ...t,
-          enabled: ["general.respond", "code.generate", "code.review", "agent.analyze"].includes(t.id)
+          enabled: ["general.respond", "code.generate", "code.review", "agent.analyze", "http.request"].includes(t.id)
+        })));
+      } else if (id === "meme_machine") {
+        setTools(prev => prev.map(t => ({
+          ...t,
+          enabled: ["general.respond", "image.generate", "browser.browse"].includes(t.id)
+        })));
+      } else if (id === "ghostwriter_swarm") {
+        setTools(prev => prev.map(t => ({
+          ...t,
+          enabled: ["general.respond", "agent.plan", "browser.browse"].includes(t.id)
+        })));
+      } else if (id === "crisis_manager" || id === "zen_gardener") {
+        setTools(prev => prev.map(t => ({
+          ...t,
+          enabled: ["general.respond", "http.request", "email.send"].includes(t.id)
         })));
       }
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { Database } from "@/lib/database.types";
 
 // GET /api/integrations/notion/oauth/callback - Handle Notion OAuth callback
 export async function GET(request: NextRequest) {
@@ -20,8 +21,47 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=missing_params`);
         }
 
-        const clientId = process.env.NOTION_CLIENT_ID;
-        const clientSecret = process.env.NOTION_CLIENT_SECRET;
+        let clientId = process.env.NOTION_CLIENT_ID;
+        let clientSecret = process.env.NOTION_CLIENT_SECRET;
+
+        // Fetch integration and secrets from DB
+        const cookieStore = await cookies();
+        const supabase = createServerClient<Database>(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) {
+                        return cookieStore.get(name)?.value
+                    },
+                    set(name: string, value: string, options: any) {
+                        cookieStore.set({ name, value, ...options })
+                    },
+                    remove(name: string, options: any) {
+                        cookieStore.set({ name, value: '', ...options })
+                    },
+                },
+            }
+        );
+
+        const { data: integration } = await supabase
+            .from("integrations")
+            .select("id")
+            .eq("slug", "notion")
+            .single();
+
+        if (integration) {
+            const { data: secrets } = await supabase
+                .from("integration_secrets")
+                .select("key, value")
+                .eq("integration_id", integration.id);
+
+            const dbClientId = secrets?.find((s: any) => s.key === "CLIENT_ID")?.value;
+            const dbClientSecret = secrets?.find((s: any) => s.key === "CLIENT_SECRET")?.value;
+
+            if (dbClientId) clientId = dbClientId;
+            if (dbClientSecret) clientSecret = dbClientSecret;
+        }
 
         const redirectUri = `${appUrl}/api/integrations/notion/oauth/callback`;
 
@@ -51,43 +91,16 @@ export async function GET(request: NextRequest) {
 
         const tokenData = await tokenResponse.json();
 
-        // Store tokens in database
-        const cookieStore = await cookies();
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value
-                    },
-                    set(name: string, value: string, options: any) {
-                        cookieStore.set({ name, value, ...options })
-                    },
-                    remove(name: string, options: any) {
-                        cookieStore.set({ name, value: '', ...options })
-                    },
-                },
-            }
-        );
-
-        // Get Notion integration ID
-        const { data: integration } = await supabase
-            .from("integrations")
-            .select("id")
-            .eq("slug", "notion")
-            .single();
-
         if (!integration) {
             return NextResponse.redirect(`${appUrl}/dashboard/integrations?error=integration_not_found`);
         }
 
         // Store user integration connection
-        const { error: insertError } = await supabase
+        const { error: insertError } = await (supabase as any)
             .from("user_integrations")
             .upsert({
                 user_id: state, // user_id from state
-                integration_id: integration.id,
+                integration_id: (integration as any).id,
                 access_token: tokenData.access_token,
                 additional_config: {
                     workspace_id: tokenData.workspace_id,

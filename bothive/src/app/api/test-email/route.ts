@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         console.log('[EMAIL TEST] Sending to:', testEmail);
 
         const result = await resend.emails.send({
-            from: 'Bothive <onboarding@resend.dev>',
+            from: 'Bothive <noreply@support.bothive.cloud>',
             to: testEmail,
             subject: '🐝 Test Email from Bothive',
             html: `
