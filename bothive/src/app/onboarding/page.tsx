@@ -87,20 +87,30 @@ export default function OnboardingPage() {
     try {
       if (!profile?.id) return;
 
-      const { error } = await supabase.from("user_profiles").upsert({
-        user_id: profile.id,
-        first_name: data.firstName,
-        last_name: data.lastName,
-        team_name: data.teamName,
-        preferred_name: data.teamName || data.firstName,
-        role: data.role,
-        onboarding_completed: true,
-        onboarding_completed_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
+      const response = await fetch("/api/onboarding/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: profile.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          teamName: data.teamName,
+          role: data.role
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      toast.success("Welcome to Bothive!");
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to finalize onboarding");
+      }
+
+      if (result.promoGranted) {
+        toast.success("Congratulations! You unlocked Bothive Pro Early Bird Access! 🚀");
+      } else {
+        toast.success("Welcome to Bothive!");
+      }
+
       // Force reload to update session context
       window.location.href = "/dashboard";
     } catch (error: any) {

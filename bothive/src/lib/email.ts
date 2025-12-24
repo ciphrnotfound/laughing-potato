@@ -239,14 +239,14 @@ export const EmailService = {
   },
 
   /**
-   * Send Waitlist Confirmation
+   * Send Early Bird Promotion Email
    */
-  async sendWaitlistEmail(email: string) {
+  async sendEarlyBirdEmail(email: string, name: string) {
     const hasApiKey = !!process.env.RESEND_API_KEY;
-    console.log(`[EMAIL] 🐝 Waitlist Email Request: To=${email}, HasKey=${hasApiKey}`);
+    console.log(`[EMAIL] 🐝 Early Bird Email Request: To=${email}, Name=${name}, HasKey=${hasApiKey}`);
 
     if (!hasApiKey) {
-      console.log('📧 [MOCK EMAIL] Waitlist welcome sent to:', email);
+      console.log('📧 [MOCK EMAIL] Early Bird Promo sent to:', email);
       return;
     }
 
@@ -254,41 +254,39 @@ export const EmailService = {
       const { data, error } = await resend.emails.send({
         from: 'Bothive <noreply@support.bothive.cloud>',
         to: email,
-        subject: "You're on the list! 🐝",
+        subject: 'You\'re an Early Bird! 🐝 Pro Unlocked',
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; padding: 60px 40px; border-radius: 24px; text-align: center; max-width: 600px; margin: auto; border: 1px solid #222;">
             <div style="margin-bottom: 30px;">
                <img src="https://bothive.cloud/bothive-ai-logo.svg" alt="Bothive" style="width: 80px; height: 80px;" />
             </div>
-            <h1 style="color: #fff; font-size: 32px; letter-spacing: -1px; margin-bottom: 16px;">You're in the Swarm! 🐝</h1>
-            <p style="color: #a1a1aa; font-size: 18px; line-height: 1.6; margin-bottom: 32px;">Thanks for joining the Bothive waitlist. We're currently in private beta and rolling out access gradually.</p>
+            <h1 style="color: #fff; font-size: 32px; letter-spacing: -1px; margin-bottom: 16px;">Congratulations, ${name}! 🚀</h1>
+            <p style="color: #a1a1aa; font-size: 18px; line-height: 1.6; margin-bottom: 32px;">You are one of our first 50 developers! As a thank you, we've unlocked <strong>Bothive Pro</strong> for your account for the next 30 days.</p>
             
-            <div style="background: #111; border: 1px solid #333; border-radius: 16px; padding: 24px; margin-bottom: 32px; text-align: left;">
-              <p style="color: #fff; font-size: 14px; font-weight: 600; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 1px;">What to expect:</p>
-              <ul style="color: #a1a1aa; font-size: 15px; margin: 0; padding-left: 20px;">
-                <li style="margin-bottom: 8px;">Exclusive early access to our agent marketplace.</li>
-                <li style="margin-bottom: 8px;">First look at the HiveMind intelligence engine.</li>
-                <li style="margin-bottom: 0;">Priority setup support when your invite arrives.</li>
+            <div style="background: linear-gradient(135deg, rgba(147, 51, 234, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%); border: 1px solid rgba(147, 51, 234, 0.3); border-radius: 20px; padding: 32px; margin-bottom: 32px;">
+              <h2 style="color: #fff; font-size: 20px; margin: 0 0 16px 0;">Pro Features Active:</h2>
+              <ul style="color: #d1d1db; font-size: 16px; margin: 0; padding: 0; list-style: none; text-align: left;">
+                <li style="margin-bottom: 12px;"><span style="color: #a78bfa;">✓</span> Unlimited Autonomous Swarms</li>
+                <li style="margin-bottom: 12px;"><span style="color: #a78bfa;">✓</span> Advanced HiveMind Memory</li>
+                <li style="margin-bottom: 12px;"><span style="color: #a78bfa;">✓</span> Priority API Throughput</li>
+                <li style="margin-bottom: 0;"><span style="color: #a78bfa;">✓</span> Early Access to v3 Features</li>
               </ul>
             </div>
 
-            <p style="color: #a1a1aa; font-size: 16px; margin-bottom: 32px;">Keep an eye on your inbox—we'll notify you as soon as your spot is ready.</p>
+            <a href="https://bothive.cloud/dashboard" style="display: inline-block; padding: 18px 36px; background: #9333ea; color: white; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 10px 20px rgba(147, 51, 234, 0.3);">Enter Pro Dashboard →</a>
             
-            <div style="border-top: 1px solid #222; pt: 32px; margin-top: 32px;">
-              <p style="color: #52525b; font-size: 14px;">Follow us for updates:</p>
-              <a href="https://twitter.com/bothive" style="color: #9333ea; text-decoration: none; font-weight: 600;">Twitter (X)</a>
-            </div>
+            <p style="margin-top: 40px; color: #52525b; font-size: 14px;">Welcome to the future of agentic engineering.</p>
           </div>
         `
       });
 
       if (error) {
-        console.error('[EMAIL] ❌ Resend Error (Waitlist):', error);
+        console.error('[EMAIL] ❌ Resend Error (Early Bird):', error);
       } else {
-        console.log('[EMAIL] ✅ Waitlist Email Sent Successfully! ID:', data?.id);
+        console.log('[EMAIL] ✅ Early Bird Email Sent Successfully! ID:', data?.id);
       }
     } catch (err: any) {
-      console.error('[EMAIL] ❌ Unexpected Error in Waitlist email:', err?.message || err);
+      console.error('[EMAIL] ❌ Unexpected Error in Early Bird email:', err?.message || err);
     }
   }
 };
