@@ -71,6 +71,8 @@ export const metadata: Metadata = {
     },
 };
 
+import ChristmasEffects from "@/components/ChristmasEffects";
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -106,6 +108,7 @@ export default function RootLayout({
       `}>
                 <ThemeProvider>
                     <AppSessionProvider>
+                        <ChristmasEffects />
                         <ClientLayoutWrapper>
                             {children}
                         </ClientLayoutWrapper>

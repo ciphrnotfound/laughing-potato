@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Menu, X, Bell, Search, User, Settings, LogOut } from "lucide-react";
+import { NotificationPopover } from "@/components/NotificationPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -23,16 +24,16 @@ interface DashboardHeaderProps {
   isSidebarOpen?: boolean;
 }
 
-export default function DashboardHeader({ 
-  title = "Dashboard", 
+export default function DashboardHeader({
+  title = "Dashboard",
   subtitle,
   onMenuToggle,
-  isSidebarOpen = false 
+  isSidebarOpen = false
 }: DashboardHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <motion.header 
+    <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-xl"
@@ -75,12 +76,7 @@ export default function DashboardHeader({
         {/* Right Section */}
         <div className="flex items-center gap-4">
           {/* Notifications */}
-          <Button variant="ghost" size="sm" className="relative">
-            <Bell className="w-5 h-5 text-gray-400" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-violet-500 text-white text-xs">
-              3
-            </Badge>
-          </Button>
+          <NotificationPopover />
 
           {/* User Menu */}
           <DropdownMenu>

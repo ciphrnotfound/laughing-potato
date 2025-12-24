@@ -27,7 +27,8 @@ import {
   IconRosetteDiscountCheckFilled,
   IconBriefcase,
   IconClipboardList,
-  IconRocket
+  IconRocket,
+  IconBell
 } from "@tabler/icons-react";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -56,6 +57,7 @@ const BASE_ITEMS: SidebarItem[] = [
   { id: "billing", label: "Billing", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/billing" },
   { id: "invoices", label: "Invoices", icon: <IconFiles className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/billing/invoices" },
   { id: "wallet", label: "Wallet", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/wallet" },
+  { id: "notifications", label: "Notifications", icon: <IconBell className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/notifications" },
   { id: "affiliate", label: "Affiliate", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/affiliate" },
   { id: "orchestrator", label: "Orchestrator", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/orchestrator" },
 ];
@@ -274,13 +276,41 @@ export const Logo = ({ role }: { role: string }) => {
       className="font-normal flex space-x-2 items-center text-sm text-black py-1 relative z-20"
     >
       {/* <div className="h-5 w-6 bg-black dark:bg-white rounded-br-lg rounded-tr-sm rounded-tl-lg rounded-bl-sm flex-shrink-0" /> */}
-      <Image src="/bothive-ai-logo.svg" alt="logo" width={40} height={40} />
+      {/* Logo with Christmas Hat */}
+      <div className="relative inline-block">
+        <Image src="/bothive-ai-logo.svg" alt="logo" width={40} height={40} className="relative z-10" />
+        {/* High Quality Santa Hat SVG - Simplified & Clean */}
+        <svg
+          className="absolute -top-[14px] -right-[12px] w-[36px] h-[36px] z-20 pointer-events-none drop-shadow-sm rotate-[15deg]"
+          viewBox="0 0 50 50"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Red Hat Body - Simple Cone Shape */}
+          <path
+            d="M10 40 Q 25 5 40 40"
+            fill="#DC2626"
+          />
+
+          {/* White Fur Trim - Rounded Rectangle */}
+          <rect x="8" y="38" width="34" height="8" rx="4" fill="white" />
+
+          {/* White Pompom Ball */}
+          <circle cx="25" cy="5" r="5" fill="white" />
+        </svg>
+      </div>
       <motion.span
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="font-medium text-black dark:text-white whitespace-pre"
+        className="font-medium text-black dark:text-white whitespace-pre flex flex-col"
       >
-        Bothive <span className="text-xs text-neutral-500 uppercase ml-1 tracking-widest">{role}</span>
+        <span className="flex items-center gap-1">
+          Bothive
+          <span className="text-xs text-neutral-500 uppercase ml-1 tracking-widest">{role}</span>
+        </span>
+        <span className="text-[9px] font-normal text-emerald-500 dark:text-emerald-400 tracking-wide">
+          Merry Christmas
+        </span>
       </motion.span>
     </Link>
   );
