@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, RefreshCw, Tag, Copy, Trash2, Sparkles, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
 import { GlassCard } from '@/components/ui/glass-card';
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import { cn } from '@/lib/utils';
 
 export default function CouponAdminPage() {
@@ -15,6 +15,7 @@ export default function CouponAdminPage() {
     const [newCode, setNewCode] = useState('');
     const [discount, setDiscount] = useState<number>(20); // Typed as number
     const [creating, setCreating] = useState(false);
+    const { showAlert } = useGlassAlert();
 
     useEffect(() => {
         fetchCoupons();
@@ -40,7 +41,7 @@ export default function CouponAdminPage() {
 
     const handleCreate = async () => {
         if (!newCode || !discount || discount < 1 || discount > 100) {
-            toast.error('Please enter a valid code and discount (1-100)');
+            await showAlert("Protocol Violation", "Please provide a valid token identifier and reduction factor (1-100).", "warning");
             return;
         }
         setCreating(true);
@@ -53,15 +54,15 @@ export default function CouponAdminPage() {
             });
 
             if (res.ok) {
-                toast.success('Coupon created successfully! 🎟️');
+                await showAlert("Voucher Generated", "Coupon has been successfully archived in the hive database. 🎟️", "success");
                 fetchCoupons();
                 setNewCode('');
             } else {
                 const err = await res.json();
-                toast.error(err.error || 'Failed to create');
+                await showAlert("Generation Failure", err.error || "Failed to commit coupon to the network.", "error");
             }
         } catch (e) {
-            toast.error('Network error creating coupon');
+            await showAlert("Network Desync", "An error occurred during communication with the coupon cluster.", "error");
         } finally {
             setCreating(false);
         }
@@ -208,9 +209,9 @@ export default function CouponAdminPage() {
 
                                             <div className="flex items-center gap-2">
                                                 <button
-                                                    onClick={() => {
+                                                    onClick={async () => {
                                                         navigator.clipboard.writeText(coupon.code);
-                                                        toast.success('Code copied to clipboard');
+                                                        await showAlert("Token Duplicated", "The coupon code has been transferred to your clipboard buffer.", "success");
                                                     }}
                                                     className="p-3 hover:bg-muted rounded-xl transition-all text-muted-foreground hover:text-foreground"
                                                     title="Copy Code"

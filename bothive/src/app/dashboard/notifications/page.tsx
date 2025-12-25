@@ -21,7 +21,6 @@ import {
 import { DashboardPageShell } from "@/components/DashboardPageShell";
 import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
 
 export default function NotificationsPage() {

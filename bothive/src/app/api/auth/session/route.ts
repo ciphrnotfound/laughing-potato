@@ -36,3 +36,18 @@ export async function GET(req: NextRequest) {
         }, { status: 500 });
     }
 }
+
+/**
+ * DELETE /api/auth/session - Sign out
+ */
+export async function DELETE(req: NextRequest) {
+    try {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+
+        return NextResponse.json({ message: "Signed out successfully" });
+    } catch (error: any) {
+        console.error('Sign out error:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}

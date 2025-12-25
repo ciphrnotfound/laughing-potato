@@ -8,6 +8,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useGlassAlert } from '@/components/ui/glass-alert';
 
 // Form Steps
 import BasicInfoStep from '@/components/integration-form/BasicInfoStep';
@@ -71,6 +72,7 @@ export default function SubmitIntegrationPage() {
     const [currentStep, setCurrentStep] = useState(0);
     const [formData, setFormData] = useState<IntegrationFormData>(initialData);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { showAlert } = useGlassAlert();
 
     const updateFormData = (data: Partial<IntegrationFormData>) => {
         setFormData(prev => ({ ...prev, ...data }));
@@ -99,10 +101,11 @@ export default function SubmitIntegrationPage() {
 
             if (!response.ok) throw new Error('Submission failed');
 
+            await showAlert("Submission Recorded", "Your integration has been sent to the triage queue for review.", "success");
             router.push('/developer?success=true');
         } catch (error) {
             console.error('Failed to submit integration:', error);
-            // TODO: Show error toast
+            await showAlert("Transmission Failure", "An error occurred while sending your integration to the core.", "error");
         } finally {
             setIsSubmitting(false);
         }

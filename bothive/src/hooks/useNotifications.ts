@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createBrowserClient } from "@supabase/ssr";
 import { useAppSession } from "@/lib/app-session-context";
-import { toast } from "sonner";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface Notification {
@@ -22,7 +22,13 @@ export function useNotifications() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [unreadCount, setUnreadCount] = useState(0);
-    const supabase = createClientComponentClient();
+    const { showAlert } = useGlassAlert();
+
+    // Use new SSR client
+    const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     // Fetch initial notifications
     const fetchNotifications = useCallback(async () => {
@@ -34,13 +40,13 @@ export function useNotifications() {
                 .select("*")
                 .eq("user_id", profile.id)
                 .order("created_at", { ascending: false })
-                .limit(50); // Fetch recent ones
+                .limit(50);
 
             if (error) throw error;
             setNotifications(data || []);
             setUnreadCount((data || []).filter((n) => !n.read).length);
-        } catch (error) {
-            console.error("Error fetching notifications:", error);
+        } catch (error: any) {
+            console.error("Error fetching notifications:", error.message || error, error);
         } finally {
             setLoading(false);
         }
@@ -68,10 +74,8 @@ export function useNotifications() {
                         setNotifications((prev) => [newNotification, ...prev]);
                         setUnreadCount((prev) => prev + 1);
 
-                        // Show toast for new notification
-                        toast(newNotification.title, {
-                            description: newNotification.message,
-                        });
+                        // Show Glass Alert for new notification
+                        showAlert(newNotification.title, newNotification.message, (newNotification.type === "alert" || newNotification.type === "purchase") ? "success" : "info");
                     } else if (payload.eventType === "UPDATE") {
                         const updatedNotification = payload.new as Notification;
                         setNotifications((prev) =>

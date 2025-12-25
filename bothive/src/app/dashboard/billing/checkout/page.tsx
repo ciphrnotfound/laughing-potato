@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, ArrowLeft, ShieldCheck, Check, Sparkles, CreditCard } from 'lucide-react';
-import { toast } from 'sonner';
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import { cn } from '@/lib/utils';
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import dynamic from 'next/dynamic';
@@ -38,6 +38,7 @@ function CheckoutContent() {
 
     const planName = searchParams.get('plan');
     const amount = Number(searchParams.get('amount'));
+    const { showAlert } = useGlassAlert();
     const [email, setEmail] = useState('');
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
@@ -65,14 +66,14 @@ function CheckoutContent() {
                     code: data.code,
                     discount: data.discount_percent
                 });
-                toast.success(`Coupon ${data.code} applied! ${data.discount_percent}% discount added.`);
+                await showAlert("Coupon Applied", `Discount profile ${data.code} validated. ${data.discount_percent}% reduction applied to total.`, "success");
             } else {
-                toast.error(data.message || 'Invalid coupon code.');
+                await showAlert("Invalid Code", data.message || 'The provided coupon code is not valid or has expired.', "error");
                 setAppliedCoupon(null);
             }
         } catch (error) {
             console.error('Coupon verification error:', error);
-            toast.error('Failed to verify coupon. Please try again.');
+            await showAlert("System Error", 'Network failure during coupon verification. Please try again.', "error");
             setAppliedCoupon(null);
         } finally {
             setIsApplying(false);
@@ -98,7 +99,6 @@ function CheckoutContent() {
 
     const handleSuccess = async (reference: any) => {
         setIsApplying(true); // Show loader
-        toast.info("Verifying payment...");
 
         try {
             // 1. Verify payment and update plan in DB
@@ -115,16 +115,16 @@ function CheckoutContent() {
             const verifyData = await verifyResponse.json();
 
             if (!verifyData.success) {
-                toast.error(verifyData.error || "Verification failed. Please contact support.");
+                await showAlert("Verification Failed", verifyData.error || "Payment verification failed. Please contact support via the help center.", "error");
                 setIsApplying(false);
                 return;
             }
 
-            toast.success("Payment successful and plan activated!");
+            await showAlert("Payment Confirmed", `Success! Your ${planName} subscription is now active. Welcome to the elite tier.`, "success");
             router.push('/dashboard/billing?success=true&plan=' + planName);
         } catch (error) {
             console.error("Error finalizing checkout:", error);
-            toast.error("An error occurred during verification.");
+            await showAlert("System Alert", "An unexpected error occurred during payment verification. Please contact support.", "error");
             setIsApplying(false);
         }
     };
@@ -146,21 +146,21 @@ function CheckoutContent() {
             const data = await response.json();
 
             if (data.success) {
-                toast.success(data.message || "Plan activated successfully!");
+                await showAlert("Access Granted", data.message || "Your pro features have been unlocked successfully.", "success");
                 router.push('/dashboard/billing?success=true&plan=' + planName);
             } else {
-                toast.error(data.error || "Failed to activate plan.");
+                await showAlert("Activation Failed", data.error || "Failed to activate the free promotional tier.", "error");
                 setIsApplying(false);
             }
         } catch (error) {
             console.error("Free activation error:", error);
-            toast.error("An unexpected error occurred.");
+            await showAlert("System Error", "An unexpected error occurred. Connection rest by peer.", "error");
             setIsApplying(false);
         }
     };
 
     const handleClose = () => {
-        toast.info("Payment cancelled.");
+        showAlert("Transaction Aborted", "Security protocol: Payment window closed by user.", "warning");
     };
 
     if (!planName || !amount) return null;

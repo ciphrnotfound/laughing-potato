@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Database } from "@/lib/database.types";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import {
   User,
   MapPin,
@@ -121,6 +122,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements'>('overview');
+  const { showAlert } = useGlassAlert();
   const [editForm, setEditForm] = useState({
     name: '',
     bio: '',
@@ -226,8 +228,10 @@ export default function ProfilePage() {
       // Update local state
       setUserProfile(prev => ({ ...prev, name: editForm.name })); // Bio/Location not persisted yet
       setIsEditing(false);
+      await showAlert("Profile Updated", "Identity records successfully synchronized with the neural network.", "success");
     } catch (error) {
       console.error("Update failed:", error);
+      await showAlert("Service Error", "Failed to update identity record. Synchronization failure.", "error");
     } finally {
       setLoading(false);
     }

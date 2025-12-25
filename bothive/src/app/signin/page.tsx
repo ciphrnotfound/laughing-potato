@@ -7,7 +7,7 @@ import { Loader2, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import Image from "next/image";
 
 function SignInContent() {
@@ -21,6 +21,7 @@ function SignInContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { showAlert } = useGlassAlert();
 
   // Welcome Animation State
   const [userMetadata, setUserMetadata] = useState<any>(null);
@@ -48,14 +49,14 @@ function SignInContent() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        toast.error(error.message || "Invalid credentials");
+        await showAlert("Access Denied", error.message || "Invalid credentials provided.", "error");
         setIsLoading(false);
         return;
       }
-      toast.success("Welcome back!");
+      // toast.success("Welcome back!"); // Success is handled by custom screen
       router.push(nextUrl);
     } catch (error) {
-      toast.error("An error occurred");
+      await showAlert("System Error", "An error occurred during authentication.", "error");
       setIsLoading(false);
     }
   };
@@ -68,11 +69,11 @@ function SignInContent() {
         options: { redirectTo: `${window.location.origin}${nextUrl}` },
       });
       if (error) {
-        toast.error(`Could not sign in with ${provider}`);
+        await showAlert("OAuth Failed", `Could not sign in with ${provider}`, "error");
         setOauthLoading(null);
       }
     } catch {
-      toast.error("OAuth failed");
+      await showAlert("Connection Error", "OAuth handshake failed.", "error");
       setOauthLoading(null);
     }
   };
@@ -255,12 +256,12 @@ function SignInContent() {
                         const { data, error } = await (supabase.auth as any).signInWithWebAuthn();
                         if (error) throw error;
                         if (data) {
-                          toast.success("Biometric verification successful");
+                          // showAlert("Bio-Verification", "Biometric verification successful", "success");
                           router.push(nextUrl);
                         }
                       } catch (err: any) {
                         console.error(err);
-                        toast.error(err.message || "Passkey login failed");
+                        await showAlert("Bio-Link Failed", err.message || "Passkey login failed", "error");
                       } finally {
                         setIsLoading(false);
                       }

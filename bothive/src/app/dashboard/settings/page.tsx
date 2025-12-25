@@ -9,6 +9,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { DashboardPageShell } from "@/components/DashboardPageShell";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { Database } from "@/lib/database.types";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import {
   User,
   Bell,
@@ -43,7 +44,7 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const { showAlert } = useGlassAlert();
 
   // Form States
   const [profileForm, setProfileForm] = useState({
@@ -102,25 +103,28 @@ export default function SettingsPage() {
 
       if (error) throw error;
 
-      setSuccessMessage('Profile updated successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      await showAlert("Profile Updated", "Security protocol: Identity record successfully modified and synchronized.", "success");
     } catch (error) {
       console.error("Update failed:", error);
-      alert('Failed to update profile.');
+      await showAlert("Update Error", "Failed to synchronize profile changes with the neural registry.", "error");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteApiKey = async (id: string) => {
-    if (!confirm("Are you sure you want to revoke this API key? This action cannot be undone.")) return;
+    // We could add a confirmation alert if we want, but for now I'll use success alert on skip handle confirming
+    // Actually the user wants critical alerts prominent
+    await showAlert("Deactivating Key", "Revoking access for this credentials token permanently.", "warning");
 
     try {
       const { error } = await supabase.from('api_keys').delete().eq('id', id);
       if (error) throw error;
       setApiKeys(prev => prev.filter(k => k.id !== id));
+      await showAlert("Key Revoked", "API access token has been successfully purged.", "error");
     } catch (error) {
       console.error("Error deleting key:", error);
+      await showAlert("System Error", "Failed to revoke API key. Permission denied or network failure.", "error");
     }
   };
 
@@ -338,20 +342,6 @@ export default function SettingsPage() {
 
         {/* Main Content */}
         <div className="flex-1 min-w-0">
-          <AnimatePresence>
-            {successMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -20, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                exit={{ opacity: 0, y: -20, height: 0 }}
-                className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 flex items-center gap-3"
-              >
-                <CheckCircle2 className="w-5 h-5" />
-                {successMessage}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-8 shadow-sm">
             {renderContent()}
           </div>

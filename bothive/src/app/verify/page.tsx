@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Shield, CheckCircle2, Fingerprint, Lock, ArrowRight, Loader2, Scan } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import { cn } from "@/lib/utils";
 
 export default function VerifyPage() {
@@ -14,6 +14,7 @@ export default function VerifyPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [verified, setVerified] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
+  const { showAlert } = useGlassAlert();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -65,10 +66,10 @@ export default function VerifyPage() {
       if (verifyError) throw verifyError;
 
       // Upon success, visual feedback
-      setTimeout(() => {
+      setTimeout(async () => {
         setScannerActive(false);
         setVerified(true);
-        toast.success("Identity secured with Passkey");
+        await showAlert("Passkey Secured", "Your identity factor has been successfully fused with this device.", "success");
 
         // Redirect
         setTimeout(() => {
@@ -82,9 +83,9 @@ export default function VerifyPage() {
       setEnrolling(false);
 
       if (error.message?.includes("MFA enroll") || error.message?.includes("disabled")) {
-        toast.error("Enable WebAuthn in Supabase Dashboard to use this feature!");
+        await showAlert("Feature Locked", "Please enable WebAuthn in your security settings to activate this core.", "warning");
       } else {
-        toast.error(error.message || "Failed to register passkey");
+        await showAlert("Registration Error", error.message || "Failed to sync biometric data with security core.", "error");
       }
     }
   };

@@ -7,7 +7,7 @@ import { Loader2, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 
 export default function SignUp() {
   const router = useRouter();
@@ -18,6 +18,7 @@ export default function SignUp() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { showAlert } = useGlassAlert();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -36,20 +37,20 @@ export default function SignUp() {
       });
 
       if (error) {
-        toast.error(error.message || "Sign up failed");
+        await showAlert("Sign Up Failed", error.message || "Credential validation failed. Please check your details.", "error");
         setIsLoading(false);
         return;
       }
 
       if (data.session?.access_token) {
-        toast.success("Account created!");
+        await showAlert("Account Created", "Welcome to the collective. Initializing your secure workspace...", "success");
         router.push("/passkey");
       } else {
-        toast.success("Check your email to confirm your account");
+        await showAlert("Verification Sent", "A confirmation pulse has been sent to your email. Please verify to continue.", "info");
         setIsLoading(false);
       }
     } catch {
-      toast.error("An error occurred");
+      await showAlert("System Error", "An unexpected error occurred during account initialization.", "error");
       setIsLoading(false);
     }
   };
@@ -62,11 +63,11 @@ export default function SignUp() {
         options: { redirectTo: `${window.location.origin}/passkey` },
       });
       if (error) {
-        toast.error(`Could not sign up with ${provider}`);
+        await showAlert("OAuth Failure", `Could not establish connection with ${provider}.`, "error");
         setOauthLoading(null);
       }
     } catch {
-      toast.error("OAuth failed");
+      await showAlert("Connection Lost", "OAuth handshake failed. Peer connection reset.", "error");
       setOauthLoading(null);
     }
   };

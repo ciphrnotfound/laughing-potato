@@ -1,171 +1,151 @@
 "use client";
 
-import { CheckCircle2, XCircle, X, Info, AlertTriangle } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { AlertTriangle, CheckCircle2, XCircle, AlertOctagon, Terminal, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type AlertVariant = "success" | "error" | "info" | "warning";
+type AlertType = "success" | "error" | "warning" | "info";
 
-interface GlassAlertProps {
-  variant?: AlertVariant;
-  title?: string;
-  message?: ReactNode;
-  onClose?: () => void;
-  show?: boolean;
-  open?: boolean;
-  autoClose?: number;
-  durationMs?: number;
+interface GlassAlertContextProps {
+  showAlert: (title: string, message: string, type?: AlertType) => Promise<void>;
+  hideAlert: () => void;
 }
 
-const variantStyles: Record<
-  AlertVariant,
-  {
-    icon: typeof CheckCircle2;
-    iconClass: string;
-    glow: string;
-    gradient: string;
-    badgeBg: string;
-    badgeText: string;
-    label: string;
-  }
-> = {
-  success: {
-    icon: CheckCircle2,
-    iconClass: "text-emerald-200",
-    glow: "rgba(16,185,129,0.45)",
-    gradient: "linear-gradient(135deg, rgba(16,185,129,0.16), rgba(59,7,100,0.8))",
-    badgeBg: "bg-emerald-500/15 border-emerald-300/40",
-    badgeText: "text-emerald-200",
-    label: "Deployment ready",
-  },
-  error: {
-    icon: XCircle,
-    iconClass: "text-rose-200",
-    glow: "rgba(244,63,94,0.45)",
-    gradient: "linear-gradient(135deg, rgba(244,63,94,0.18), rgba(44,8,36,0.9))",
-    badgeBg: "bg-rose-500/15 border-rose-300/40",
-    badgeText: "text-rose-200",
-    label: "Action required",
-  },
-  info: {
-    icon: Info,
-    iconClass: "text-indigo-200",
-    glow: "rgba(99,102,241,0.45)",
-    gradient: "linear-gradient(135deg, rgba(99,102,241,0.18), rgba(8,8,30,0.95))",
-    badgeBg: "bg-indigo-500/15 border-indigo-300/40",
-    badgeText: "text-indigo-200",
-    label: "System notice",
-  },
-  warning: {
-    icon: AlertTriangle,
-    iconClass: "text-amber-200",
-    glow: "rgba(245,158,11,0.45)",
-    gradient: "linear-gradient(135deg, rgba(245,158,11,0.18), rgba(40,26,3,0.92))",
-    badgeBg: "bg-amber-500/15 border-amber-300/40",
-    badgeText: "text-amber-200",
-    label: "Heads up",
-  },
+const GlassAlertContext = createContext<GlassAlertContextProps | undefined>(undefined);
+
+export const useGlassAlert = () => {
+  const context = useContext(GlassAlertContext);
+  if (!context) throw new Error("useGlassAlert must be used within a GlassAlertProvider");
+  return context;
 };
 
-export function ProfessionalAlert({
-  variant = "info",
-  title,
-  message,
-  onClose,
-  show,
-  open,
-  autoClose,
-  durationMs = 5000,
-}: GlassAlertProps) {
-  const initialVisibility = show ?? open ?? true;
-  const isControlled = show !== undefined || open !== undefined;
-  const [internalVisible, setInternalVisible] = useState(initialVisibility);
-  const derivedVisibility = show ?? open;
-  const currentVisible = isControlled ? (derivedVisibility ?? false) : internalVisible;
-  const effectiveDuration = autoClose ?? durationMs;
+export const GlassAlertProvider = ({ children }: { children: ReactNode }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [content, setContent] = useState({ title: "", message: "", type: "info" as AlertType });
+  const [resolvePromise, setResolvePromise] = useState<(() => void) | null>(null);
 
-  useEffect(() => {
-    if (currentVisible && (effectiveDuration ?? 0) > 0) {
-      const timer = setTimeout(() => {
-        if (!isControlled) {
-          setInternalVisible(false);
-        }
-        onClose?.();
-      }, effectiveDuration);
-      return () => clearTimeout(timer);
+  const showAlert = (title: string, message: string, type: AlertType = "info") => {
+    return new Promise<void>((resolve) => {
+      setContent({ title, message, type });
+      setIsOpen(true);
+      // Auto close after delay if needed, or let caller handle it. 
+      // For "game style", usually we wait? 
+      // User request implies "about to sign out it will be read". 
+      // Let's auto-resolve after a duration for ephemeral alerts, 
+      // but for Sign Out we might want a manual trigger.
+      // For now, I'll set a timeout to auto-hide as a default behavior for "toasts-replacement".
+      setTimeout(() => {
+        setIsOpen(false);
+        resolve();
+      }, 2500);
+      setResolvePromise(() => resolve);
+    });
+  };
+
+  const hideAlert = () => {
+    setIsOpen(false);
+    if (resolvePromise) resolvePromise();
+  };
+
+  const getTheme = (type: AlertType) => {
+    switch (type) {
+      case "error": return {
+        icon: AlertOctagon,
+        color: "text-red-500",
+        gradient: "from-red-600/20 to-rose-900/40",
+        border: "border-red-500/30",
+        glow: "shadow-red-500/20"
+      };
+      case "success": return {
+        icon: CheckCircle2,
+        color: "text-emerald-500",
+        gradient: "from-emerald-600/20 to-teal-900/40",
+        border: "border-emerald-500/30",
+        glow: "shadow-emerald-500/20"
+      };
+      case "warning": return {
+        icon: AlertTriangle,
+        color: "text-amber-500",
+        gradient: "from-amber-600/20 to-orange-900/40",
+        border: "border-amber-500/30",
+        glow: "shadow-amber-500/20"
+      };
+      default: return {
+        icon: Terminal,
+        color: "text-blue-500",
+        gradient: "from-blue-600/20 to-indigo-900/40",
+        border: "border-blue-500/30",
+        glow: "shadow-blue-500/20"
+      };
     }
-  }, [currentVisible, effectiveDuration, isControlled, onClose]);
+  }
 
-  if (!currentVisible) return null;
-
-  const { icon: Icon, iconClass, glow, gradient, badgeBg, badgeText, label } = variantStyles[variant];
+  const theme = getTheme(content.type);
+  const Icon = theme.icon;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-xl" aria-hidden="true" />
-      <div
-        className="relative z-10 w-full max-w-xl animate-in fade-in zoom-in-95"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        <div
-          className="pointer-events-none absolute inset-0 rounded-[30px] border border-white/12 bg-[#050512]/85 shadow-[0_55px_180px_rgba(3,0,20,0.9)] backdrop-blur-3xl"
-          style={{ boxShadow: `0 50px 140px -36px ${glow}` }}
-        />
-        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[30px]">
-          <div className="absolute inset-0 opacity-75" style={{ background: gradient }} />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(180,140,255,0.25),transparent_65%)]" />
-          <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-        </div>
-
-        <div className="relative z-10 rounded-[30px] px-7 py-6 text-white sm:px-10 sm:py-9">
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-5">
-            <div className="flex items-center gap-3">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-4 py-1 text-[11px] uppercase tracking-[0.35em]",
-                  badgeBg,
-                  badgeText
-                )}
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-current" /> {label}
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                if (!isControlled) {
-                  setInternalVisible(false);
-                }
-                onClose?.();
-              }}
-              className="rounded-full border border-white/10 bg-white/5 p-2 text-white/70 transition hover:border-white/30 hover:text-white"
-              aria-label="Close alert"
+    <GlassAlertContext.Provider value={{ showAlert, hideAlert }}>
+      {children}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+              className={cn(
+                "relative w-full max-w-md overflow-hidden rounded-3xl border backdrop-blur-2xl shadow-2xl",
+                theme.border,
+                "bg-[#0a0a0f]/80"
+              )}
             >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+              {/* Dynamic Gradient Background */}
+              <div className={cn("absolute inset-0 bg-gradient-to-br opacity-50", theme.gradient)} />
 
-          <div className="mt-6 flex flex-col gap-6 text-left">
-            <div className="flex items-start gap-5">
-              <span className="relative grid h-14 w-14 place-items-center rounded-2xl border border-white/15 bg-white/5">
-                <span className="absolute inset-0 rounded-2xl bg-white/5" />
-                <Icon className={cn("relative z-10 h-6 w-6", iconClass)} />
-              </span>
-              <div className="min-w-0 space-y-3">
-                {title ? <p className="text-lg font-semibold text-white/95">{title}</p> : null}
-                {message ? <div className="text-base leading-relaxed text-white/75">{message}</div> : null}
+              {/* Noise Texture */}
+              <div className="absolute inset-0 opacity-[0.03] bg-[url('/noise.png')] mix-blend-overlay pointer-events-none" />
+
+              <div className="relative p-8 flex flex-col items-center text-center">
+
+                {/* Icon Ring */}
+                <div className={cn(
+                  "mb-6 p-4 rounded-full border bg-white/5 backdrop-blur-xl relative",
+                  theme.border,
+                  theme.glow,
+                  "shadow-[0_0_30px_-5px]"
+                )}>
+                  <Icon className={cn("w-10 h-10", theme.color)} strokeWidth={1.5} />
+                </div>
+
+                <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
+                  {content.title}
+                </h2>
+
+                <p className="text-white/70 text-[15px] leading-relaxed mb-6 max-w-[90%]">
+                  {content.message}
+                </p>
+
+                {/* Loading Bar / Timer Indicator (Visual only) */}
+                <div className="h-1 w-24 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: "0%" }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 2.5, ease: "linear" }}
+                    className={cn("h-full", theme.color.replace('text-', 'bg-'))}
+                  />
+                </div>
               </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/8 bg-white/5/10 p-4 text-xs text-white/60 backdrop-blur">
-              <p className="font-medium uppercase tracking-[0.3em] text-white/50">Control Room</p>
-              <p className="mt-2 leading-relaxed text-white/70">
-                Need backup? Relay this reference to the Bothive crew and we&apos;ll help course-correct in real time.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </GlassAlertContext.Provider>
   );
-}
+};

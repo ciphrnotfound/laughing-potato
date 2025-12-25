@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Unlock, Delete, CheckCircle2, ChevronRight, ScanFace, KeyRound, Fingerprint } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import { cn } from "@/lib/utils";
 
 export default function PasskeyPage() {
@@ -15,9 +15,11 @@ export default function PasskeyPage() {
   const [pin, setPin] = useState<string[]>([]);
   const [mode, setMode] = useState<"setup" | "verify" | "confirm">("verify");
   const [confirmPin, setConfirmPin] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userMetadata, setUserMetadata] = useState<any>(null);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
+  const { showAlert } = useGlassAlert();
 
   // Animation States
   const [shake, setShake] = useState(false);
@@ -38,7 +40,7 @@ export default function PasskeyPage() {
         router.push("/signin");
         return;
       }
-
+      setUserId(session.user.id);
       const metadata = session.user.user_metadata;
       setUserMetadata(metadata);
 
@@ -61,15 +63,26 @@ export default function PasskeyPage() {
   }, [router]);
 
   // Helper for success handling
-  const handleSuccess = () => {
+  const handleSuccess = async () => {
     setIconSuccess(true); // 1. Immediate Icon Feedback (Mini Wink)
+
+    // Check onboarding status
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('onboarding_completed')
+      .eq('user_id', userId)
+      .maybeSingle();
 
     // 2. Wait 800ms, then show Full Screen Welcome
     setTimeout(() => {
       setIsSuccess(true);
       // 3. Wait another 2s, then Redirect
       setTimeout(() => {
-        router.push("/dashboard");
+        if (profile?.onboarding_completed) {
+          router.push("/dashboard");
+        } else {
+          router.push("/onboarding");
+        }
       }, 2000);
     }, 800);
   };
@@ -124,7 +137,7 @@ export default function PasskeyPage() {
 
     // Save local flag
     localStorage.setItem("bothive_bio_enabled", "true");
-    toast.success("Device Biometrics Linked (Local Mode)");
+    await showAlert("Local Bond Established", "Device biometrics have been linked in local mode.", "success");
     handleSuccess();
   };
 
@@ -143,17 +156,17 @@ export default function PasskeyPage() {
 
     if (!credential) throw new Error("Biometric verification failed");
 
-    toast.success("Identity Verified (Local Mode)");
+    await showAlert("Identity Verified", "Biometric signature matches local device records.", "success");
     handleSuccess();
   };
 
   const handleBiometric = async () => {
     if (!biometricAvailable) {
-      toast.error("Biometrics not supported on this device.");
+      await showAlert("Sensor Missing", "Biometric hardware not detected on this device architecture.", "warning");
       return;
     }
 
-    toast.info("Scanning Biometrics...");
+    await showAlert("Biometric Scan", "Active sensor identified. Please authenticate when prompted.", "info");
 
     // Strategy: Try Server (Supabase) first -> Catch Error -> Try Local Fallback
     try {
@@ -186,7 +199,7 @@ export default function PasskeyPage() {
 
       if (verifyError) throw verifyError;
 
-      toast.success("Identity Verified");
+      await showAlert("Identity Fused", "Biometric credentials successfully verified and synchronized.", "success");
       handleSuccess();
 
     } catch (error: any) {
@@ -201,10 +214,10 @@ export default function PasskeyPage() {
             await localBiometricEnroll();
           }
         } catch (localErr) {
-          toast.error("Biometrics failed. Please use PIN.");
+          await showAlert("Sensor Fault", "Biometric verification failed. Reverting to manual PIN protocol.", "error");
         }
       } else {
-        toast.error("Verification failed. Use PIN.");
+        await showAlert("Verification Failed", "Identity signature mismatch. Please use manual PIN access.", "error");
       }
     }
   };
@@ -224,7 +237,7 @@ export default function PasskeyPage() {
       setConfirmPin(pin);
       setPin([]);
       setMode("confirm");
-      toast("Confirm your new Passcode");
+      await showAlert("Security Protocol", "Please re-enter your passcode to confirm the fusion.", "info");
     }
     else if (mode === "confirm") {
       if (pin.join("") === confirmPin.join("")) {
@@ -234,15 +247,15 @@ export default function PasskeyPage() {
         });
 
         if (error) {
-          toast.error("Failed to save Passcode");
+          await showAlert("Sync Error", "Failed to preserve passcode in the neural core.", "error");
           setPin([]);
           setMode("setup");
         } else {
-          toast.success("Passcode Secured");
+          await showAlert("Fusion Complete", "Passcode has been successfully integrated with your profile.", "success");
           handleSuccess();
         }
       } else {
-        toast.error("Passcodes do not match. Try again.");
+        await showAlert("Mismatched Input", "Confirmation codes do not match. Restarting protocol.", "error");
         setConfirmPin([]);
         setPin([]);
         setMode("setup");
@@ -253,7 +266,7 @@ export default function PasskeyPage() {
         // Success handled by state change, which triggers icon "nod" color change
         handleSuccess();
       } else {
-        toast.error("Invalid Passcode");
+        await showAlert("Access Denied", "Invalid passcode provided. Security lockout imminent if errors persist.", "error");
         triggerShake(); // Trigger the shake animation
         setPin([]);
       }

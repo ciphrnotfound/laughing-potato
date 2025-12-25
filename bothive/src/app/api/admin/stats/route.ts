@@ -26,12 +26,12 @@ export async function GET(req: NextRequest) {
             .from("bots")
             .select("*", { count: "exact", head: true });
 
-        // 4. Get total revenue (sum of amounts in marketplace_purchases)
+        // 4. Get total revenue (sum of amounts in user_integration_purchases)
         const { data: revenueData, error: revenueError } = await supabaseAdmin
-            .from("marketplace_purchases")
-            .select("amount");
+            .from("user_integration_purchases")
+            .select("amount_paid");
 
-        const totalRevenue = (revenueData || []).reduce((acc, curr) => acc + (curr.amount || 0), 0);
+        const totalRevenue = (revenueData || []).reduce((acc, curr) => acc + (curr.amount_paid || 0), 0);
 
         // 5. Get active users (users with activity in last 30 days)
         // This is a rough estimation based on updated_at or sessions if we had them.

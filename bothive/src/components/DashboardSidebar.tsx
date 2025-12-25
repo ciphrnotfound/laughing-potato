@@ -49,6 +49,7 @@ interface SidebarItem {
 
 // Menu Items Configuration
 const BASE_ITEMS: SidebarItem[] = [
+  { id: "getting-started", label: "Getting Started", icon: <IconRocket className="h-5 w-5 shrink-0 text-violet-500" />, href: "/dashboard/getting-started" },
   { id: "workspace", label: "Workspace", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/workspace" },
   { id: "overview", label: "Overview", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard" },
   { id: "workforce", label: "My Workforce", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/workforce" },
@@ -234,33 +235,6 @@ export default function DashboardSidebar() {
               label: "Settings",
               href: "/dashboard/settings",
               icon: <IconSettings className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />
-            }}
-          />
-          <div onClick={handleSignOut} className="cursor-pointer">
-            <SidebarLink
-              link={{
-                label: "Logout",
-                href: "#",
-                icon: <IconArrowLeft className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />
-              }}
-            />
-          </div>
-          <SidebarLink
-            link={{
-              label: teamName || userEmail || "User",
-              href: "/dashboard/profile",
-              icon: (
-                <div className="relative">
-                  <div className="h-7 w-7 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-xs font-bold text-neutral-700 dark:text-neutral-200">
-                    {(userEmail[0] || "U").toUpperCase()}
-                  </div>
-                  {userEmail === "akinlorinjeremiah@gmail.com" && (
-                    <div className="absolute -top-1 -right-1 bg-white dark:bg-black rounded-full text-blue-500">
-                      <IconRosetteDiscountCheckFilled className="h-3.5 w-3.5" />
-                    </div>
-                  )}
-                </div>
-              ),
             }}
           />
         </div>

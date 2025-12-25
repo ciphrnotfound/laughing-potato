@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, ArrowLeft, ShieldCheck, Check, Sparkles, CreditCard, Bot } from 'lucide-react';
-import { toast } from 'sonner';
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import { cn } from '@/lib/utils';
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import dynamic from 'next/dynamic';
@@ -51,6 +51,7 @@ function CheckoutContent() {
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
     const [isApplying, setIsApplying] = useState(false);
+    const { showAlert } = useGlassAlert();
 
     // Calculate discounted amount in kobo
     const discountAmountKobo = appliedCoupon ? Math.floor(amountInKobo * (appliedCoupon.discount / 100)) : 0;
@@ -88,14 +89,14 @@ function CheckoutContent() {
                     code: data.code,
                     discount: data.discount_percent
                 });
-                toast.success(`Coupon ${data.code} applied! ${data.discount_percent}% discount added.`);
+                await showAlert("Voucher Accepted", `Discount profile ${data.code} validated. ${data.discount_percent}% reduction applied.`, "success");
             } else {
-                toast.error(data.message || 'Invalid coupon code.');
+                await showAlert("Invalid Token", data.message || 'The provided coupon code is not valid.', "error");
                 setAppliedCoupon(null);
             }
         } catch (error) {
             console.error('Coupon verification error:', error);
-            toast.error('Failed to verify coupon.');
+            await showAlert("System Error", "Failed to verify coupon connection.", "error");
             setAppliedCoupon(null);
         } finally {
             setIsApplying(false);
@@ -104,7 +105,7 @@ function CheckoutContent() {
 
     const handleSuccess = async (reference: any) => {
         setIsVerifying(true);
-        toast.info("Verifying purchase...");
+        await showAlert("Verifying Transaction", "Connecting to secure banking gate for verification...", "info");
 
         try {
             const response = await fetch('/api/hivestore/purchase', {
@@ -121,15 +122,15 @@ function CheckoutContent() {
             const data = await response.json();
 
             if (data.success) {
-                toast.success("Purchase successful!");
+                await showAlert("Payment Confirmed", "Success! Bot ownership has been transferred to your account.", "success");
                 router.push(`/hivestore/${slug || botId}?success=true`);
             } else {
-                toast.error(data.error || "Verification failed.");
+                await showAlert("Verification Failed", data.error || "Security handshake failed during verification.", "error");
                 setIsVerifying(false);
             }
         } catch (error) {
             console.error("Error finalizing purchase:", error);
-            toast.error("An error occurred during verification.");
+            await showAlert("Connection Error", "An error occurred during transaction finalization.", "error");
             setIsVerifying(false);
         }
     };
@@ -137,7 +138,7 @@ function CheckoutContent() {
     const handleFreeActivation = async () => {
         if (finalAmountKobo > 0) return;
         setIsVerifying(true);
-        toast.info("Activating free access...");
+        await showAlert("Initializing Activation", "Requesting free access permit for this agent...", "info");
 
         try {
             const response = await fetch('/api/hivestore/purchase', {
@@ -154,21 +155,21 @@ function CheckoutContent() {
             const data = await response.json();
 
             if (data.success) {
-                toast.success("Activation successful!");
+                await showAlert("Access Granted", "Activation successful! The agent is now available in your workspace.", "success");
                 router.push(`/hivestore/${slug || botId}?success=true`);
             } else {
-                toast.error(data.error || "Activation failed.");
+                await showAlert("Activation Failed", data.error || "Failed to secure free access permit.", "error");
                 setIsVerifying(false);
             }
         } catch (error) {
             console.error("Error activating free bot:", error);
-            toast.error("An error occurred during activation.");
+            await showAlert("System Error", "An error occurred during free activation handshake.", "error");
             setIsVerifying(false);
         }
     };
 
-    const handleClose = () => {
-        toast.info("Payment cancelled.");
+    const handleClose = async () => {
+        await showAlert("Transaction Aborted", "Security protocol: Payment window closed by user.", "warning");
     };
 
     if (!botId || !amountInKobo) return null;

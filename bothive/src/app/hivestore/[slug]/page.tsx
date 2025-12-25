@@ -21,8 +21,8 @@ import {
   Clock,
   ChevronRight,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useAppSession } from "@/lib/app-session-context";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import { useTheme } from "@/lib/theme-context";
 import { supabase } from "@/lib/supabase";
 import { cn, slugify } from "@/lib/utils";
@@ -228,6 +228,7 @@ export default function HiveStoreDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [installing, setInstalling] = useState(false);
+  const { showAlert } = useGlassAlert();
 
   useEffect(() => {
     let active = true;
@@ -284,7 +285,7 @@ export default function HiveStoreDetailPage() {
     if (!bot) return;
 
     if (!isAuthenticated) {
-      toast.error("Please sign in to install bots");
+      await showAlert("Identity Required", "Please initialize session to install cognitive agents.", "warning");
       router.push("/signin");
       return;
     }
@@ -318,10 +319,10 @@ export default function HiveStoreDetailPage() {
         throw new Error(data.error || "Failed to install bot");
       }
 
-      toast.success(`${bot.name} installed successfully!`);
+      await showAlert("Deployment Successful", `${bot.name} has been integrated into your neural network.`, "success");
       router.push(`/dashboard/my-bots`);
     } catch (err: any) {
-      toast.error(err.message || "Installation failed");
+      await showAlert("Deployment Failure", err.message || "Installation handshake failed.", "error");
     } finally {
       setInstalling(false);
     }

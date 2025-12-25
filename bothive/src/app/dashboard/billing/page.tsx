@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2, ShieldCheck, Zap, PartyPopper, Sparkles, ArrowRight, X } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { useAppSession } from "@/lib/app-session-context";

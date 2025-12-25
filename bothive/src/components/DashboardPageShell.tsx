@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
 import { useTheme } from "@/lib/theme-context";
 import { NotificationPopover } from "@/components/NotificationPopover";
+import { UserNav } from "@/components/UserNav";
 
 interface DashboardPageShellProps {
     title: string;
@@ -65,6 +66,7 @@ export function DashboardPageShell({
                         {/* Right side Actions */}
                         <div className="flex items-center gap-3">
                             <NotificationPopover />
+                            <UserNav />
 
                             {headerAction && (
                                 <motion.div

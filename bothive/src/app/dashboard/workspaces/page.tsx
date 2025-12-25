@@ -2,14 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useAppSession } from "@/lib/app-session-context";
-import { useTheme } from "@/lib/theme-context";
 import { cn } from "@/lib/utils";
 import { DashboardPageShell } from "@/components/DashboardPageShell";
-import ThemeToggle from "@/components/ThemeToggle";
-import ProfessionalAlert from "@/components/ui/game-alert";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import {
   Users,
   Plus,
@@ -17,8 +13,17 @@ import {
   MoreVertical,
   Activity,
   Bot,
-  X
+  X,
+  Mail,
+  Copy,
+  Check,
+  Settings,
+  Trash2,
+  UserPlus,
+  Crown,
+  Shield
 } from "lucide-react";
+import Link from "next/link";
 
 interface Workspace {
   id: string;
@@ -31,7 +36,6 @@ interface Workspace {
   updated_at: string;
   member_count?: number;
   bots_count?: number;
-  recent_activity?: number;
 }
 
 interface Member {
@@ -51,17 +55,9 @@ interface Member {
 }
 
 export default function WorkspacesPage() {
-  const router = useRouter();
   const { profile } = useAppSession();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const { showAlert } = useGlassAlert();
 
-  const [showAlert, setShowAlert] = useState<{
-    type: "success" | "error" | "warning" | "info";
-    title: string;
-    message?: string;
-    autoClose?: number;
-  } | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,7 +65,9 @@ export default function WorkspacesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     fetchWorkspaces();
@@ -85,8 +83,7 @@ export default function WorkspacesPage() {
         const workspacesWithStats = data.workspaces.map((ws: Workspace) => ({
           ...ws,
           member_count: (ws as any).members?.length || 0,
-          bots_count: Math.floor(Math.random() * 20),
-          recent_activity: Math.floor(Math.random() * 100)
+          bots_count: Math.floor(Math.random() * 12)
         }));
         setWorkspaces(workspacesWithStats);
       }
@@ -123,34 +120,23 @@ export default function WorkspacesPage() {
     const slug = formData.get("slug") as string;
 
     try {
-      const { data, error } = await supabase
-        .from("workspaces")
-        .insert({
-          name,
-          description,
-          slug,
-          owner_id: profile?.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setShowAlert({
-        type: "success",
-        title: "Workspace Created!",
-        message: `"${name}" has been created successfully.`,
-        autoClose: 3000
+      const response = await fetch("/api/workspaces", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description, slug })
       });
 
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create workspace");
+      }
+
+      await showAlert("Workspace Created", `"${name}" is ready for your team.`, "success");
       setShowCreateModal(false);
       fetchWorkspaces();
     } catch (error) {
-      setShowAlert({
-        type: "error",
-        title: "Creation Failed",
-        message: error instanceof Error ? error.message : "Failed to create workspace"
-      });
+      await showAlert("Creation Failed", error instanceof Error ? error.message : "Please try again.", "error");
     }
   };
 
@@ -158,6 +144,7 @@ export default function WorkspacesPage() {
     e.preventDefault();
     if (!selectedWorkspace || !inviteEmail) return;
 
+    setInviteLoading(true);
     try {
       const response = await fetch(`/api/workspaces/${selectedWorkspace.id}/invite`, {
         method: "POST",
@@ -165,43 +152,36 @@ export default function WorkspacesPage() {
         body: JSON.stringify({ email: inviteEmail })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        setShowAlert({
-          type: "success",
-          title: "Invitation Sent!",
-          message: `Invitation sent to ${inviteEmail}`,
-          autoClose: 3000
-        });
+        await showAlert("Invitation Sent", `${inviteEmail} will receive an invite.`, "success");
         setInviteEmail("");
         setShowInviteModal(false);
         fetchMembers(selectedWorkspace.id);
       } else {
-        throw new Error("Failed to send invitation");
+        throw new Error(data.error || "Failed to send invitation");
       }
     } catch (error) {
-      setShowAlert({
-        type: "error",
-        title: "Invitation Failed",
-        message: error instanceof Error ? error.message : "Failed to send invitation"
-      });
+      await showAlert("Invitation Failed", error instanceof Error ? error.message : "Please try again.", "error");
+    } finally {
+      setInviteLoading(false);
     }
   };
 
-  // Theme-aware styles
-  const cardBg = isDark
-    ? "bg-white/[0.02] border-white/[0.06]"
-    : "bg-white border-black/[0.06] shadow-sm";
-  const textPrimary = isDark ? "text-white" : "text-black";
-  const textSecondary = isDark ? "text-white/60" : "text-black/60";
-  const inputBg = isDark
-    ? "bg-white/[0.03] border-white/[0.08]"
-    : "bg-white border-black/[0.1]";
+  const copyInviteLink = () => {
+    if (!selectedWorkspace) return;
+    const link = `${window.location.origin}/join/${selectedWorkspace.slug}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
 
-  const getRoleColor = (role: string) => {
+  const getRoleIcon = (role: string) => {
     switch (role) {
-      case "owner": return isDark ? "bg-violet-500/20 text-violet-400" : "bg-violet-100 text-violet-700";
-      case "admin": return isDark ? "bg-blue-500/20 text-blue-400" : "bg-blue-100 text-blue-700";
-      default: return isDark ? "bg-white/10 text-white/60" : "bg-black/[0.05] text-black/60";
+      case "owner": return <Crown className="w-3.5 h-3.5" />;
+      case "admin": return <Shield className="w-3.5 h-3.5" />;
+      default: return null;
     }
   };
 
@@ -210,181 +190,97 @@ export default function WorkspacesPage() {
       title="Workspaces"
       description="Collaborate with your team"
       headerAction={
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowCreateModal(true)}
-            className={cn(
-              "px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all",
-              isDark
-                ? "bg-white text-black hover:bg-white/90"
-                : "bg-black text-white hover:bg-black/90"
-            )}
-          >
-            <Plus className="w-4 h-4" />
-            New Workspace
-          </motion.button>
-        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          New Workspace
+        </button>
       }
     >
       {/* Search */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
-        <div className="relative">
-          <Search className={cn("absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5", textSecondary)} />
+      <div className="mb-8">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
           <input
             type="text"
             placeholder="Search workspaces..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={cn(
-              "w-full pl-12 pr-4 py-3 rounded-xl border outline-none transition-colors focus:border-violet-500",
-              inputBg, textPrimary
-            )}
+            className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/10 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-violet-500/50 transition-colors"
           />
         </div>
-      </motion.div>
+      </div>
 
       {/* Workspaces Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className={cn("h-48 rounded-2xl border animate-pulse", cardBg)}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-44 rounded-xl border border-white/5 bg-white/[0.02] animate-pulse" />
           ))}
         </div>
       ) : filteredWorkspaces.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
-          <div className={cn(
-            "w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center",
-            isDark ? "bg-white/[0.03]" : "bg-black/[0.03]"
-          )}>
-            <Users className={cn("w-8 h-8", textSecondary)} />
+          <div className="w-14 h-14 rounded-xl bg-white/[0.03] border border-white/5 mx-auto mb-4 flex items-center justify-center">
+            <Users className="w-6 h-6 text-neutral-600" />
           </div>
-          <h3 className={cn("text-lg font-semibold mb-2", textPrimary)}>No workspaces yet</h3>
-          <p className={cn("mb-6", textSecondary)}>Create your first workspace to start collaborating</p>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <h3 className="text-lg font-medium text-white mb-2">No workspaces yet</h3>
+          <p className="text-neutral-500 mb-6 text-sm">Create a workspace to start collaborating with your team.</p>
+          <button
             onClick={() => setShowCreateModal(true)}
-            className={cn(
-              "px-6 py-3 rounded-xl font-medium",
-              isDark
-                ? "bg-white text-black hover:bg-white/90"
-                : "bg-black text-white hover:bg-black/90"
-            )}
+            className="px-5 py-2.5 bg-white text-black rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors"
           >
             Create Workspace
-          </motion.button>
+          </button>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <AnimatePresence>
-            {filteredWorkspaces.map((workspace, index) => (
-              <motion.div
-                key={workspace.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.03 }}
-                whileHover={{ y: -4 }}
-                className={cn(
-                  "p-5 rounded-2xl border cursor-pointer transition-all",
-                  cardBg,
-                  isDark ? "hover:border-white/[0.12]" : "hover:border-black/[0.12] hover:shadow-md"
-                )}
-                onClick={() => {
-                  setSelectedWorkspace(workspace);
-                  fetchMembers(workspace.id);
-                }}
-              >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className={cn("text-lg font-semibold mb-1 truncate", textPrimary)}>
-                      {workspace.name}
-                    </h3>
-                    {workspace.description && (
-                      <p className={cn("text-sm line-clamp-2", textSecondary)}>
-                        {workspace.description}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    className={cn(
-                      "p-2 rounded-lg transition-colors",
-                      isDark ? "hover:bg-white/10" : "hover:bg-black/5"
-                    )}
-                  >
-                    <MoreVertical className={cn("w-4 h-4", textSecondary)} />
-                  </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredWorkspaces.map((workspace, index) => (
+            <motion.div
+              key={workspace.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              onClick={() => {
+                setSelectedWorkspace(workspace);
+                fetchMembers(workspace.id);
+              }}
+              className="group p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 cursor-pointer transition-all"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-white mb-1 truncate group-hover:text-violet-300 transition-colors">
+                    {workspace.name}
+                  </h3>
+                  {workspace.description && (
+                    <p className="text-sm text-neutral-500 line-clamp-2">{workspace.description}</p>
+                  )}
                 </div>
+              </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center">
-                    <p className={cn("text-xl font-bold", textPrimary)}>{workspace.member_count}</p>
-                    <p className={cn("text-xs", textSecondary)}>Members</p>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-neutral-500">
+                    <Users className="w-4 h-4" />
+                    <span>{workspace.member_count}</span>
                   </div>
-                  <div className="text-center">
-                    <p className={cn("text-xl font-bold", textPrimary)}>{workspace.bots_count}</p>
-                    <p className={cn("text-xs", textSecondary)}>Bots</p>
-                  </div>
-                  <div className="text-center">
-                    <p className={cn("text-xl font-bold", textPrimary)}>{workspace.recent_activity}</p>
-                    <p className={cn("text-xs", textSecondary)}>Activity</p>
+                  <div className="flex items-center gap-1.5 text-neutral-500">
+                    <Bot className="w-4 h-4" />
+                    <span>{workspace.bots_count}</span>
                   </div>
                 </div>
-
-                {/* Members Avatars */}
-                <div className="flex items-center justify-between">
-                  <div className="flex -space-x-2">
-                    {[...Array(Math.min(3, workspace.member_count || 0))].map((_, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-medium",
-                          isDark
-                            ? "bg-violet-500/20 border-[#0a0a0f] text-violet-400"
-                            : "bg-violet-100 border-white text-violet-700"
-                        )}
-                      >
-                        {String.fromCharCode(65 + i)}
-                      </div>
-                    ))}
-                    {(workspace.member_count || 0) > 3 && (
-                      <div className={cn(
-                        "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-medium",
-                        isDark
-                          ? "bg-white/10 border-[#0a0a0f] text-white/60"
-                          : "bg-black/[0.05] border-white text-black/60"
-                      )}>
-                        +{(workspace.member_count || 0) - 3}
-                      </div>
-                    )}
-                  </div>
-                  <div className={cn("flex items-center gap-1 text-xs", textSecondary)}>
-                    <Activity className="w-3 h-3" />
-                    Active
-                  </div>
+                <div className="flex items-center gap-1 text-xs text-neutral-600">
+                  <Activity className="w-3 h-3" />
+                  Active
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+              </div>
+            </motion.div>
+          ))}
         </div>
       )}
 
@@ -398,86 +294,94 @@ export default function WorkspacesPage() {
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={() => setSelectedWorkspace(null)}
           >
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className={cn(
-                "relative w-full max-w-2xl rounded-2xl border overflow-hidden",
-                isDark ? "bg-[#0a0a0f] border-white/[0.1]" : "bg-white border-black/[0.1]"
-              )}
+              className="relative w-full max-w-lg bg-[#0c0c0f] border border-white/10 rounded-xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className={cn(
-                "p-6 border-b",
-                isDark ? "border-white/[0.06]" : "border-black/[0.06]"
-              )}>
+              <div className="p-5 border-b border-white/5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className={cn("text-xl font-bold", textPrimary)}>{selectedWorkspace.name}</h2>
-                    <p className={textSecondary}>{selectedWorkspace.description}</p>
+                    <h2 className="text-lg font-semibold text-white">{selectedWorkspace.name}</h2>
+                    <p className="text-sm text-neutral-500">{selectedWorkspace.description}</p>
                   </div>
                   <button
                     onClick={() => setSelectedWorkspace(null)}
-                    className={cn("p-2 rounded-lg transition-colors", isDark ? "hover:bg-white/10" : "hover:bg-black/5")}
+                    className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                   >
-                    <X className={cn("w-5 h-5", textSecondary)} />
+                    <X className="w-5 h-5 text-neutral-500" />
                   </button>
                 </div>
               </div>
 
-              {/* Members */}
-              <div className="p-6 max-h-96 overflow-y-auto">
+              {/* Members Section */}
+              <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className={cn("text-lg font-semibold", textPrimary)}>Team Members</h3>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <h3 className="text-sm font-medium text-neutral-400">Team Members</h3>
+                  <button
                     onClick={() => setShowInviteModal(true)}
-                    className={cn(
-                      "px-4 py-2 rounded-xl font-medium flex items-center gap-2 text-sm",
-                      isDark
-                        ? "bg-white text-black hover:bg-white/90"
-                        : "bg-black text-white hover:bg-black/90"
-                    )}
+                    className="px-3 py-1.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 rounded-lg text-xs font-medium hover:bg-violet-500/20 transition-colors flex items-center gap-1.5"
                   >
-                    <Plus className="w-4 h-4" />
+                    <UserPlus className="w-3.5 h-3.5" />
                     Invite
-                  </motion.button>
+                  </button>
                 </div>
 
-                <div className="space-y-3">
-                  {members.map((member) => (
-                    <div
-                      key={member.id}
-                      className={cn(
-                        "flex items-center justify-between p-4 rounded-xl border",
-                        isDark
-                          ? "border-white/[0.06] bg-white/[0.01]"
-                          : "border-black/[0.06] bg-black/[0.01]"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center font-medium",
-                          isDark ? "bg-violet-500/20 text-violet-400" : "bg-violet-100 text-violet-700"
-                        )}>
-                          {member.user.user_metadata?.name?.[0] || member.user.email[0].toUpperCase()}
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {members.length === 0 ? (
+                    <p className="text-sm text-neutral-600 py-4 text-center">No members yet</p>
+                  ) : (
+                    members.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 text-sm font-medium">
+                            {member.user.user_metadata?.name?.[0] || member.user.email[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white">
+                              {member.user.user_metadata?.name || member.user.email.split('@')[0]}
+                            </p>
+                            <p className="text-xs text-neutral-500">{member.user.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className={cn("font-medium", textPrimary)}>
-                            {member.user.user_metadata?.name || member.user.email}
-                          </p>
-                          <p className={cn("text-sm", textSecondary)}>{member.user.email}</p>
+                        <div className={cn(
+                          "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium capitalize",
+                          member.role === "owner" ? "bg-amber-500/10 text-amber-400" :
+                            member.role === "admin" ? "bg-blue-500/10 text-blue-400" :
+                              "bg-white/5 text-neutral-400"
+                        )}>
+                          {getRoleIcon(member.role)}
+                          {member.role}
                         </div>
                       </div>
-                      <span className={cn("px-3 py-1 text-xs font-medium rounded-lg capitalize", getRoleColor(member.role))}>
-                        {member.role}
-                      </span>
-                    </div>
-                  ))}
+                    ))
+                  )}
+                </div>
+
+                {/* Invite Link Section */}
+                <div className="mt-5 pt-5 border-t border-white/5">
+                  <p className="text-xs text-neutral-500 mb-2">Invite Link</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join/${selectedWorkspace.slug}`}
+                      className="flex-1 px-3 py-2 bg-white/[0.03] border border-white/5 rounded-lg text-sm text-neutral-400"
+                    />
+                    <button
+                      onClick={copyInviteLink}
+                      className="px-3 py-2 bg-white/5 border border-white/5 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      {copiedLink ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-neutral-400" />}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -485,7 +389,7 @@ export default function WorkspacesPage() {
         )}
       </AnimatePresence>
 
-      {/* Create Workspace Modal */}
+      {/* Create Modal */}
       <AnimatePresence>
         {showCreateModal && (
           <motion.div
@@ -495,99 +399,68 @@ export default function WorkspacesPage() {
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={() => setShowCreateModal(false)}
           >
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className={cn(
-                "relative w-full max-w-md p-6 rounded-2xl border",
-                isDark ? "bg-[#0a0a0f] border-white/[0.1]" : "bg-white border-black/[0.1]"
-              )}
+              className="relative w-full max-w-md p-6 bg-[#0c0c0f] border border-white/10 rounded-xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className={cn("text-xl font-bold mb-6", textPrimary)}>Create Workspace</h2>
+              <h2 className="text-lg font-semibold text-white mb-5">Create Workspace</h2>
 
-              <form onSubmit={handleCreateWorkspace}>
-                <div className="space-y-4">
-                  <div>
-                    <label className={cn("block text-sm font-medium mb-2", textPrimary)}>Name</label>
+              <form onSubmit={handleCreateWorkspace} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1.5">Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="My Team"
+                    className="w-full px-3 py-2.5 bg-white/[0.03] border border-white/10 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-violet-500/50 transition-colors"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1.5">Description</label>
+                  <textarea
+                    name="description"
+                    placeholder="What's this workspace for?"
+                    rows={2}
+                    className="w-full px-3 py-2.5 bg-white/[0.03] border border-white/10 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-violet-500/50 transition-colors resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1.5">URL Slug</label>
+                  <div className="flex">
+                    <span className="px-3 py-2.5 bg-white/[0.02] border border-r-0 border-white/10 rounded-l-lg text-sm text-neutral-600">
+                      bothive.cloud/join/
+                    </span>
                     <input
                       type="text"
-                      name="name"
-                      placeholder="My Workspace"
-                      className={cn(
-                        "w-full px-4 py-3 rounded-xl border outline-none transition-colors focus:border-violet-500",
-                        inputBg, textPrimary
-                      )}
+                      name="slug"
+                      placeholder="my-team"
+                      className="flex-1 px-3 py-2.5 bg-white/[0.03] border border-white/10 rounded-r-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-violet-500/50 transition-colors"
                       required
                     />
                   </div>
-
-                  <div>
-                    <label className={cn("block text-sm font-medium mb-2", textPrimary)}>Description</label>
-                    <textarea
-                      name="description"
-                      placeholder="What's this workspace about?"
-                      rows={3}
-                      className={cn(
-                        "w-full px-4 py-3 rounded-xl border outline-none transition-colors focus:border-violet-500 resize-none",
-                        inputBg, textPrimary
-                      )}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={cn("block text-sm font-medium mb-2", textPrimary)}>URL Slug</label>
-                    <div className="flex">
-                      <span className={cn(
-                        "px-4 py-3 rounded-l-xl border-y border-l text-sm",
-                        isDark
-                          ? "bg-white/[0.03] border-white/[0.08] text-white/50"
-                          : "bg-black/[0.02] border-black/[0.1] text-black/50"
-                      )}>
-                        bothive.app/
-                      </span>
-                      <input
-                        type="text"
-                        name="slug"
-                        placeholder="my-workspace"
-                        className={cn(
-                          "flex-1 px-4 py-3 rounded-r-xl border outline-none transition-colors focus:border-violet-500",
-                          inputBg, textPrimary
-                        )}
-                        required
-                      />
-                    </div>
-                  </div>
                 </div>
 
-                <div className="flex gap-3 mt-6">
+                <div className="flex gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className={cn(
-                      "flex-1 py-3 rounded-xl font-medium border transition-colors",
-                      isDark
-                        ? "border-white/[0.1] text-white hover:bg-white/5"
-                        : "border-black/[0.1] text-black hover:bg-black/5"
-                    )}
+                    className="flex-1 py-2.5 border border-white/10 text-neutral-400 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors"
                   >
                     Cancel
                   </button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     type="submit"
-                    className={cn(
-                      "flex-1 py-3 rounded-xl font-medium transition-all",
-                      isDark
-                        ? "bg-white text-black hover:bg-white/90"
-                        : "bg-black text-white hover:bg-black/90"
-                    )}
+                    className="flex-1 py-2.5 bg-white text-black rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors"
                   >
-                    Create Workspace
-                  </motion.button>
+                    Create
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -602,82 +475,58 @@ export default function WorkspacesPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
             onClick={() => setShowInviteModal(false)}
           >
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className={cn(
-                "relative w-full max-w-md p-6 rounded-2xl border",
-                isDark ? "bg-[#0a0a0f] border-white/[0.1]" : "bg-white border-black/[0.1]"
-              )}
+              className="relative w-full max-w-sm p-5 bg-[#0c0c0f] border border-white/10 rounded-xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className={cn("text-xl font-bold mb-6", textPrimary)}>Invite Member</h2>
+              <h2 className="text-base font-semibold text-white mb-4">Invite Team Member</h2>
 
               <form onSubmit={handleInviteMember}>
-                <div>
-                  <label className={cn("block text-sm font-medium mb-2", textPrimary)}>Email Address</label>
+                <div className="mb-4">
+                  <label className="block text-sm text-neutral-400 mb-1.5">Email Address</label>
                   <input
                     type="email"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="colleague@example.com"
-                    className={cn(
-                      "w-full px-4 py-3 rounded-xl border outline-none transition-colors focus:border-violet-500",
-                      inputBg, textPrimary
-                    )}
+                    placeholder="colleague@company.com"
+                    className="w-full px-3 py-2.5 bg-white/[0.03] border border-white/10 rounded-lg text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-violet-500/50 transition-colors"
                     required
                   />
                 </div>
 
-                <div className="flex gap-3 mt-6">
+                <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={() => setShowInviteModal(false)}
-                    className={cn(
-                      "flex-1 py-3 rounded-xl font-medium border transition-colors",
-                      isDark
-                        ? "border-white/[0.1] text-white hover:bg-white/5"
-                        : "border-black/[0.1] text-black hover:bg-black/5"
-                    )}
+                    className="flex-1 py-2.5 border border-white/10 text-neutral-400 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors"
                   >
                     Cancel
                   </button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <button
                     type="submit"
-                    className={cn(
-                      "flex-1 py-3 rounded-xl font-medium transition-all",
-                      isDark
-                        ? "bg-white text-black hover:bg-white/90"
-                        : "bg-black text-white hover:bg-black/90"
-                    )}
+                    disabled={inviteLoading}
+                    className="flex-1 py-2.5 bg-violet-500 text-white rounded-lg text-sm font-medium hover:bg-violet-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    Send Invite
-                  </motion.button>
+                    {inviteLoading ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4" />
+                        Send Invite
+                      </>
+                    )}
+                  </button>
                 </div>
               </form>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Alert */}
-      <AnimatePresence>
-        {showAlert && (
-          <ProfessionalAlert
-            open={!!showAlert}
-            title={showAlert?.title || ""}
-            message={showAlert?.message}
-            onClose={() => setShowAlert(null)}
-            variant={showAlert?.type || "info"}
-            autoClose={showAlert?.autoClose}
-          />
         )}
       </AnimatePresence>
     </DashboardPageShell>

@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { IconSparkles, IconBrandGithub, IconBrandTwitter, IconCheck, IconLoader2 } from "@tabler/icons-react";
 import Link from "next/link";
 import Image from "next/image";
-import { toast } from "sonner";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 
 export default function WaitlistPage() {
     const [email, setEmail] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const { showAlert } = useGlassAlert();
 
     const handleJoinWaitlist = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,12 +27,12 @@ export default function WaitlistPage() {
 
             if (response.ok) {
                 setIsSuccess(true);
-                toast.success("Welcome to the swarm!");
+                await showAlert("Welcome to the Swarm", "Your invitation request has been logged in the collective.", "success");
             } else {
-                toast.error("Something went wrong. Please try again.");
+                await showAlert("Protocol Error", "Something went wrong during data ingestion. Please try again.", "error");
             }
         } catch (error) {
-            toast.error("Failed to join waitlist.");
+            await showAlert("Connection Failure", "Failed to sync with the waitlist database.", "error");
         } finally {
             setIsSubmitting(false);
         }
@@ -100,15 +101,15 @@ export default function WaitlistPage() {
                                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center text-sm text-white placeholder:text-neutral-700 focus:outline-none focus:border-violet-500/50 transition-all uppercase tracking-widest"
                                     />
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             const input = document.getElementById('invite-code-input') as HTMLInputElement;
                                             const code = input?.value?.toUpperCase();
                                             if (code === 'BOTHIVE-EARLY') {
                                                 localStorage.setItem('bothive_invite_token', 'valid');
-                                                toast.success("Access Granted! Redirecting...");
+                                                await showAlert("Access Granted", "Valid security token identified. Redirecting to neural core...", "success");
                                                 window.location.href = '/dashboard';
                                             } else {
-                                                toast.error("Invalid invite code");
+                                                await showAlert("Invalid Token", "Security code mismatch. Access denied.", "error");
                                             }
                                         }}
                                         className="w-full py-3 rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400 text-xs font-bold uppercase tracking-widest hover:bg-violet-600/20 transition-all"

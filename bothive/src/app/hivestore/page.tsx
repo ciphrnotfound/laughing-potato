@@ -31,7 +31,7 @@ import {
 import { SpotlightCard } from "@/components/ui/ThreeDCard";
 import { supabase } from "@/lib/supabase";
 import { cn, slugify } from "@/lib/utils";
-import { ProfessionalAlert } from "@/components/ui/glass-alert";
+import { useGlassAlert } from "@/components/ui/glass-alert";
 import { useAppSession } from "@/lib/app-session-context";
 import { useTheme } from "@/lib/theme-context";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -380,7 +380,7 @@ export default function HiveStorePage() {
   const [bots, setBots] = useState<HiveStoreRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [alert, setAlert] = useState<AlertState>(null);
+  const { showAlert } = useGlassAlert();
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
@@ -465,12 +465,11 @@ export default function HiveStorePage() {
 
   const handleInstall = useCallback((bot: HiveStoreRecord) => {
     if (!isAuthenticated) {
-      setAlert({
-        variant: "warning",
-        title: "Sign in required",
-        message: "Please sign in to install bots and manage your workspace.",
-        autoClose: 5000,
-      });
+      showAlert(
+        "Sign in required",
+        "Please sign in to install bots and manage your workspace.",
+        "warning"
+      );
       return;
     }
     const targetSlug = bot.slug ?? slugify(bot.name) ?? bot.id;
@@ -490,16 +489,7 @@ export default function HiveStorePage() {
           : "bg-[radial-gradient(ellipse_at_top,rgba(139,92,246,0.06),transparent_50%)]"
       )} />
 
-      {alert && (
-        <ProfessionalAlert
-          variant={alert.variant}
-          title={alert.title}
-          message={alert.message}
-          open
-          autoClose={alert.autoClose}
-          onClose={() => setAlert(null)}
-        />
-      )}
+      {/* No explicit Alert component needed, handled globally by provider */}
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 lg:py-16">
         {/* ================================================================ */}

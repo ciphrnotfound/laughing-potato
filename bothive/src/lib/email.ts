@@ -288,5 +288,50 @@ export const EmailService = {
     } catch (err: any) {
       console.error('[EMAIL] ❌ Unexpected Error in Early Bird email:', err?.message || err);
     }
+  },
+
+  /**
+   * Send Workspace Team Invite Email
+   */
+  async sendWorkspaceInviteEmail(email: string, workspaceName: string, inviterName: string, inviteLink: string) {
+    const hasApiKey = !!process.env.RESEND_API_KEY;
+    console.log(`[EMAIL] 🐝 Workspace Invite Request: To=${email}, Workspace=${workspaceName}, HasKey=${hasApiKey}`);
+
+    if (!hasApiKey) {
+      console.log('📧 [MOCK EMAIL] Workspace invite sent to:', email);
+      return;
+    }
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: 'Bothive <noreply@support.bothive.cloud>',
+        to: email,
+        subject: `You've been invited to join ${workspaceName} on Bothive 🐝`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; padding: 60px 40px; border-radius: 24px; text-align: center; max-width: 600px; margin: auto; border: 1px solid #222;">
+            <div style="margin-bottom: 30px;">
+               <img src="https://bothive.cloud/bothive-ai-logo.svg" alt="Bothive" style="width: 80px; height: 80px;" />
+            </div>
+            <h1 style="color: #fff; font-size: 28px; letter-spacing: -1px; margin-bottom: 16px;">You've Been Invited! 🎉</h1>
+            <p style="color: #a1a1aa; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
+              <strong style="color: #fff;">${inviterName}</strong> has invited you to join <strong style="color: #a78bfa;">${workspaceName}</strong> on Bothive.
+            </p>
+            <p style="color: #71717a; font-size: 14px; line-height: 1.6; margin-bottom: 32px;">
+              Join the workspace to collaborate on AI agents and automation workflows with your team.
+            </p>
+            <a href="${inviteLink}" style="display: inline-block; padding: 16px 32px; background: #9333ea; color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 10px 20px rgba(147, 51, 234, 0.3);">Accept Invitation →</a>
+            <p style="margin-top: 40px; color: #52525b; font-size: 12px;">If you don't have a Bothive account yet, you'll be prompted to create one when you click the link above.</p>
+          </div>
+        `
+      });
+
+      if (error) {
+        console.error('[EMAIL] ❌ Resend Error (Workspace Invite):', error);
+      } else {
+        console.log('[EMAIL] ✅ Workspace Invite Email Sent Successfully! ID:', data?.id);
+      }
+    } catch (err: any) {
+      console.error('[EMAIL] ❌ Unexpected Error in Workspace Invite email:', err?.message || err);
+    }
   }
 };
