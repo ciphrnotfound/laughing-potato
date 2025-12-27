@@ -47,7 +47,7 @@ export default function OnboardingPage() {
     if (!loading) {
       if (!isAuthenticated) {
         router.push("/signin");
-      } else if (profile?.onboarding_completed) {
+      } else if (profile?.onboardingCompleted) {
         router.push("/dashboard");
       }
     }

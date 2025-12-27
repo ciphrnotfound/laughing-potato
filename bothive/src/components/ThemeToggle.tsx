@@ -6,11 +6,7 @@ import { useTheme } from "@/lib/theme-context";
 
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [mounted, setMounted] = useState(() => typeof window !== "undefined");
 
   if (!mounted) {
     return (

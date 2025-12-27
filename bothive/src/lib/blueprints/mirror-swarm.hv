@@ -1,0 +1,46 @@
+// Digital Doppelgänger Blueprint v1.0
+// This script orchestrates the Mirror Swarm agents (Historian, Gatekeeper, Ghostwriter)
+
+on input:
+    // 1. GATEKEEPER: Triage the incoming message for urgency
+    // The Gatekeeper decides if the Twin can handle this or if the Original needs waking up.
+    $triage = call communication.evaluate_urgency(
+        message: input,
+        rules: [
+            "Escalate if they sound angry or upset",
+            "Escalate if it's about a critical technical failure",
+            "Escalate if they are asking for a direct payment or sensitive info"
+        ]
+    )
+
+    if $triage.escalate:
+        // Notify user via logs/push (Simulated)
+        say "Original user has been alerted to this urgent request. High-priority escalation established. 🚨"
+        return
+    end
+
+    // 2. HISTORIAN: Retrieve the current Personality DNA
+    // (In a real scenario, this would be fetched from the bot's memory or profile)
+    $dna = get "personality_dna"
+    
+    if not $dna:
+        // Fallback DNA if the user hasn't trained the Historian yet
+        $dna = {
+            tone: "helpful, clear, and professional",
+            emojis: "🤝, ✨",
+            slang: "best regards",
+            quirks: "organized bullet points"
+        }
+    end
+
+    // 3. GHOSTWRITER: Generate the identity-aligned response
+    // The Ghostwriter injects the DNA into the LLM system prompt for a perfect mirror voice.
+    $draft = call communication.draft_identity_reply(
+        context: "Inbound community query",
+        profile: $dna,
+        inbound_message: input
+    )
+
+    // 4. Output the mirrored identity
+    say $draft.draft
+end

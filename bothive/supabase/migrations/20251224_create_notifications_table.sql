@@ -2,11 +2,11 @@
 CREATE TABLE IF NOT EXISTS public.notifications (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    type TEXT NOT NULL CHECK (type IN ('purchase', 'sale', 'system', 'review', 'alert', 'info')),
+    type TEXT NOT NULL CHECK (type IN ('purchase', 'sale', 'system', 'review', 'alert', 'info', 'workspace_invite', 'workspace_joined', 'invite_sent', 'workspace_created')),
     title TEXT NOT NULL,
     message TEXT NOT NULL,
     read BOOLEAN DEFAULT FALSE,
-    action_link TEXT, -- Optional link to redirect to
+    action_link TEXT, -- Consistent name for the link
     metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

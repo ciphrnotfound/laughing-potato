@@ -1,6 +1,13 @@
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+
+// Initialize Supabase Admin for authoritative actions
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(
     req: NextRequest,
@@ -29,7 +36,7 @@ export async function POST(
         // Find workspace by slug or ID
         let workspace;
 
-        const { data: bySlug } = await supabase
+        const { data: bySlug } = await supabaseAdmin
             .from("bot_workspaces")
             .select("id, name, slug")
             .eq("slug", id)
@@ -38,7 +45,7 @@ export async function POST(
         if (bySlug) {
             workspace = bySlug;
         } else {
-            const { data: byId } = await supabase
+            const { data: byId } = await supabaseAdmin
                 .from("bot_workspaces")
                 .select("id, name, slug")
                 .eq("id", id)
@@ -51,7 +58,7 @@ export async function POST(
         }
 
         // Check if user already has membership
-        const { data: existingMember } = await supabase
+        const { data: existingMember } = await supabaseAdmin
             .from("workspace_members")
             .select("id, status")
             .eq("workspace_id", workspace.id)
@@ -64,13 +71,13 @@ export async function POST(
             }
 
             // Update pending membership to active
-            await supabase
+            await supabaseAdmin
                 .from("workspace_members")
                 .update({ status: "active", joined_at: new Date().toISOString() })
                 .eq("id", existingMember.id);
         } else {
             // Check for email-based invitation
-            const { data: emailInvite } = await supabase
+            const { data: emailInvite } = await supabaseAdmin
                 .from("workspace_invitations")
                 .select("id, role")
                 .eq("workspace_id", workspace.id)
@@ -81,7 +88,7 @@ export async function POST(
             const role = emailInvite?.role || "member";
 
             // Create new membership
-            await supabase
+            await supabaseAdmin
                 .from("workspace_members")
                 .insert({
                     workspace_id: workspace.id,
@@ -92,7 +99,7 @@ export async function POST(
 
             // Mark email invitation as accepted
             if (emailInvite) {
-                await supabase
+                await supabaseAdmin
                     .from("workspace_invitations")
                     .update({ status: "accepted" })
                     .eq("id", emailInvite.id);
@@ -100,7 +107,7 @@ export async function POST(
         }
 
         // Create notification for the new member
-        await supabase
+        await supabaseAdmin
             .from("notifications")
             .insert({
                 user_id: user.id,

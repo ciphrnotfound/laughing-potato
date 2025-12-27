@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { publishScheduledPosts } from "@/lib/autoposter";
 
-/**
- * POST /api/autoposter/run - Execute scheduled post publishing
- * Called by cron jobs every minute
- */
+
 export async function POST(req: NextRequest) {
     try {
-        // Verify cron secret for security
+
         const cronSecret = req.headers.get('x-cron-secret');
         if (cronSecret !== process.env.CRON_SECRET && process.env.NODE_ENV === 'production') {
             return NextResponse.json(

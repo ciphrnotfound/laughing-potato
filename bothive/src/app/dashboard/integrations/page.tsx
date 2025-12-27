@@ -252,7 +252,6 @@ export default function IntegrationsPage() {
   const handleDisconnect = useCallback(async (integrationId: string) => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
       setIntegrations(prev => prev.map(integration =>
         integration.id === integrationId
           ? { ...integration, status: 'disconnected', credentials: undefined, webhooks: undefined }

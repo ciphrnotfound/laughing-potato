@@ -6,7 +6,9 @@ import {
     socialTools,
     messagingTools,
     integrationTools,
-    agentTools
+    agentTools,
+    lifeFixerTools,
+    doppelgangerTools
 } from "@/lib/tools";
 
 export const allTools: ToolDescriptor[] = [
@@ -16,5 +18,9 @@ export const allTools: ToolDescriptor[] = [
     ...socialTools,
     ...messagingTools,
     ...integrationTools,
-    ...agentTools
+    ...agentTools,
+    ...lifeFixerTools,
+    ...doppelgangerTools
 ];
+
+

@@ -22,12 +22,23 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [checking, setChecking] = useState(true);
+  const [forceShow, setForceShow] = useState(false);
   const { profile, loading: sessionLoading, isAuthenticated } = useAppSession();
 
+  // Timeout fallback - don't block dashboard for more than 2 seconds
   useEffect(() => {
-    if (sessionLoading) return;
+    const timeout = setTimeout(() => {
+      if (sessionLoading) {
+        setForceShow(true);
+      }
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [sessionLoading]);
 
-    if (!isAuthenticated) {
+  useEffect(() => {
+    if (sessionLoading && !forceShow) return;
+
+    if (!isAuthenticated && !forceShow) {
       router.push("/signin");
       return;
     }
@@ -41,7 +52,7 @@ export default function DashboardLayout({
       return;
     }
 
-    if (!profile?.onboardingCompleted) {
+    if (!profile?.onboardingCompleted && isAuthenticated) {
       if (!pathname?.includes("/onboarding")) {
         toast("Please complete your setup first.");
         router.push("/onboarding");
@@ -49,9 +60,10 @@ export default function DashboardLayout({
     }
 
     setChecking(false);
-  }, [router, pathname, profile, sessionLoading, isAuthenticated]);
+  }, [router, pathname, profile, sessionLoading, isAuthenticated, forceShow]);
 
-  if (sessionLoading) {
+  // Show loader only if still loading AND not timed out
+  if (sessionLoading && !forceShow) {
     return <FullPageLoader />;
   }
 

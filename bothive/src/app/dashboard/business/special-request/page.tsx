@@ -45,7 +45,7 @@ export default function SpecialBotRequestPage() {
     const handleSubmit = async () => {
         setLoading(true);
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // await new Promise(resolve => setTimeout(resolve, 2000));
 
         toast.success("Request Received! A Success Manager will contact you shortly.");
         setLoading(false);

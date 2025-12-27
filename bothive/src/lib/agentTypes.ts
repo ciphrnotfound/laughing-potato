@@ -77,6 +77,7 @@ export type ToolContext = {
         botId: string;
         runId: string;
         userId?: string;
+        botName?: string;
         botVersionId?: string;
         botVersion?: number;
         botSystemPrompt?: string;

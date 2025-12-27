@@ -8,11 +8,15 @@ import { useGlassAlert } from "@/components/ui/glass-alert";
 import { Users, Check, X, Loader2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+import { use } from "react";
+
 interface PageProps {
-    params: { slug: string };
+    params: Promise<{ slug: string }>;
 }
 
 export default function JoinWorkspacePage({ params }: PageProps) {
+    const resolvedParams = use(params);
+    const slug = resolvedParams.slug;
     const router = useRouter();
     const { showAlert } = useGlassAlert();
 
@@ -24,20 +28,20 @@ export default function JoinWorkspacePage({ params }: PageProps) {
 
     useEffect(() => {
         checkAuthAndLoadWorkspace();
-    }, [params.slug]);
+    }, [slug]);
 
     const checkAuthAndLoadWorkspace = async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             setIsAuthenticated(!!session);
 
-            const response = await fetch(`/api/workspaces/${params.slug}/info`);
+            const response = await fetch(`/api/workspaces/${slug}/info`);
 
             if (response.ok) {
                 const data = await response.json();
                 setWorkspace(data.workspace);
             } else {
-                setError("Workspace not found");
+                setError("Workspace not found or invalid invitation");
             }
         } catch (err) {
             console.error("Error loading workspace:", err);
@@ -49,13 +53,13 @@ export default function JoinWorkspacePage({ params }: PageProps) {
 
     const handleJoin = async () => {
         if (!isAuthenticated) {
-            router.push(`/signin?redirect=/join/${params.slug}`);
+            router.push(`/signin?redirect=/join/${slug}`);
             return;
         }
 
         setJoining(true);
         try {
-            const response = await fetch(`/api/workspaces/${params.slug}/accept`, {
+            const response = await fetch(`/api/workspaces/${slug}/accept`, {
                 method: "POST"
             });
 
@@ -168,14 +172,14 @@ export default function JoinWorkspacePage({ params }: PageProps) {
                             </p>
                             <div className="space-y-3">
                                 <Link
-                                    href={`/signin?redirect=/join/${params.slug}`}
+                                    href={`/signin?redirect=/join/${slug}`}
                                     className="w-full py-3 bg-white text-black rounded-xl font-medium text-sm hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
                                 >
                                     Sign In
                                     <ArrowRight className="w-4 h-4" />
                                 </Link>
                                 <Link
-                                    href={`/signup?redirect=/join/${params.slug}`}
+                                    href={`/signup?redirect=/join/${slug}`}
                                     className="w-full py-3 border border-white/10 text-white rounded-xl font-medium text-sm hover:bg-white/5 transition-colors flex items-center justify-center"
                                 >
                                     Create Account

@@ -41,7 +41,7 @@ export function LogoCloud() {
     const y = useTransform(scrollYProgress, [0, 0.2], [60, 0]);
 
     return (
-        <section ref={containerRef} className="relative py-32 bg-white dark:bg-[#08080c] overflow-hidden transition-colors duration-500">
+        <section ref={containerRef} className="relative py-32 bg-[#08080c] overflow-hidden">
             {/* Animated gradient line */}
             <div className="absolute top-0 left-0 right-0 h-px overflow-hidden">
                 <motion.div
@@ -80,7 +80,7 @@ export function LogoCloud() {
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
-                        className="text-sm text-black/50 dark:text-white/30 mb-10"
+                        className="text-sm text-white/30 mb-10"
                     >
                         Trusted by engineers at
                     </motion.p>
@@ -95,9 +95,10 @@ export function LogoCloud() {
                                 transition={{ delay: i * 0.1, duration: 0.5 }}
                                 whileHover={{
                                     scale: 1.1,
+                                    color: "rgba(255,255,255,0.8)",
                                     textShadow: "0 0 20px rgba(139,92,246,0.3)"
                                 }}
-                                className="text-xl font-medium text-black/40 dark:text-white/20 cursor-default transition-all duration-300"
+                                className="text-xl font-medium text-white/20 cursor-default transition-all duration-300"
                             >
                                 {company}
                             </motion.span>
@@ -123,11 +124,11 @@ export function LogoCloud() {
                             />
 
                             <motion.p
-                                className="relative text-5xl md:text-6xl font-semibold text-black dark:text-white mb-2 tracking-tight"
+                                className="relative text-5xl md:text-6xl font-semibold text-white mb-2 tracking-tight"
                             >
                                 <AnimatedNumber value={stat.value} suffix={stat.suffix} />
                             </motion.p>
-                            <p className="relative text-sm text-black/50 dark:text-white/40 group-hover:text-black/70 dark:group-hover:text-white/60 transition-colors duration-300">
+                            <p className="relative text-sm text-white/40 group-hover:text-white/60 transition-colors duration-300">
                                 {stat.label}
                             </p>
                         </motion.div>

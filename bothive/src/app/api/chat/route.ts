@@ -14,6 +14,7 @@ interface ChatRequest {
     message: string;
     systemPrompt?: string;
     botName?: string;
+    botId?: string;
     hivelangCode?: string;
     conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
     temperature?: number;
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
         const { data: { user } } = await supabase.auth.getUser();
 
         const body = (await request.json()) as ChatRequest;
-        const { message, systemPrompt, botName, hivelangCode, conversationHistory = [], temperature = 0.8 } = body;
+        const { message, systemPrompt, botName, botId, hivelangCode, conversationHistory = [], temperature = 0.8 } = body;
 
         if (!message) {
             return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -86,10 +87,11 @@ export async function POST(request: NextRequest) {
             // Create context
             const toolContext: ToolContext = {
                 metadata: {
-                    botId: "ephemeral-chat-bot",
+                    botId: botId || "ephemeral-chat-bot",
                     runId: "chat-" + Date.now(),
                     userId: user?.id,
-                    botSystemPrompt: systemPrompt
+                    botSystemPrompt: systemPrompt,
+                    botName: botName
                 },
                 sharedMemory: {
                     get: async () => undefined,

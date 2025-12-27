@@ -1,8 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-
 @theme {
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -300,36 +297,6 @@ body {
 
 .animate-pulse-glow {
   animation: pulse-glow 2s infinite ease-in-out;
-}
-
-@keyframes scroll-marquee {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-.scroller {
-  --animation-duration: 40s;
-  --animation-direction: forwards;
-}
-
-.scroller .animate-scroll {
-  animation-name: scroll-marquee;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  animation-duration: var(--animation-duration);
-  animation-direction: var(--animation-direction);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scroller .animate-scroll {
-    animation: none;
-    transform: translateX(0);
-  }
 }
 
 @keyframes gradient-x {

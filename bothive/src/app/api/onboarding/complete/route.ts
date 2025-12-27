@@ -53,28 +53,79 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: profileError.message }, { status: 500 });
         }
 
-        // 3. Grant Promotion if eligible
-        if (isEligibleForPromo) {
-            const oneMonthFromNow = new Date();
-            oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+        // 4. Check for pending workspace invitations and create notifications
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+        if (userData?.user?.email) {
+            const userEmail = userData.user.email;
 
-            // Update user tier and expiration
-            const { error: userError } = await supabaseAdmin
-                .from("users")
-                .update({
-                    tier: "developer", // Assuming "developer" tier is the one for Pro features as per migrations
-                    tier_expires_at: oneMonthFromNow.toISOString(),
-                })
-                .eq("id", userId);
+            // Find pending invitations for this email
+            const { data: invitations } = await supabaseAdmin
+                .from("workspace_invitations")
+                .select("*, bot_workspaces(name, slug)")
+                .eq("email", userEmail)
+                .eq("status", "pending");
 
-            if (userError) {
-                console.error("User tier update error:", userError);
-            } else {
-                // 4. Send Promotion Email
-                // Get user email
-                const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
-                if (userData?.user?.email) {
-                    await EmailService.sendEarlyBirdEmail(userData.user.email, firstName || "there");
+            if (invitations && invitations.length > 0) {
+                console.log(`[ONBOARDING] Found ${invitations.length} pending invitations for ${userEmail}`);
+
+                for (const invite of invitations) {
+                    const workspace = invite.bot_workspaces as any;
+                    if (!workspace) continue;
+
+                    // Get inviter name
+                    const { data: inviterProfile } = await supabaseAdmin
+                        .from("user_profiles")
+                        .select("first_name, last_name, team_name")
+                        .eq("user_id", invite.invited_by)
+                        .single();
+
+                    const inviterName = inviterProfile
+                        ? (inviterProfile.first_name ? `${inviterProfile.first_name} ${inviterProfile.last_name || ""}` : inviterProfile.team_name)
+                        : "Someone";
+
+                    const ws = (Array.isArray(invite.bot_workspaces) ? invite.bot_workspaces[0] : invite.bot_workspaces) as any;
+                    if (!ws) continue;
+
+                    const workspaceSlug = ws.slug || invite.workspace_id;
+                    // Create notification for the invited user
+                    await supabaseAdmin
+                        .from("notifications")
+                        .insert({
+                            user_id: userId,
+                            type: "workspace_invite",
+                            title: "Team Invitation",
+                            message: `${inviterName} invited you to join "${ws.name}"`,
+                            metadata: {
+                                workspace_id: invite.workspace_id,
+                                workspace_name: ws.name,
+                                workspace_slug: workspaceSlug,
+                                invited_by: invite.invited_by,
+                                inviter_name: inviterName
+                            },
+                            action_link: `/join/${workspaceSlug}`,
+                            read: false
+                        });
+                }
+            }
+
+            // 5. Grant Promotion if eligible
+            if (isEligibleForPromo) {
+                const oneMonthFromNow = new Date();
+                oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+
+                // Update user tier and expiration
+                const { error: userError } = await supabaseAdmin
+                    .from("users")
+                    .update({
+                        tier: "developer",
+                        tier_expires_at: oneMonthFromNow.toISOString(),
+                    })
+                    .eq("id", userId);
+
+                if (userError) {
+                    console.error("User tier update error:", userError);
+                } else {
+                    await EmailService.sendEarlyBirdEmail(userEmail, firstName || "there");
                 }
             }
         }

@@ -333,5 +333,45 @@ export const EmailService = {
     } catch (err: any) {
       console.error('[EMAIL] ❌ Unexpected Error in Workspace Invite email:', err?.message || err);
     }
+  },
+  async sendOtpEmail(email: string, code: string) {
+    const hasApiKey = !!process.env.RESEND_API_KEY;
+    console.log(`[EMAIL] 🔐 OTP Request: To=${email}, Code=${code}, HasKey=${hasApiKey}`);
+
+    if (!hasApiKey) {
+      console.log('📧 [MOCK EMAIL] OTP sent to:', email, 'Code:', code);
+      return;
+    }
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: 'Bothive Security <noreply@support.bothive.cloud>',
+        to: email,
+        subject: `Your Verification Code: ${code}`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; padding: 40px; border-radius: 20px; text-align: center; max-width: 500px; margin: auto; border: 1px solid #333;">
+            <div style="margin-bottom: 24px;">
+               <img src="https://bothive.cloud/bothive-ai-logo.svg" alt="Bothive" style="width: 60px; height: 60px;" />
+            </div>
+            <h1 style="color: #fff; font-size: 24px; font-weight: 600; margin-bottom: 8px;">Sign in to Bothive</h1>
+            <p style="color: #a1a1aa; font-size: 14px; margin-bottom: 32px;">Enter the code below to complete your sign up.</p>
+            
+            <div style="background: rgba(147, 51, 234, 0.1); border: 1px solid rgba(147, 51, 234, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 32px; letter-spacing: 8px; font-size: 32px; font-weight: 700; color: #a78bfa; font-variant-numeric: tabular-nums;">
+              ${code}
+            </div>
+
+            <p style="color: #52525b; font-size: 12px;">This code expires in 5 minutes. If you didn't request this, you can ignore this email.</p>
+          </div>
+        `
+      });
+
+      if (error) {
+        console.error('[EMAIL] ❌ Resend Error (OTP):', error);
+      } else {
+        console.log('[EMAIL] ✅ OTP Email Sent Successfully! ID:', data?.id);
+      }
+    } catch (err: any) {
+      console.error('[EMAIL] ❌ Unexpected Error in OTP email:', err?.message || err);
+    }
   }
 };

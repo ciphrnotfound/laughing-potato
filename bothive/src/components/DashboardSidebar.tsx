@@ -50,14 +50,18 @@ interface SidebarItem {
 // Menu Items Configuration
 const BASE_ITEMS: SidebarItem[] = [
   { id: "getting-started", label: "Getting Started", icon: <IconRocket className="h-5 w-5 shrink-0 text-violet-500" />, href: "/dashboard/getting-started" },
-  { id: "workspace", label: "Workspace", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/workspace" },
   { id: "overview", label: "Overview", icon: <IconBrandTabler className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard" },
+  { id: "pulse", label: "Pulse Center", icon: <IconActivity className="h-5 w-5 shrink-0 text-violet-500" />, href: "/dashboard/pulse" },
+  { id: "mirror", label: "Mirror Swarm", icon: <IconUsers className="h-5 w-5 shrink-0 text-violet-400" />, href: "/dashboard/mirror" },
+  { id: "workspace", label: "Workspace", icon: <IconTerminal2 className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/workspace" },
+
   { id: "workforce", label: "My Workforce", icon: <IconRobot className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/workforce" },
   { id: "knowledge", label: "Knowledge", icon: <IconBrain className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/knowledge" },
   { id: "agents", label: "Agents", icon: <IconUserBolt className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/agents" },
   { id: "billing", label: "Billing", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/billing" },
   { id: "invoices", label: "Invoices", icon: <IconFiles className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/billing/invoices" },
   { id: "wallet", label: "Wallet", icon: <IconCreditCard className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/wallet" },
+  { id: "collab-hub", label: "Collab Hub", icon: <IconUsers className="h-5 w-5 shrink-0 text-emerald-500" />, href: "/dashboard/collaboration-hub" },
   { id: "notifications", label: "Notifications", icon: <IconBell className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/notifications" },
   { id: "affiliate", label: "Affiliate", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/affiliate" },
   { id: "orchestrator", label: "Orchestrator", icon: <IconAffiliate className="h-5 w-5 shrink-0 text-neutral-500 dark:text-neutral-200" />, href: "/dashboard/orchestrator" },

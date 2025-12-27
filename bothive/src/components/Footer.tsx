@@ -144,7 +144,6 @@ function StarsBackground() {
 export default function Footer() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const [hoveredChar, setHoveredChar] = useState<number | null>(null);
 
   const brandText = "BOTHIVE";
 
@@ -281,7 +280,7 @@ export default function Footer() {
         </motion.div>
       </div>
 
-      {/* Large brand text with character animation */}
+      {/* Large brand text */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -289,53 +288,16 @@ export default function Footer() {
         className="relative w-full overflow-hidden py-8 select-none"
       >
         <div className="flex justify-center">
-          <div className="flex">
-            {brandText.split('').map((char, index) => (
-              <motion.span
-                key={index}
-                className="font-black tracking-[-0.05em] cursor-default"
-                style={{
-                  fontSize: 'clamp(80px, 20vw, 280px)',
-                  lineHeight: 0.85,
-                  color: 'transparent',
-                  WebkitTextStroke: '1px rgba(255,255,255,0.08)',
-                }}
-                onMouseEnter={() => setHoveredChar(index)}
-                onMouseLeave={() => setHoveredChar(null)}
-                animate={{
-                  WebkitTextStroke: hoveredChar === index
-                    ? '2px rgba(255,255,255,0.4)'
-                    : '1px rgba(255,255,255,0.08)',
-                  textShadow: hoveredChar === index
-                    ? '0 0 40px rgba(255,255,255,0.2)'
-                    : '0 0 0px rgba(255,255,255,0)',
-                } as any}
-                whileHover={{
-                  y: -10,
-                  transition: { type: 'spring', stiffness: 400, damping: 15 }
-                }}
-              >
-                {char}
-              </motion.span>
-            ))}
-          </div>
+          <span
+            className="font-semibold tracking-[-0.021em] text-transparent bg-clip-text bg-gradient-to-r from-[#6C43FF]/20 to-indigo-700/30 dark:from-[#6C43FF] dark:to-white/80 "
+            style={{
+              fontSize: 'clamp(80px, 20vw, 280px)',
+              lineHeight: 0.85,
+            }}
+          >
+            {brandText}
+          </span>
         </div>
-
-        {/* Horizontal scan line effect */}
-        <motion.div
-          className="absolute left-0 right-0 h-[2px] pointer-events-none"
-          style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)',
-          }}
-          animate={{
-            top: ['20%', '80%', '20%'],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
       </motion.div>
     </footer>
   );

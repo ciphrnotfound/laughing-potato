@@ -102,6 +102,7 @@ export async function POST(
                     status: "pending"
                 });
 
+            const workspaceSlug = workspace.slug || workspace.id;
             // Create notification for the invited user
             await supabaseAdmin
                 .from("notifications")
@@ -113,11 +114,11 @@ export async function POST(
                     metadata: {
                         workspace_id: workspaceId,
                         workspace_name: workspace.name,
-                        workspace_slug: workspace.slug,
+                        workspace_slug: workspaceSlug,
                         invited_by: user.id,
                         inviter_name: inviterName
                     },
-                    action_url: `/join/${workspace.slug}`,
+                    action_link: `/join/${workspaceSlug}`,
                     read: false
                 });
 

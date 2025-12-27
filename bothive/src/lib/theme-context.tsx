@@ -46,43 +46,54 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>("dark");
+  const [mounted, setMounted] = useState(false);
+
+  // Initialize theme on mount
+  useEffect(() => {
     const stored = getStoredTheme();
-    if (stored) return stored;
-    return getSystemTheme();
-  });
+    const initial = stored || getSystemTheme();
+    setThemeState(initial);
+    applyTheme(initial);
+    setMounted(true);
+  }, []);
 
-  // Track if user has manually set the theme in this session
-  // This ensures that even if localStorage is blocked/cleared, the user's choice persists for the session
-  const manualOverride = React.useRef(false);
-
+  // Listen for system theme changes
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    if (!mounted) return;
 
-  // System theme listener - REMOVED to prevent "too strong" overriding
-  // We only check system theme on initial load (in useState)
-  // detailed in layout.tsx script for FOUC prevention
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Only update if no stored preference
+      if (!getStoredTheme()) {
+        const newTheme = e.matches ? "dark" : "light";
+        setThemeState(newTheme);
+        applyTheme(newTheme);
+      }
+    };
 
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [mounted]);
 
-  // Storage listener (for syncing across tabs)
+  // Listen for storage changes (multi-tab sync)
   useEffect(() => {
+    if (!mounted) return;
+
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "theme" && e.newValue) {
         const newTheme = e.newValue as Theme;
         setThemeState(newTheme);
-        manualOverride.current = true; // Treat cross-tab sync as a manual override
         applyTheme(newTheme);
       }
     };
 
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
-  }, []);
+  }, [mounted]);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
-    manualOverride.current = true; // Mark as manually set
     applyTheme(newTheme);
     try {
       localStorage.setItem("theme", newTheme);
@@ -93,6 +104,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const newTheme = theme === "dark" ? "light" : "dark";
     setTheme(newTheme);
   }, [theme, setTheme]);
+
+  // Prevent flash by not rendering until mounted
+  if (!mounted) {
+    return (
+      <ThemeContext.Provider value={{ theme: "dark", toggleTheme: () => { }, setTheme: () => { }, isDark: true }}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, isDark: theme === "dark" }}>

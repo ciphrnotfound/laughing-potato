@@ -1,6 +1,13 @@
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+
+// Initialize Supabase Admin for authoritative lookups
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(req: NextRequest) {
     try {
@@ -25,25 +32,35 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const includeMembers = searchParams.get("include_members") === "true";
 
-        // Fetch workspaces where user is owner or member
-        const { data: ownedWorkspaces, error: ownedError } = await supabase
+        // Fetch workspaces where user is owner
+        const { data: ownedWorkspaces } = await supabaseAdmin
             .from("bot_workspaces")
             .select(includeMembers ? "*, workspace_members(*)" : "*")
             .eq("owner_id", user.id);
 
-        const { data: memberWorkspaces, error: memberError } = await supabase
+        // Fetch memberships for this user
+        const { data: memberships } = await supabaseAdmin
             .from("workspace_members")
-            .select("workspace_id, bot_workspaces(*)")
-            .eq("user_id", user.id);
+            .select("workspace_id")
+            .eq("user_id", user.id)
+            .eq("status", "active");
 
-        if (ownedError) {
-            console.error("Error fetching owned workspaces:", ownedError);
+        let memberWorkspaces: any[] = [];
+        if (memberships && memberships.length > 0) {
+            const workspaceIds = memberships.map(m => m.workspace_id);
+            // Fetch those workspaces via Admin to bypass RLS
+            const { data: wsData } = await supabaseAdmin
+                .from("bot_workspaces")
+                .select(includeMembers ? "*, workspace_members(*)" : "*")
+                .in("id", workspaceIds);
+
+            if (wsData) memberWorkspaces = wsData;
         }
 
         // Combine and deduplicate
         const allWorkspaces = [
             ...(ownedWorkspaces || []),
-            ...(memberWorkspaces?.map(m => (m as any).bot_workspaces).filter(Boolean) || [])
+            ...memberWorkspaces
         ];
 
         const uniqueWorkspaces = allWorkspaces.reduce((acc: any[], ws) => {

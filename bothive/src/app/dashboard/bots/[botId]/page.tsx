@@ -48,18 +48,6 @@ interface Bot {
   status?: 'draft' | 'pending_approval' | 'active' | 'approved' | 'rejected';
 }
 
-interface PulseJob {
-  id: string;
-  bot_id: string;
-  trigger_type: "schedule" | "event" | "webhook";
-  trigger_config: any;
-  is_active: boolean;
-  last_run: string | null;
-  next_run: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
-
 function parseStringList(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.map((item) => `${item}`.trim()).filter(Boolean);
@@ -79,11 +67,6 @@ export default function BotPage() {
   const [editedCode, setEditedCode] = useState("");
   const [savingCode, setSavingCode] = useState(false);
   const [codeSaved, setCodeSaved] = useState(false);
-  const [pulseJobs, setPulseJobs] = useState<PulseJob[]>([]);
-  const [pulseLoading, setPulseLoading] = useState(false);
-  const [pulseError, setPulseError] = useState<string | null>(null);
-  const [intervalMinutes, setIntervalMinutes] = useState<number>(60);
-  const [savingPulse, setSavingPulse] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const supabase = createClientComponentClient();
@@ -110,32 +93,6 @@ export default function BotPage() {
 
     fetchBot();
   }, [supabase, params.botId]);
-
-  useEffect(() => {
-    async function fetchPulseJobs() {
-      if (!botId) return;
-      try {
-        setPulseLoading(true);
-        setPulseError(null);
-        const res = await fetch(`/api/bots/${botId}/pulse-jobs`, {
-          method: "GET",
-          cache: "no-store",
-        });
-        const json = await res.json();
-        if (!res.ok) {
-          throw new Error(json.error || "Failed to load schedules");
-        }
-        setPulseJobs(Array.isArray(json.jobs) ? json.jobs : []);
-      } catch (e: any) {
-        console.error("Error fetching pulse jobs:", e);
-        setPulseError(e?.message || "Unable to load schedules");
-      } finally {
-        setPulseLoading(false);
-      }
-    }
-
-    fetchPulseJobs();
-  }, [botId]);
 
   const handlePublish = async () => {
     try {
@@ -182,79 +139,6 @@ export default function BotPage() {
       alert("Failed to save code. Please try again.");
     } finally {
       setSavingCode(false);
-    }
-  };
-
-  const handleCreatePulseJob = async () => {
-    if (!botId || savingPulse || intervalMinutes <= 0) return;
-    try {
-      setSavingPulse(true);
-      setPulseError(null);
-      const res = await fetch(`/api/bots/${botId}/pulse-jobs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          trigger_type: "schedule",
-          interval_minutes: intervalMinutes,
-          is_active: true,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to create schedule");
-      }
-      setPulseJobs((prev) => [json.job, ...prev]);
-    } catch (error: any) {
-      console.error("Error creating pulse job:", error);
-      setPulseError(error?.message || "Failed to create schedule");
-    } finally {
-      setSavingPulse(false);
-    }
-  };
-
-  const handleTogglePulseJob = async (job: PulseJob) => {
-    if (!botId) return;
-    try {
-      setPulseError(null);
-      const res = await fetch(`/api/bots/${botId}/pulse-jobs/${job.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          is_active: !job.is_active,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to update schedule");
-      }
-      setPulseJobs((prev) =>
-        prev.map((j) => (j.id === job.id ? json.job : j))
-      );
-    } catch (error: any) {
-      console.error("Error updating pulse job:", error);
-      setPulseError(error?.message || "Failed to update schedule");
-    }
-  };
-
-  const handleDeletePulseJob = async (job: PulseJob) => {
-    if (!botId) return;
-    try {
-      setPulseError(null);
-      const res = await fetch(`/api/bots/${botId}/pulse-jobs/${job.id}`, {
-        method: "DELETE",
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to delete schedule");
-      }
-      setPulseJobs((prev) => prev.filter((j) => j.id !== job.id));
-    } catch (error: any) {
-      console.error("Error deleting pulse job:", error);
-      setPulseError(error?.message || "Failed to delete schedule");
     }
   };
 
@@ -358,12 +242,12 @@ export default function BotPage() {
           )}
         </AnimatePresence>
 
+        {/* Tabs */}
         <div className="flex items-center gap-1 mb-8 border-b border-black/5 dark:border-white/10 pb-1">
           {[
             { id: "configure", label: "Configuration", icon: Settings },
             { id: "code", label: "Code", icon: Code },
             { id: "test", label: "Playground", icon: Play },
-            { id: "automation", label: "Automation", icon: Activity },
             { id: "deploy", label: "Deployment", icon: Zap }
           ].map((tab) => (
             <button
@@ -388,6 +272,7 @@ export default function BotPage() {
           ))}
         </div>
 
+        {/* Content */}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -573,223 +458,6 @@ end`}
               </div>
             )}
 
-            {activeTab === "automation" && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div
-                  className={cn(
-                    "p-6 rounded-2xl border lg:col-span-2",
-                    isDark
-                      ? "bg-gradient-to-br from-[#050010] via-black to-[#120019] border-purple-500/40"
-                      : "bg-gradient-to-br from-purple-50 via-white to-slate-50 border-purple-200"
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-4 mb-6">
-                    <div>
-                      <h2 className="text-lg font-semibold mb-1">Proactive Automation</h2>
-                      <p className="text-sm text-zinc-400">
-                        Make this bot wake itself up on a schedule and run its{" "}
-                        <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-black/40 border border-white/10">
-                          on input when input == "PULSE_TRIGGER"
-                        </span>{" "}
-                        block.
-                      </p>
-                    </div>
-                    {pulseLoading && (
-                      <div className="flex items-center gap-2 text-xs text-zinc-400">
-                        <div className="w-4 h-4 rounded-full border border-zinc-500 border-t-transparent animate-spin" />
-                        Loading
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1.5">Run every</label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="number"
-                            min={1}
-                            value={intervalMinutes}
-                            onChange={(e) => setIntervalMinutes(Number(e.target.value) || 1)}
-                            className={cn(
-                              "w-24 px-3 py-2 rounded-lg border bg-black/40 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500",
-                              "border-white/15 text-white"
-                            )}
-                          />
-                          <span className="text-sm text-zinc-300">minutes</span>
-                        </div>
-                        <p className="mt-2 text-xs text-zinc-400">
-                          For example: 15 for every 15 minutes, 60 for hourly, 1440 for once a day.
-                        </p>
-                      </div>
-
-                      <div className="mt-4">
-                        <button
-                          onClick={handleCreatePulseJob}
-                          disabled={savingPulse || intervalMinutes <= 0}
-                          className={cn(
-                            "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                            "bg-purple-600 text-white hover:bg-purple-500",
-                            "disabled:opacity-50 disabled:cursor-not-allowed"
-                          )}
-                        >
-                          {savingPulse ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Creating schedule...
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="w-4 h-4" />
-                              Create schedule
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-                        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500 mb-2">
-                          How it works
-                        </p>
-                        <p className="text-sm text-zinc-200">
-                          When the schedule fires, Bothive sends{" "}
-                          <span className="font-mono text-xs px-1 py-0.5 rounded bg-white/10">
-                            PULSE_TRIGGER
-                          </span>{" "}
-                          into your bot&apos;s Hivelang program. Use this to post updates,
-                          send emails, or run maintenance routines.
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-purple-500/40 bg-purple-500/10 p-4 text-sm text-purple-100">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <Sparkles className="w-4 h-4" />
-                          <span className="font-medium text-sm">Design tip</span>
-                        </div>
-                        <p className="text-xs text-purple-100/80">
-                          Keep your proactive messages short and high-signal, like a senior teammate
-                          tapping you on the shoulder with one sharp suggestion.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {pulseError && (
-                    <div className="mt-4 rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
-                      {pulseError}
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  className={cn(
-                    "p-6 rounded-2xl border space-y-4",
-                    isDark
-                      ? "bg-zinc-900/40 border-white/10"
-                      : "bg-white border-black/5 shadow-sm"
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h3 className="text-sm font-semibold">Current schedules</h3>
-                      <p className="text-xs text-zinc-500">
-                        Manage when this bot wakes itself up.
-                      </p>
-                    </div>
-                  </div>
-
-                  {pulseLoading && (
-                    <div className="flex items-center gap-2 text-xs text-zinc-500">
-                      <div className="w-4 h-4 rounded-full border border-zinc-500 border-t-transparent animate-spin" />
-                      Loading schedules...
-                    </div>
-                  )}
-
-                  {!pulseLoading && pulseJobs.length === 0 && (
-                    <div
-                      className={cn(
-                        "mt-2 p-4 rounded-xl border text-xs",
-                        isDark
-                          ? "border-dashed border-white/15 text-zinc-400 bg-black/40"
-                          : "border-dashed border-zinc-200 text-zinc-500 bg-zinc-50"
-                      )}
-                    >
-                      No proactive schedules yet. Create one to make this bot feel alive.
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    {pulseJobs.map((job) => {
-                      const minutes = getIntervalMinutesFromConfig(job.trigger_config);
-                      return (
-                        <div
-                          key={job.id}
-                          className={cn(
-                            "p-4 rounded-xl border text-sm flex flex-col gap-2",
-                            job.is_active
-                              ? "border-emerald-500/50 bg-emerald-500/5"
-                              : "border-zinc-700 bg-zinc-900/40"
-                          )}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Activity
-                                className={cn(
-                                  "w-4 h-4",
-                                  job.is_active ? "text-emerald-400" : "text-zinc-400"
-                                )}
-                              />
-                              <span className="font-medium">Scheduled pulse</span>
-                            </div>
-                            <span
-                              className={cn(
-                                "px-2 py-0.5 rounded-full text-[11px] font-medium border",
-                                job.is_active
-                                  ? "border-emerald-500/60 text-emerald-200 bg-emerald-500/10"
-                                  : "border-zinc-600 text-zinc-300 bg-zinc-800"
-                              )}
-                            >
-                              {job.is_active ? "Live" : "Paused"}
-                            </span>
-                          </div>
-
-                          <p className="text-xs text-zinc-200">
-                            Runs every{" "}
-                            <span className="font-semibold">{minutes ?? "?"} min</span>
-                          </p>
-                          <p className="text-[11px] text-zinc-400">
-                            Next run: {formatDateTimeShort(job.next_run)}
-                          </p>
-
-                          <div className="mt-3 flex items-center gap-2">
-                            <button
-                              onClick={() => handleTogglePulseJob(job)}
-                              className={cn(
-                                "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                                job.is_active
-                                  ? "border-amber-500/60 text-amber-200 bg-amber-500/10 hover:bg-amber-500/20"
-                                  : "border-emerald-500/60 text-emerald-200 bg-emerald-500/10 hover:bg-emerald-500/20"
-                              )}
-                            >
-                              {job.is_active ? "Pause" : "Resume"}
-                            </button>
-                            <button
-                              onClick={() => handleDeletePulseJob(job)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-rose-500/60 text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {activeTab === "deploy" && (
               <div className="grid grid-cols-1 space-y-8">
                 {/* Store Publishing Card */}
@@ -961,25 +629,4 @@ function BotIcon({ name, className }: { name: string, className?: string }) {
   const index = name.length % icons.length;
   const Icon = icons[index];
   return <Icon className={className} />;
-}
-
-function getIntervalMinutesFromConfig(config: any): number | null {
-  if (!config) return null;
-  if (typeof config.interval_seconds === "number" && Number.isFinite(config.interval_seconds) && config.interval_seconds > 0) {
-    return Math.max(1, Math.round(config.interval_seconds / 60));
-  }
-  if (typeof config.intervalMinutes === "number" && Number.isFinite(config.intervalMinutes) && config.intervalMinutes > 0) {
-    return Math.max(1, Math.round((config.intervalMinutes * 60) / 60));
-  }
-  if (typeof config.interval_minutes === "number" && Number.isFinite(config.interval_minutes) && config.interval_minutes > 0) {
-    return Math.max(1, Math.round((config.interval_minutes * 60) / 60));
-  }
-  return null;
-}
-
-function formatDateTimeShort(value: string | null): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString();
 }

@@ -102,10 +102,10 @@ export default function NewIntegrationPage() {
 
             setSuccess(true);
 
-            // Redirect after a delay
+            // Redirect after a shorter delay
             setTimeout(() => {
                 router.push("/dashboard/integrations");
-            }, 3000);
+            }, 800);
 
         } catch (error) {
             console.error("Error creating integration:", error);

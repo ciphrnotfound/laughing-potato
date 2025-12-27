@@ -8,7 +8,7 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface Notification {
     id: string;
-    type: "purchase" | "sale" | "system" | "review" | "alert" | "info";
+    type: "purchase" | "sale" | "system" | "review" | "alert" | "info" | "workspace_invite" | "workspace_joined" | "invite_sent" | "workspace_created";
     title: string;
     message: string;
     read: boolean;

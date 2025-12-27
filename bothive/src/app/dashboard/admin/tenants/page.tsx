@@ -103,12 +103,23 @@ export default function TenantsPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     useEffect(() => {
-        // Simulate API fetch
-        setTimeout(() => {
-            setTenants(MOCK_TENANTS);
-            setLoading(false);
-        }, 500);
+        fetchTenants();
     }, []);
+
+    const fetchTenants = async () => {
+        try {
+            setLoading(true);
+            const res = await fetch("/api/admin/tenants");
+            const data = await res.json();
+            if (data.tenants) {
+                setTenants(data.tenants);
+            }
+        } catch (error) {
+            console.error("Failed to fetch tenants:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filteredTenants = tenants.filter(t =>
         t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

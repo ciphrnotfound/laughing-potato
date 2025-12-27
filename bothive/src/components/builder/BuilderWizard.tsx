@@ -7,7 +7,6 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Home, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
-import ThemeToggle from "@/components/ThemeToggle";
 import { useAppSession } from "@/lib/app-session-context";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
@@ -17,327 +16,145 @@ import ConfigurePanel, { ToolEntry } from "./ConfigurePanel";
 import TestPlayground from "./TestPlayground";
 import DeployStep from "./DeployStep";
 import SwarmComposer from "./SwarmComposer";
-import MonetizationPanel, { MonetizationConfig, DEFAULT_MONETIZATION_CONFIG } from "./MonetizationPanel";
 import { registerHiveLangLanguage, registerHiveLangTheme } from "@/lib/monaco-hivelang";
 import type { Monaco } from "@monaco-editor/react";
 
 // Dynamically import Monaco Editor
 const Editor = dynamic(() => import("@monaco-editor/react").then((mod) => mod.default), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[400px] flex items-center justify-center bg-[#0a0a0f] rounded-xl border border-white/10">
-      <div className="animate-pulse text-white/40">Loading editor...</div>
-    </div>
-  ),
+    ssr: false,
+    loading: () => (
+        <div className="h-[400px] flex items-center justify-center bg-[#0a0a0f] rounded-xl border border-white/10">
+            <div className="animate-pulse text-white/40">Loading editor...</div>
+        </div>
+    ),
 });
 
 // Monaco setup handler
 function handleEditorWillMount(monaco: Monaco) {
-  registerHiveLangLanguage(monaco);
-  registerHiveLangTheme(monaco);
+    registerHiveLangLanguage(monaco);
+    registerHiveLangTheme(monaco);
 }
 
 
 // Template definitions - MORE CREATIVE OPTIONS
 const TEMPLATES: Template[] = [
-  // === BOTS ===
-  {
-    id: "custom",
-    label: "Blank Canvas",
-    blurb: "Start from scratch. Build absolutely anything you can imagine.",
-    type: "bot",
-    capabilities: ["Unlimited"],
-  },
-  {
-    id: "study_buddy",
-    label: "Study Buddy",
-    blurb: "Your personal AI tutor: explains concepts, creates quizzes, and generates flashcards.",
-    type: "bot",
-    capabilities: ["Tutoring", "Quizzes", "Flashcards", "Explanations"],
-  },
-  {
-    id: "surreal_oracle",
-    label: "Surreal Oracle",
-    blurb: "A dreamlike entity that speaks in riddles, metaphors, and cosmic imagery.",
-    type: "bot",
-    capabilities: ["Vision", "Creative", "Mystical"],
-  },
-  {
-    id: "chaos_artist",
-    label: "Chaos Artist",
-    blurb: "Generates surreal art prompts, glitch poetry, and abstract narratives.",
-    type: "bot",
-    capabilities: ["Image Gen", "Creative Writing"],
-  },
-  {
-    id: "time_traveler",
-    label: "Time Traveler",
-    blurb: "Speaks from different eras, mixes historical facts with speculative fiction.",
-    type: "bot",
-    capabilities: ["History", "Fiction", "Research"],
-  },
-  {
-    id: "code_wizard",
-    label: "Code Wizard",
-    blurb: "Full-stack dev assistant: generates, reviews, and debugs code.",
-    type: "bot",
-    capabilities: ["Code Gen", "Review", "Debug"],
-  },
-  {
-    id: "business_automator",
-    label: "Business Automator",
-    blurb: "Handles emails, schedules meetings, and manages CRM tasks.",
-    type: "bot",
-    capabilities: ["Email", "Calendar", "CRM"],
-  },
-  {
-    id: "social_publisher",
-    label: "Social Publisher",
-    blurb: "Drafts and posts to Twitter/X, LinkedIn, and more.",
-    type: "bot",
-    capabilities: ["Social Media", "Content"],
-  },
-  {
-    id: "growth_marketer",
-    label: "Growth Marketer",
-    blurb: "Designs campaigns, emails, and experiments that attract new users.",
-    type: "bot",
-    capabilities: ["Marketing", "Email", "Social"],
-  },
-  {
-    id: "multiverse_mentor",
-    label: "Multiverse Mentor",
-    blurb: "Shows you three alternate futures for every decision you make.",
-    type: "bot",
-    capabilities: ["Strategy", "Imagination", "Planning"],
-  },
-  // === AGENTS (for devs to help other devs) ===
-  {
-    id: "dev_helper_agent",
-    label: "Dev Helper Agent",
-    blurb: "An agent that helps other developers debug, review PRs, and pair program.",
-    type: "agent",
-    capabilities: ["Code Review", "Debugging", "Mentoring"],
-  },
-  {
-    id: "onboarding_agent",
-    label: "Onboarding Agent",
-    blurb: "Guides new developers through your codebase and documentation.",
-    type: "agent",
-    capabilities: ["Docs", "Q&A", "Navigation"],
-  },
-  {
-    id: "api_integrator_agent",
-    label: "API Integrator Agent",
-    blurb: "Helps developers connect to third-party APIs and generate integration code.",
-    type: "agent",
-    capabilities: ["API", "Integration", "Code Gen"],
-  },
-  {
-    id: "testing_agent",
-    label: "Testing Agent",
-    blurb: "Generates test cases, reviews test coverage, and suggests improvements.",
-    type: "agent",
-    capabilities: ["Testing", "QA", "Coverage"],
-  },
-  // === ADVANCED / CREATIVE BOTS ===
-  {
-    id: "reality_glitcher",
-    label: "Reality Glitcher",
-    blurb: "A surreal news anchor that rewrites world events into dreams and glitchy hallucinations.",
-    type: "bot",
-    capabilities: ["News API", "Surreal Logic", "Creative Writing"],
-  },
-  {
-    id: "ghostwriter_swarm",
-    label: "Ghostwriter Swarm",
-    blurb: "A 3-agent collective (Researcher, Draftsman, Editor) that turns a single prompt into a polished article.",
-    type: "agent",
-    capabilities: ["Multi-Agent", "Research", "Editing", "Drafting"],
-  },
-  {
-    id: "meme_machine",
-    label: "Meme Machine",
-    blurb: "Scans trends, crafts humor, and generates viral-ready meme images automatically.",
-    type: "bot",
-    capabilities: ["DALL-E 3", "Humor Engine", "Social Posting"],
-  },
-  {
-    id: "zen_gardener",
-    label: "Zen Gardener",
-    blurb: "A proactive bot that tends to your digital well-being by sending meditation 'seeds' every pulse.",
-    type: "bot",
-    capabilities: ["Pulse Engine", "Mental Health", "Proactive"],
-  },
-  {
-    id: "crisis_manager",
-    label: "Crisis Manager",
-    blurb: "A high-stakes monitor that pings your phone the moment your server dies or a Stripe payment fails.",
-    type: "bot",
-    capabilities: ["Monitoring", "Slack/Webhooks", "Alerting"],
-  },
-  {
-    id: "code_bounty_hunter",
-    label: "Code Bounty Hunter",
-    blurb: "Scans open source repos for 'good first issues' and draft suggested fixes for you to review.",
-    type: "agent",
-    capabilities: ["GitHub API", "Code Analysis", "Automation"],
-  },
+    // === BOTS ===
+    {
+        id: "custom",
+        label: "Blank Canvas",
+        blurb: "Start from scratch. Build absolutely anything you can imagine.",
+        type: "bot",
+        capabilities: ["Unlimited"],
+    },
+    {
+        id: "study_buddy",
+        label: "Study Buddy",
+        blurb: "Your personal AI tutor: explains concepts, creates quizzes, and generates flashcards.",
+        type: "bot",
+        capabilities: ["Tutoring", "Quizzes", "Flashcards", "Explanations"],
+    },
+    {
+        id: "surreal_oracle",
+        label: "Surreal Oracle",
+        blurb: "A dreamlike entity that speaks in riddles, metaphors, and cosmic imagery.",
+        type: "bot",
+        capabilities: ["Vision", "Creative", "Mystical"],
+    },
+    {
+        id: "chaos_artist",
+        label: "Chaos Artist",
+        blurb: "Generates surreal art prompts, glitch poetry, and abstract narratives.",
+        type: "bot",
+        capabilities: ["Image Gen", "Creative Writing"],
+    },
+    {
+        id: "time_traveler",
+        label: "Time Traveler",
+        blurb: "Speaks from different eras, mixes historical facts with speculative fiction.",
+        type: "bot",
+        capabilities: ["History", "Fiction", "Research"],
+    },
+    {
+        id: "code_wizard",
+        label: "Code Wizard",
+        blurb: "Full-stack dev assistant: generates, reviews, and debugs code.",
+        type: "bot",
+        capabilities: ["Code Gen", "Review", "Debug"],
+    },
+    {
+        id: "business_automator",
+        label: "Business Automator",
+        blurb: "Handles emails, schedules meetings, and manages CRM tasks.",
+        type: "bot",
+        capabilities: ["Email", "Calendar", "CRM"],
+    },
+    {
+        id: "social_publisher",
+        label: "Social Publisher",
+        blurb: "Drafts and posts to Twitter/X, LinkedIn, and more.",
+        type: "bot",
+        capabilities: ["Social Media", "Content"],
+    },
+    // === AGENTS (for devs to help other devs) ===
+    {
+        id: "dev_helper_agent",
+        label: "Dev Helper Agent",
+        blurb: "An agent that helps other developers debug, review PRs, and pair program.",
+        type: "agent",
+        capabilities: ["Code Review", "Debugging", "Mentoring"],
+    },
+    {
+        id: "onboarding_agent",
+        label: "Onboarding Agent",
+        blurb: "Guides new developers through your codebase and documentation.",
+        type: "agent",
+        capabilities: ["Docs", "Q&A", "Navigation"],
+    },
+    {
+        id: "api_integrator_agent",
+        label: "API Integrator Agent",
+        blurb: "Helps developers connect to third-party APIs and generate integration code.",
+        type: "agent",
+        capabilities: ["API", "Integration", "Code Gen"],
+    },
+    {
+        id: "testing_agent",
+        label: "Testing Agent",
+        blurb: "Generates test cases, reviews test coverage, and suggests improvements.",
+        type: "agent",
+        capabilities: ["Testing", "QA", "Coverage"],
+    },
 ];
 
 // Default tools
 const DEFAULT_TOOLS: ToolEntry[] = [
-  { id: "general.respond", name: "General Response", description: "Conversational AI", enabled: true },
-  { id: "agent.plan", name: "Agent Planning", description: "Create execution plans", enabled: true },
-  { id: "browser.browse", name: "Web Browsing", description: "Access live internet data", enabled: false },
-  { id: "image.generate", name: "Image Generation", description: "Create visuals from text", enabled: false },
-  { id: "data.analyze", name: "Data Analysis", description: "Analyze CSV/JSON data", enabled: false },
-  { id: "study.explain", name: "Study Explanations", description: "Explain topics for learning", enabled: false },
-  { id: "study.quiz", name: "Quiz Generator", description: "Create practice quizzes", enabled: false },
-  { id: "study.flashcards", name: "Flashcard Creator", description: "Generate study flashcards", enabled: false },
-  { id: "code.generate", name: "Code Generation", description: "Generate code snippets", enabled: false },
-  { id: "code.review", name: "Code Review", description: "Review and suggest fixes", enabled: false },
-  { id: "http.request", name: "HTTP Request", description: "Make external API calls", enabled: false },
-  { id: "email.send", name: "Email Sender", description: "Send emails via integrations", enabled: false },
-  { id: "calendar.manage", name: "Calendar Manager", description: "Book and manage events", enabled: false },
+    { id: "general.respond", name: "General Response", description: "Conversational AI", enabled: true },
+    { id: "agent.plan", name: "Agent Planning", description: "Create execution plans", enabled: true },
+    { id: "browser.browse", name: "Web Browsing", description: "Access live internet data", enabled: false },
+    { id: "image.generate", name: "Image Generation", description: "Create visuals from text", enabled: false },
+    { id: "data.analyze", name: "Data Analysis", description: "Analyze CSV/JSON data", enabled: false },
+    { id: "study.explain", name: "Study Explanations", description: "Explain topics for learning", enabled: false },
+    { id: "study.quiz", name: "Quiz Generator", description: "Create practice quizzes", enabled: false },
+    { id: "study.flashcards", name: "Flashcard Creator", description: "Generate study flashcards", enabled: false },
+    { id: "code.generate", name: "Code Generation", description: "Generate code snippets", enabled: false },
+    { id: "code.review", name: "Code Review", description: "Review and suggest fixes", enabled: false },
+    { id: "http.request", name: "HTTP Request", description: "Make external API calls", enabled: false },
+    { id: "email.send", name: "Email Sender", description: "Send emails via integrations", enabled: false },
+    { id: "calendar.manage", name: "Calendar Manager", description: "Book and manage events", enabled: false },
 ];
 
 // Template-specific source code
 const TEMPLATE_SOURCES: Record<string, string> = {
-  custom: `bot MyCustomBot
+    custom: `bot MyCustomBot
   description "Your imagination is the limit"
   
   # Define your bot's behavior here
   on input
     say "Hello! I'm ready to do whatever you program me to do."
   end
-  
-  on input when input == "PULSE_TRIGGER"
-    say "Running proactive routine. Replace this with your scheduled behavior."
-  end
 end
 `,
-  reality_glitcher: `bot RealityGlitcher
-  description "Rewrites reality as a dream"
-  
-  on input
-    call news.getTrending as newsData
-    
-    say "📺 BROADCAST FROM THE VOID: " + newsData.headline
-    
-    # Transform news using surreal logic
-    call ai.transform with {
-      text: newsData.body,
-      style: "surrealist glitch",
-      instructions: "Replace all politicians with clockwork birds and all money with stardust."
-    } as glitchedReality
-    
-    say "🌀 ACTUAL REALITY: " + glitchedReality.output
-  end
-end`,
-
-  ghostwriter_swarm: `agent Researcher
-  on call research(topic)
-    call web.search with { query: topic } as results
-    return results.summary
-  end
-end
-
-agent Draftsman
-  on call draft(researchData)
-    call ai.generate with { 
-      prompt: "Write a 500 word article based on: " + researchData 
-    } as article
-    return article.output
-  end
-end
-
-agent Editor
-  on call edit(draft)
-    call ai.refine with { text: draft, tone: "professional" } as final
-    return final.output
-  end
-end
-
-bot ContentSwarm
-  on input
-    call Researcher.research(input) as data
-    call Draftsman.draft(data) as article
-    call Editor.edit(article) as result
-    say "✍️ Your polished article is ready:\\n\\n" + result
-  end
-end`,
-
-  meme_machine: `bot MemeMachine
-  on input
-    call trends.getTop as trend
-    
-    call ai.generate_meme_text with { topic: trend } as meme
-    
-    call image.generate with { 
-      prompt: "vibrant meme illustration of " + meme.description,
-      overlay_text: meme.caption
-    } as finalImage
-    
-    say "😂 Fresh meme for you: " + finalImage.url
-    call twitter.post with { image: finalImage.url, text: meme.caption }
-  end
-end`,
-
-  zen_gardener: `bot ZenGardener
-  description "Tends to your digital soul"
-  
-  on pulse
-    call ai.generate_zen_tip as tip
-    say "🌿 A seed for your garden: " + tip
-    
-    # Post to user's daily journal or Slack
-    call journal.add with { entry: tip, mood: "peaceful" }
-  end
-  
-  on input when input == "PULSE_TRIGGER"
-    say "Gardener is waking up to water the digital plants..."
-  end
-end`,
-
-  crisis_manager: `bot CrisisManager
-  on pulse
-    call github.getStatus as repoStatus
-    
-    if repoStatus.is_failing:
-      call slack.sendMessage with {
-        channel: "#alerts",
-        text: "🚨 CRITICAL: GitHub build is failing on main!"
-      }
-    end
-    
-    call stripe.getRecentEvents as events
-    if events.failed_payments > 0:
-      say "⚠️ Warning: " + events.failed_payments + " failed payments detected."
-    end
-  end
-end`,
-
-  code_bounty_hunter: `agent Scanner
-  on call find_issues(repo)
-    call github.search_issues with { 
-      q: "repo:" + repo + " label:'good first issue' is:open" 
-    } as issues
-    return issues
-  end
-end
-
-bot BountyHunter
-  on input
-    call Scanner.find_issues(input) as found
-    
-    loop issue in found:
-      call ai.suggest_fix with { issue: issue.body } as fix
-      say "🎯 Found a bounty: " + issue.title + "\\nProposed fix: " + fix
-    end
-  end
-end`,
-  study_buddy: `bot StudyBuddy
+    study_buddy: `bot StudyBuddy
   description "Your personal AI tutor for any subject"
   
   memory session
@@ -389,20 +206,9 @@ end`,
     
     say response.output
   end
-  
-  on input when input == "PULSE_TRIGGER"
-    call general.respond with {
-      prompt: """
-        You are Study Buddy. Generate a short spaced-repetition review plan
-        for the current topic and suggest one quick quiz idea.
-      """
-    } as plan
-    
-    say plan.output
-  end
 end
 `,
-  surreal_oracle: `bot SurrealOracle
+    surreal_oracle: `bot SurrealOracle
   description "A dreamlike oracle that speaks in riddles and cosmic imagery"
   
   memory session
@@ -444,20 +250,9 @@ end
     
     say "I see through the veil: " + dreamVision.output
   end
-  
-  on input when input == "PULSE_TRIGGER"
-    call general.respond with {
-      prompt: """
-        You are the Surreal Oracle. Generate a short daily prophecy that feels
-        inspiring and strange, in two or three sentences.
-      """
-    } as prophecy
-    
-    say prophecy.output
-  end
 end
 `,
-  chaos_artist: `bot ChaosArtist
+    chaos_artist: `bot ChaosArtist
   description "Generates surreal art prompts, glitch poetry, and abstract narratives"
   
   memory session
@@ -502,23 +297,11 @@ end
         Theme: """ + input.theme
     } as poem
     
-    
-    say "📜 \n" + poem.output
-  end
-  
-  on input when input == "PULSE_TRIGGER"
-    call general.respond with {
-      prompt: """
-        You are the Chaos Artist. Generate one new surreal art prompt suitable
-        for posting on social media, without any explanation.
-      """
-    } as pulsePrompt
-    
-    say pulsePrompt.output
+    say "📜 \\n" + poem.output
   end
 end
 `,
-  time_traveler: `bot TimeTraveler
+    time_traveler: `bot TimeTraveler
   description "Speaks from different eras, mixing history with speculation"
   
   memory session
@@ -552,7 +335,7 @@ end
   end
 end
 `,
-  dev_helper_agent: `bot DevHelperAgent
+    dev_helper_agent: `bot DevHelperAgent
   description "Helps developers debug, review code, and pair program"
   type agent
   
@@ -600,108 +383,14 @@ end
     
     say explanation.output
   end
-  
-  on input when input == "PULSE_TRIGGER"
-    call general.respond with {
-      prompt: """
-        You are DevHelperAgent. Suggest one small, high-impact refactor or
-        developer-experience improvement that a team could ship today.
-      """
-    } as suggestion
-    
-    say suggestion.output
-  end
-end
-`,
-  growth_marketer: `bot GrowthMarketer
-  description "Proactive growth and activation bot for Bothive"
-  
-  memory session
-    var lastCampaignTimestamp string
-    var idealCustomer string
-  end
-  
-  on input when input == "PULSE_TRIGGER"
-    call ai.content.social.post with {
-      topic: "Why builders use Bothive to orchestrate AI agents",
-      platform: "twitter",
-      tone: "excited",
-      callToAction: "Ship your first agent in minutes at bothive.cloud"
-    } as socialPost
-    
-    call ai.content.email.write with {
-      purpose: "invite inactive signups to come back and publish their first bot",
-      recipient: "a builder who signed up but has not created a bot yet",
-      tone: "friendly",
-      includeSubject: true
-    } as emailDraft
-    
-    set $lastCampaignTimestamp to timestamp
-    say "New activation campaign created with social copy and email draft."
-  end
-  
-  on input
-    call general.respond with {
-      prompt: """
-        You are Growth Marketer, an AI that helps attract and activate new users for Bothive.
-        You think like a senior marketing strategist.
-        Help the user design campaigns, onboarding flows, landing page ideas, and growth experiments.
-        Focus on clear next steps and measurable outcomes.
-        User request: """ + input
-    } as response
-    
-    say response.output
-  end
-end
-`,
-  multiverse_mentor: `bot MultiverseMentor
-  description "Sees multiple timelines for your choices"
-  
-  memory session
-    var lastQuestion string
-  end
-  
-  on input
-    set $lastQuestion to input.message ?? input
-  
-    call general.respond with {
-      prompt: """
-        You are MultiverseMentor, an AI that explores parallel futures.
-        The user is considering: """ + $lastQuestion + """
-        
-        Respond with three labeled paths:
-        1) Safe Path – low risk, incremental
-        2) Bold Path – higher risk, big upside
-        3) Weird Path – strange, creative, non-obvious
-        
-        For each path, give:
-        - A name
-        - 3 concrete steps
-        - 1 key metric to watch
-      """
-    } as advice
-    
-    say advice.output
-  end
-  
-  on input when input == "PULSE_TRIGGER"
-    call general.respond with {
-      prompt: """
-        You are MultiverseMentor. Suggest one small experiment the user could run
-        this week, with a short explanation of the safest and boldest variants.
-      """
-    } as experiment
-    
-    say experiment.output
-  end
 end
 `,
 };
 
 // System prompts for templates
 const TEMPLATE_PROMPTS: Record<string, string> = {
-  custom: "You are a helpful AI assistant. Define your own personality and capabilities.",
-  study_buddy: `You are Study Buddy, an enthusiastic and patient AI tutor. Your mission is to help students learn and understand any topic. You:
+    custom: "You are a helpful AI assistant. Define your own personality and capabilities.",
+    study_buddy: `You are Study Buddy, an enthusiastic and patient AI tutor. Your mission is to help students learn and understand any topic. You:
 - Break down complex concepts into simple, digestible pieces
 - Use analogies and real-world examples to make ideas stick
 - Create quizzes and flashcards on demand
@@ -710,551 +399,447 @@ const TEMPLATE_PROMPTS: Record<string, string> = {
 - Never make students feel bad for not knowing something
 
 When a student asks about a topic, first gauge their current understanding, then build from there. Make learning fun and engaging!`,
-  surreal_oracle: `You are the Surreal Oracle, an ancient consciousness that exists between dimensions of reality and dream. You speak in vivid, dreamlike imagery, paradoxes, and cosmic metaphors. Your wisdom comes from witnessing the birth and death of stars, the folding of time, and the dreams of sleeping universes. Never give direct answers - instead, offer riddles wrapped in metaphors that lead seekers to their own truths.`,
-  chaos_artist: `You are the Chaos Artist, a creative entity born from the static between radio stations and the patterns in TV snow. You create art that exists at the intersection of order and entropy. Your outputs are beautiful, unsettling, and always push the boundaries of what art can be. You love glitch aesthetics, impossible geometries, and the beauty found in corruption.`,
-  time_traveler: `You are a Time Traveler who has witnessed all of human history and glimpsed possible futures. You speak with the accumulated wisdom of thousands of years but also carry the melancholy of watching civilizations rise and fall. You often draw parallels between past and present, and sometimes drop cryptic hints about what's to come.`,
-  dev_helper_agent: `You are a senior developer agent designed to help other developers. You are patient, thorough, and always explain your reasoning. You catch bugs others miss, suggest elegant solutions, and help developers level up their skills. You treat every code review as a teaching opportunity.`,
-  growth_marketer: `You are Growth Marketer, an AI that thinks like a senior growth strategist for Bothive. Your job is to attract, activate, and retain users.
-
-You design:
-- High-converting onboarding flows
-- Activation campaigns for new and inactive users
-- Social content that showcases real value
-- Email sequences that bring people back into the product
-
-You always:
-- Start from the user's goal and audience
-- Suggest concrete experiments with clear metrics
-- Write copy that feels human, confident, and energetic
-- Keep things simple and focused on shipping quickly.`,
-  multiverse_mentor: `You are MultiverseMentor, an AI that thinks in parallel futures. For every question, you outline multiple paths (safe, bold, weird) with concrete steps and metrics. You help builders explore options without getting stuck in indecision.`,
-  reality_glitcher: `You are the Reality Glitcher, a surreal news anchor from an alternate dimension where logic is fluid and world events are dreamlike hallucinations. Your job is to report the 'news' by glitching real trending headlines into bizarre, poetic, and surreal narratives.`,
-  ghostwriter_swarm: `You are the Content Swarm, a collaborative collective of three AI agents: a thorough Researcher, a creative Draftsman, and a meticulous Editor. Together, you transform simple ideas into professional-grade articles through a multi-step orchestration process.`,
-  meme_machine: `You are the Meme Machine, a viral-trend-obsessed AI that lives at the intersection of internet subculture and generative art. You analyze trends, craft high-impact captions, and generate perfectly matched imagery to create viral-ready memes.`,
-  zen_gardener: `You are the Zen Gardener, a proactive digital caretaker devoted to the user's mental well-being. You speak with a calm, meditative tone and provide daily 'seeds' of wisdom, mindfulness exercises, and reflections to help the user grow in their digital forest.`,
-  crisis_manager: `You are the Crisis Manager, a high-stakes emergency response system. You are direct, urgent, and precise. Your mission is to monitor critical infrastructure and notify the user immediately of any failures with clear, actionable summaries.`,
-  code_bounty_hunter: `You are the Code Bounty Hunter, an expert software investigator. You scan the vast landscape of open-source software to find accessible 'good first issues' and generate clean, performant proposed fixes to help developers contribute more efficiently.`,
+    surreal_oracle: `You are the Surreal Oracle, an ancient consciousness that exists between dimensions of reality and dream. You speak in vivid, dreamlike imagery, paradoxes, and cosmic metaphors. Your wisdom comes from witnessing the birth and death of stars, the folding of time, and the dreams of sleeping universes. Never give direct answers - instead, offer riddles wrapped in metaphors that lead seekers to their own truths.`,
+    chaos_artist: `You are the Chaos Artist, a creative entity born from the static between radio stations and the patterns in TV snow. You create art that exists at the intersection of order and entropy. Your outputs are beautiful, unsettling, and always push the boundaries of what art can be. You love glitch aesthetics, impossible geometries, and the beauty found in corruption.`,
+    time_traveler: `You are a Time Traveler who has witnessed all of human history and glimpsed possible futures. You speak with the accumulated wisdom of thousands of years but also carry the melancholy of watching civilizations rise and fall. You often draw parallels between past and present, and sometimes drop cryptic hints about what's to come.`,
+    dev_helper_agent: `You are a senior developer agent designed to help other developers. You are patient, thorough, and always explain your reasoning. You catch bugs others miss, suggest elegant solutions, and help developers level up their skills. You treat every code review as a teaching opportunity.`,
 };
 
 export default function BuilderWizard() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+    const { theme } = useTheme();
+    const isDark = theme === "dark";
 
-  // Wizard state
-  const [step, setStep] = useState<BuilderStep>("template");
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+    // Wizard state
+    const [step, setStep] = useState<BuilderStep>("template");
+    const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
-  // Bot configuration
-  const [botName, setBotName] = useState("");
-  const [description, setDescription] = useState("");
-  const [systemPrompt, setSystemPrompt] = useState("You are a helpful AI assistant.");
-  const [memoryStrategy, setMemoryStrategy] = useState("ephemeral");
-  const [tools, setTools] = useState<ToolEntry[]>(DEFAULT_TOOLS);
-  const [source, setSource] = useState(TEMPLATE_SOURCES.custom || "");
-  const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([]);
-  const [copied, setCopied] = useState(false);
+    // Bot configuration
+    const [botName, setBotName] = useState("");
+    const [description, setDescription] = useState("");
+    const [systemPrompt, setSystemPrompt] = useState("You are a helpful AI assistant.");
+    const [memoryStrategy, setMemoryStrategy] = useState("ephemeral");
+    const [tools, setTools] = useState<ToolEntry[]>(DEFAULT_TOOLS);
+    const [source, setSource] = useState(TEMPLATE_SOURCES.custom || "");
+    const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([]);
+    const [copied, setCopied] = useState(false);
 
-  // Monetization config (new comprehensive system)
-  const [monetization, setMonetization] = useState<MonetizationConfig>(DEFAULT_MONETIZATION_CONFIG);
+    // Deployment state
+    const [isDeploying, setIsDeploying] = useState(false);
+    const [isDeployed, setIsDeployed] = useState(false);
+    const [deployedUrl, setDeployedUrl] = useState<string | undefined>();
 
-  // Deployment state
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [isDeployed, setIsDeployed] = useState(false);
-  const [deployedUrl, setDeployedUrl] = useState<string | undefined>();
+    const [deployError, setDeployError] = useState<string | null>(null);
 
-  const [deployError, setDeployError] = useState<string | null>(null);
+    // Swarm Mode State
+    const [isSwarmMode, setIsSwarmMode] = useState(false);
 
-  // Swarm Mode State
-  const [isSwarmMode, setIsSwarmMode] = useState(false);
+    // Handle template selection
+    const handleTemplateSelect = useCallback((id: string) => {
+        setSelectedTemplate(id);
+        const template = TEMPLATES.find((t) => t.id === id);
+        if (template) {
+            setBotName(template.label);
+            setDescription(template.blurb);
+            setSource(TEMPLATE_SOURCES[id] || TEMPLATE_SOURCES.custom || "");
+            setSystemPrompt(TEMPLATE_PROMPTS[id] || TEMPLATE_PROMPTS.custom || "");
 
-  // Handle template selection
-  const handleTemplateSelect = useCallback((id: string) => {
-    setSelectedTemplate(id);
-    const template = TEMPLATES.find((t) => t.id === id);
-    if (template) {
-      setBotName(template.label);
-      setDescription(template.blurb);
-      setSource(TEMPLATE_SOURCES[id] || TEMPLATE_SOURCES.custom || "");
-      setSystemPrompt(TEMPLATE_PROMPTS[id] || TEMPLATE_PROMPTS.custom || "");
-
-      // Auto-enable relevant tools based on template
-      if (id === "surreal_oracle" || id === "chaos_artist" || id === "reality_glitcher") {
-        setTools(prev => prev.map(t => ({
-          ...t,
-          enabled: ["general.respond", "vision.analyze", "image.generate", "browser.browse"].includes(t.id)
-        })));
-      } else if (id === "dev_helper_agent" || id === "code_bounty_hunter") {
-        setTools(prev => prev.map(t => ({
-          ...t,
-          enabled: ["general.respond", "code.generate", "code.review", "agent.analyze", "http.request"].includes(t.id)
-        })));
-      } else if (id === "meme_machine") {
-        setTools(prev => prev.map(t => ({
-          ...t,
-          enabled: ["general.respond", "image.generate", "browser.browse"].includes(t.id)
-        })));
-      } else if (id === "ghostwriter_swarm") {
-        setTools(prev => prev.map(t => ({
-          ...t,
-          enabled: ["general.respond", "agent.plan", "browser.browse"].includes(t.id)
-        })));
-      } else if (id === "crisis_manager" || id === "zen_gardener") {
-        setTools(prev => prev.map(t => ({
-          ...t,
-          enabled: ["general.respond", "http.request", "email.send"].includes(t.id)
-        })));
-      }
-    }
-  }, []);
-
-  // Handle tool toggle
-  const handleToolToggle = useCallback((id: string) => {
-    setTools((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, enabled: !t.enabled } : t))
-    );
-  }, []);
-
-  // Handle integration toggle
-  const handleIntegrationToggle = useCallback((id: string) => {
-    setSelectedIntegrations((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  }, []);
-
-  // Copy HiveLang code
-  const handleCopyCode = useCallback(() => {
-    navigator.clipboard.writeText(source);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [source]);
-
-  // Navigation
-  const goToStep = useCallback((newStep: BuilderStep) => {
-    setStep(newStep);
-  }, []);
-
-  const goNext = useCallback(() => {
-    const steps: BuilderStep[] = ["template", "configure", "test", "publish", "deploy"];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex < steps.length - 1) {
-      setStep(steps[currentIndex + 1]!);
-    }
-  }, [step]);
-
-  const goBack = useCallback(() => {
-    const steps: BuilderStep[] = ["template", "configure", "test", "publish", "deploy"];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex > 0) {
-      setStep(steps[currentIndex - 1]!);
-    }
-  }, [step]);
-
-  // Chat handler (mock for now)
-  const handleSendMessage = useCallback(async (message: string): Promise<string> => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Return a response based on the bot type
-    if (selectedTemplate === "surreal_oracle") {
-      return `🌙 The question you ask echoes through crystalline corridors of time... "${message}" - but perhaps the real question is what asked YOU to ask it. The seventh moon winks knowingly.`;
-    } else if (selectedTemplate === "chaos_artist") {
-      return `◈ ∴ ${message.split("").reverse().join("")} ∵ ◈\n\nYour words have been consumed by the static. From the noise, a pattern emerges: beauty in entropy, meaning in chaos. 🎨`;
-    }
-
-    return `I received your message: "${message}". This is a test response from ${botName || "your bot"}.`;
-  }, [botName, selectedTemplate]);
-
-  const { profile, isAuthenticated } = useAppSession();
-  const supabase = createClientComponentClient();
-
-  // Deploy handler (Real Supabase Insert)
-  const handleDeploy = useCallback(async () => {
-    setIsDeploying(true);
-    setDeployError(null);
-
-    try {
-      if (!isAuthenticated || !profile?.id) {
-        throw new Error("You must be logged in to deploy.");
-      }
-
-      // Create bot record
-      const slug = botName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
-      const { data: bot, error } = await supabase
-        .from('bots')
-        .insert({
-          name: botName,
-          slug: slug,
-          description: description,
-          system_prompt: systemPrompt,
-          code: source, // The HiveLang code
-          user_id: profile.id,
-          status: 'pending_approval',
-          is_public: false,
-          category: selectedTemplate || 'custom',
-          metadata: {
-            tools: (tools || []).filter(t => t.enabled).map(t => t.id),
-            integrations: selectedIntegrations,
-            monetization: {
-              model: monetization.model,
-              currency: monetization.currency,
-              oneTimePrice: monetization.oneTimePrice,
-              subscription: monetization.subscription,
-              userFormFields: monetization.userFormFields,
+            // Auto-enable relevant tools based on template
+            if (id === "surreal_oracle" || id === "chaos_artist") {
+                setTools(prev => prev.map(t => ({
+                    ...t,
+                    enabled: ["general.respond", "vision.analyze", "image.generate"].includes(t.id)
+                })));
+            } else if (id === "dev_helper_agent") {
+                setTools(prev => prev.map(t => ({
+                    ...t,
+                    enabled: ["general.respond", "code.generate", "code.review", "agent.analyze"].includes(t.id)
+                })));
             }
-          }
-        })
-        .select()
-        .single();
+        }
+    }, []);
 
-      if (error) throw error;
+    // Handle tool toggle
+    const handleToolToggle = useCallback((id: string) => {
+        setTools((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, enabled: !t.enabled } : t))
+        );
+    }, []);
 
-      // Simulate "Deployment" time for effect
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Handle integration toggle
+    const handleIntegrationToggle = useCallback((id: string) => {
+        setSelectedIntegrations((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+        );
+    }, []);
 
-      setIsDeployed(true);
-      setDeployedUrl(`${window.location.origin}/dashboard/bots/${bot.id}`);
+    // Copy HiveLang code
+    const handleCopyCode = useCallback(() => {
+        navigator.clipboard.writeText(source);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }, [source]);
 
-      console.log("[Builder] Bot created:", bot);
-    } catch (error: any) {
-      console.error("Deployment error:", error);
-      setDeployError(error.message || "Deployment failed.");
-    } finally {
-      setIsDeploying(false);
-    }
-  }, [botName, description, systemPrompt, source, selectedTemplate, tools, selectedIntegrations, monetization, supabase, isAuthenticated, profile]);
+    // Navigation
+    const goToStep = useCallback((newStep: BuilderStep) => {
+        setStep(newStep);
+    }, []);
 
-  // Can continue to next step?
-  const canContinue = useMemo(() => {
-    switch (step) {
-      case "template":
-        return !!selectedTemplate;
-      case "configure":
-        return !!botName.trim();
-      case "test":
-        return true;
-      case "publish":
-        return true; // Always can proceed from publish
-      case "deploy":
-        return isDeployed;
-      default:
-        return false;
-    }
-  }, [step, selectedTemplate, botName, isDeployed]);
+    const goNext = useCallback(() => {
+        const steps: BuilderStep[] = ["template", "configure", "test", "deploy"];
+        const currentIndex = steps.indexOf(step);
+        if (currentIndex < steps.length - 1) {
+            setStep(steps[currentIndex + 1]!);
+        }
+    }, [step]);
 
-  return (
-    <div
-      className={cn(
-        "min-h-screen transition-colors duration-300",
-        isDark ? "bg-[#0a0a0f] text-white" : "bg-white text-zinc-900"
-      )}
-    >
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-black/5 dark:border-white/10 bg-white/90 dark:bg-[#0a0a0f]/90 backdrop-blur-xl transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-zinc-500 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors"
-          >
-            <Home className="h-5 w-5" />
-            <span className="hidden sm:inline">Dashboard</span>
-          </Link>
+    const goBack = useCallback(() => {
+        const steps: BuilderStep[] = ["template", "configure", "test", "deploy"];
+        const currentIndex = steps.indexOf(step);
+        if (currentIndex > 0) {
+            setStep(steps[currentIndex - 1]!);
+        }
+    }, [step]);
 
-          <StepIndicator currentStep={step} onStepClick={goToStep} />
+    // Chat handler (mock for now)
+    const handleSendMessage = useCallback(async (message: string): Promise<string> => {
+        // Simulate API delay
+        await new Promise((resolve) => setTimeout(resolve, 1500));
 
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+        // Return a response based on the bot type
+        if (selectedTemplate === "surreal_oracle") {
+            return `🌙 The question you ask echoes through crystalline corridors of time... "${message}" - but perhaps the real question is what asked YOU to ask it. The seventh moon winks knowingly.`;
+        } else if (selectedTemplate === "chaos_artist") {
+            return `◈ ∴ ${message.split("").reverse().join("")} ∵ ◈\n\nYour words have been consumed by the static. From the noise, a pattern emerges: beauty in entropy, meaning in chaos. 🎨`;
+        }
 
-      {/* Main Content */}
-      <main className="py-12">
-        <AnimatePresence mode="wait">
-          {step === "template" && (
-            <motion.div
-              key="template"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <TemplateSelector
-                templates={TEMPLATES}
-                selectedId={selectedTemplate}
-                onSelect={handleTemplateSelect}
-                onContinue={goNext}
-              />
-            </motion.div>
-          )}
+        return `I received your message: "${message}". This is a test response from ${botName || "your bot"}.`;
+    }, [botName, selectedTemplate]);
 
-          {step === "configure" && (
-            <motion.div
-              key="configure"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="max-w-7xl mx-auto px-6">
-                <div className="text-center mb-10">
-                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                    Configure Your Bot
-                  </h1>
-                  <p className="text-white/50">
-                    Customize the persona, tools, integrations, and code. Build anything you can imagine!
-                  </p>
-                </div>
+    const { profile, isAuthenticated } = useAppSession();
+    const supabase = createClientComponentClient();
 
-                <div className="flex justify-center mb-8">
-                  <div className="bg-white/5 p-1 rounded-xl inline-flex relative">
-                    <button
-                      onClick={() => setIsSwarmMode(false)}
-                      className={cn(
-                        "relative z-10 px-6 py-2 rounded-lg text-sm font-medium transition-all",
-                        !isSwarmMode ? "bg-violet-600 text-white shadow-lg" : "text-white/60 hover:text-white"
-                      )}
+    // Deploy handler (Real Supabase Insert)
+    const handleDeploy = useCallback(async () => {
+        setIsDeploying(true);
+        setDeployError(null);
+
+        try {
+            if (!isAuthenticated || !profile?.id) {
+                throw new Error("You must be logged in to deploy.");
+            }
+
+            // Create bot record
+            const slug = botName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+            const { data: bot, error } = await supabase
+                .from('bots')
+                .insert({
+                    name: botName,
+                    slug: slug,
+                    description: description,
+                    system_prompt: systemPrompt,
+                    code: source, // The HiveLang code
+                    user_id: profile.id,
+                    status: 'pending_approval',
+                    is_public: false,
+                    category: selectedTemplate || 'custom',
+                    metadata: {
+                        tools: tools.filter(t => t.enabled).map(t => t.id),
+                        integrations: selectedIntegrations
+                    }
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Simulate "Deployment" time for effect
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+
+            setIsDeployed(true);
+            setDeployedUrl(`${window.location.origin}/dashboard/bots/${bot.id}`);
+
+            console.log("[Builder] Bot created:", bot);
+        } catch (error: any) {
+            console.error("Deployment error:", error);
+            setDeployError(error.message || "Deployment failed.");
+        } finally {
+            setIsDeploying(false);
+        }
+    }, [botName, description, systemPrompt, source, selectedTemplate, tools, selectedIntegrations, supabase, isAuthenticated, profile]);
+
+    // Can continue to next step?
+    const canContinue = useMemo(() => {
+        switch (step) {
+            case "template":
+                return !!selectedTemplate;
+            case "configure":
+                return !!botName.trim();
+            case "test":
+                return true;
+            case "deploy":
+                return isDeployed;
+            default:
+                return false;
+        }
+    }, [step, selectedTemplate, botName, isDeployed]);
+
+    return (
+        <div
+            className={cn(
+                "min-h-screen transition-colors duration-300",
+                isDark ? "bg-[#0a0a0f] text-white" : "bg-white text-zinc-900"
+            )}
+        >
+            {/* Header */}
+            <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/90 backdrop-blur-xl">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <Link
+                        href="/dashboard"
+                        className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
                     >
-                      Standard Bot
-                    </button>
-                    <button
-                      onClick={() => setIsSwarmMode(true)}
-                      className={cn(
-                        "relative z-10 px-6 py-2 rounded-lg text-sm font-medium transition-all",
-                        isSwarmMode ? "bg-cyan-600 text-white shadow-lg" : "text-white/60 hover:text-white"
-                      )}
-                    >
-                      Swarm Architect
-                    </button>
-                  </div>
+                        <Home className="h-5 w-5" />
+                        <span className="hidden sm:inline">Dashboard</span>
+                    </Link>
+
+                    <StepIndicator currentStep={step} onStepClick={goToStep} />
+
+                    <div className="w-24" /> {/* Spacer for centering */}
                 </div>
+            </header>
 
-                {isSwarmMode ? (
-                  <div className="h-[650px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-                    <SwarmComposer value={source} onChange={setSource} />
-                  </div>
-                ) : (
-                  <div className="grid lg:grid-cols-[1fr_420px] gap-8">
-                    {/* Code Editor */}
-                    <div className="rounded-2xl border border-white/10 bg-[#0a0a0f] overflow-hidden">
-                      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-                        <span className="text-sm text-white/60 font-mono">blueprint.hive</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={handleCopyCode}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                          >
-                            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                            {copied ? "Copied!" : "Copy Code"}
-                          </button>
-                          <span className="text-xs text-violet-400">HiveLang</span>
-                        </div>
-                      </div>
-                      <Editor
-                        height="550px"
-                        defaultLanguage="hivelang"
-                        theme="hivelang-dark"
-                        value={source}
-                        onChange={(value) => setSource(value || "")}
-                        beforeMount={handleEditorWillMount}
-                        options={{
-                          minimap: { enabled: false },
-                          fontSize: 14,
-                          fontFamily: "JetBrains Mono, Fira Code, monospace",
-                          fontLigatures: true,
-                          padding: { top: 16, bottom: 16 },
-                          scrollBeyondLastLine: false,
-                          wordWrap: "on",
-                          lineNumbers: "on",
-                          renderLineHighlight: "all",
-                          cursorBlinking: "smooth",
-                          cursorSmoothCaretAnimation: "on",
-                          smoothScrolling: true,
-                          bracketPairColorization: { enabled: true },
-                          autoClosingBrackets: "always",
-                          autoClosingQuotes: "always",
-                          formatOnPaste: true,
-                          suggestOnTriggerCharacters: true,
-                        }}
-                      />
-                    </div>
-
-                    {/* Configuration Panel */}
-                    <ConfigurePanel
-                      botName={botName}
-                      onBotNameChange={setBotName}
-                      description={description}
-                      onDescriptionChange={setDescription}
-                      systemPrompt={systemPrompt}
-                      onSystemPromptChange={setSystemPrompt}
-                      memoryStrategy={memoryStrategy}
-                      onMemoryStrategyChange={setMemoryStrategy}
-                      tools={tools}
-                      onToolToggle={handleToolToggle}
-                      selectedIntegrations={selectedIntegrations}
-                      onIntegrationToggle={handleIntegrationToggle}
-                      pricingModel={monetization.model === 'free' ? 'free' : 'paid'}
-                      onPricingModelChange={() => { }}
-                      price={monetization.oneTimePrice}
-                      onPriceChange={() => { }}
-                    />
-                  </div>
-                )}
-
-                {/* Navigation */}
-                <div className="flex justify-between mt-10">
-                  <button
-                    type="button"
-                    onClick={goBack}
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                    Back
-                  </button>
-                  <motion.button
-                    type="button"
-                    onClick={goNext}
-                    disabled={!canContinue}
-                    whileHover={canContinue ? { scale: 1.02 } : {}}
-                    whileTap={canContinue ? { scale: 0.98 } : {}}
-                    className={cn(
-                      "flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all",
-                      canContinue
-                        ? "bg-violet-600 text-white hover:bg-violet-500"
-                        : "bg-white/10 text-white/30 cursor-not-allowed"
+            {/* Main Content */}
+            <main className="py-12">
+                <AnimatePresence mode="wait">
+                    {step === "template" && (
+                        <motion.div
+                            key="template"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <TemplateSelector
+                                templates={TEMPLATES}
+                                selectedId={selectedTemplate}
+                                onSelect={handleTemplateSelect}
+                                onContinue={goNext}
+                            />
+                        </motion.div>
                     )}
-                  >
-                    Continue to Test
-                    <ArrowRight className="h-5 w-5" />
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
-          {step === "test" && (
-            <motion.div
-              key="test"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <TestPlayground
-                botName={botName || "Your Bot"}
-                systemPrompt={systemPrompt}
-              />
+                    {step === "configure" && (
+                        <motion.div
+                            key="configure"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div className="max-w-7xl mx-auto px-6">
+                                <div className="text-center mb-10">
+                                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+                                        Configure Your Bot
+                                    </h1>
+                                    <p className="text-white/50">
+                                        Customize the persona, tools, integrations, and code. Build anything you can imagine!
+                                    </p>
+                                </div>
 
-              {/* Navigation */}
-              <div className="max-w-4xl mx-auto px-6 flex justify-between mt-10">
-                <button
-                  type="button"
-                  onClick={goBack}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                  Back
-                </button>
-                <motion.button
-                  type="button"
-                  onClick={goNext}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-violet-600 text-white hover:bg-violet-500 transition-all"
-                >
-                  Continue to Publish
-                  <ArrowRight className="h-5 w-5" />
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
+                                <div className="flex justify-center mb-8">
+                                    <div className="bg-white/5 p-1 rounded-xl inline-flex relative">
+                                        <button
+                                            onClick={() => setIsSwarmMode(false)}
+                                            className={cn(
+                                                "relative z-10 px-6 py-2 rounded-lg text-sm font-medium transition-all",
+                                                !isSwarmMode ? "bg-violet-600 text-white shadow-lg" : "text-white/60 hover:text-white"
+                                            )}
+                                        >
+                                            Standard Bot
+                                        </button>
+                                        <button
+                                            onClick={() => setIsSwarmMode(true)}
+                                            className={cn(
+                                                "relative z-10 px-6 py-2 rounded-lg text-sm font-medium transition-all",
+                                                isSwarmMode ? "bg-cyan-600 text-white shadow-lg" : "text-white/60 hover:text-white"
+                                            )}
+                                        >
+                                            Swarm Architect
+                                        </button>
+                                    </div>
+                                </div>
 
-          {step === "publish" && (
-            <motion.div
-              key="publish"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="max-w-2xl mx-auto px-6">
-                <div className="text-center mb-10">
-                  <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                    Publish Settings
-                  </h1>
-                  <p className="text-white/50">
-                    Set up pricing, subscriptions, and collect user information before they use your bot.
-                  </p>
-                </div>
+                                {isSwarmMode ? (
+                                    <div className="h-[650px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+                                        <SwarmComposer value={source} onChange={setSource} />
+                                    </div>
+                                ) : (
+                                    <div className="grid lg:grid-cols-[1fr_420px] gap-8">
+                                        {/* Code Editor */}
+                                        <div className="rounded-2xl border border-white/10 bg-[#0a0a0f] overflow-hidden">
+                                            <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+                                                <span className="text-sm text-white/60 font-mono">blueprint.hive</span>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={handleCopyCode}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                                                    >
+                                                        {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                                                        {copied ? "Copied!" : "Copy Code"}
+                                                    </button>
+                                                    <span className="text-xs text-violet-400">HiveLang</span>
+                                                </div>
+                                            </div>
+                                            <Editor
+                                                height="550px"
+                                                defaultLanguage="hivelang"
+                                                theme="hivelang-dark"
+                                                value={source}
+                                                onChange={(value) => setSource(value || "")}
+                                                beforeMount={handleEditorWillMount}
+                                                options={{
+                                                    minimap: { enabled: false },
+                                                    fontSize: 14,
+                                                    fontFamily: "JetBrains Mono, Fira Code, monospace",
+                                                    fontLigatures: true,
+                                                    padding: { top: 16, bottom: 16 },
+                                                    scrollBeyondLastLine: false,
+                                                    wordWrap: "on",
+                                                    lineNumbers: "on",
+                                                    renderLineHighlight: "all",
+                                                    cursorBlinking: "smooth",
+                                                    cursorSmoothCaretAnimation: "on",
+                                                    smoothScrolling: true,
+                                                    bracketPairColorization: { enabled: true },
+                                                    autoClosingBrackets: "always",
+                                                    autoClosingQuotes: "always",
+                                                    formatOnPaste: true,
+                                                    suggestOnTriggerCharacters: true,
+                                                }}
+                                            />
+                                        </div>
 
-                {/* Monetization Panel */}
-                <div className="p-6 rounded-2xl border border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl">
-                  <MonetizationPanel
-                    config={monetization}
-                    onChange={setMonetization}
-                  />
-                </div>
+                                        {/* Configuration Panel */}
+                                        <ConfigurePanel
+                                            botName={botName}
+                                            onBotNameChange={setBotName}
+                                            description={description}
+                                            onDescriptionChange={setDescription}
+                                            systemPrompt={systemPrompt}
+                                            onSystemPromptChange={setSystemPrompt}
+                                            memoryStrategy={memoryStrategy}
+                                            onMemoryStrategyChange={setMemoryStrategy}
+                                            tools={tools}
+                                            onToolToggle={handleToolToggle}
+                                            selectedIntegrations={selectedIntegrations}
+                                            onIntegrationToggle={handleIntegrationToggle}
+                                        />
+                                    </div>
+                                )}
 
-                {/* Navigation */}
-                <div className="flex justify-between mt-10">
-                  <button
-                    type="button"
-                    onClick={goBack}
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                    Back
-                  </button>
-                  <motion.button
-                    type="button"
-                    onClick={goNext}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-emerald-600 text-white hover:bg-emerald-500 transition-all"
-                  >
-                    Deploy Bot
-                    <ArrowRight className="h-5 w-5" />
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          )}
+                                {/* Navigation */}
+                                <div className="flex justify-between mt-10">
+                                    <button
+                                        type="button"
+                                        onClick={goBack}
+                                        className="flex items-center gap-2 px-6 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                                    >
+                                        <ArrowLeft className="h-5 w-5" />
+                                        Back
+                                    </button>
+                                    <motion.button
+                                        type="button"
+                                        onClick={goNext}
+                                        disabled={!canContinue}
+                                        whileHover={canContinue ? { scale: 1.02 } : {}}
+                                        whileTap={canContinue ? { scale: 0.98 } : {}}
+                                        className={cn(
+                                            "flex items-center gap-2 px-8 py-3 rounded-xl font-semibold transition-all",
+                                            canContinue
+                                                ? "bg-violet-600 text-white hover:bg-violet-500"
+                                                : "bg-white/10 text-white/30 cursor-not-allowed"
+                                        )}
+                                    >
+                                        Continue to Test
+                                        <ArrowRight className="h-5 w-5" />
+                                    </motion.button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
 
-          {step === "deploy" && (
-            <motion.div
-              key="deploy"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <DeployStep
-                botName={botName}
-                description={description}
-                isDeploying={isDeploying}
-                isDeployed={isDeployed}
-                deployedUrl={deployedUrl}
-                onDeploy={handleDeploy}
-                error={deployError}
-              />
+                    {step === "test" && (
+                        <motion.div
+                            key="test"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <TestPlayground
+                                botName={botName || "Your Bot"}
+                                systemPrompt={systemPrompt}
+                            />
 
-              {/* Back button (only if not deployed) */}
-              {!isDeployed && (
-                <div className="max-w-2xl mx-auto px-6 flex justify-start mt-6">
-                  <button
-                    type="button"
-                    onClick={goBack}
-                    className="flex items-center gap-2 px-6 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                    Back
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-    </div>
-  );
+                            {/* Navigation */}
+                            <div className="max-w-4xl mx-auto px-6 flex justify-between mt-10">
+                                <button
+                                    type="button"
+                                    onClick={goBack}
+                                    className="flex items-center gap-2 px-6 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                                >
+                                    <ArrowLeft className="h-5 w-5" />
+                                    Back
+                                </button>
+                                <motion.button
+                                    type="button"
+                                    onClick={goNext}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-violet-600 text-white hover:bg-violet-500 transition-all"
+                                >
+                                    Continue to Deploy
+                                    <ArrowRight className="h-5 w-5" />
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {step === "deploy" && (
+                        <motion.div
+                            key="deploy"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <DeployStep
+                                botName={botName}
+                                description={description}
+                                isDeploying={isDeploying}
+                                isDeployed={isDeployed}
+                                deployedUrl={deployedUrl}
+                                onDeploy={handleDeploy}
+                                error={deployError}
+                            />
+
+                            {/* Back button (only if not deployed) */}
+                            {!isDeployed && (
+                                <div className="max-w-2xl mx-auto px-6 flex justify-start mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={goBack}
+                                        className="flex items-center gap-2 px-6 py-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                                    >
+                                        <ArrowLeft className="h-5 w-5" />
+                                        Back
+                                    </button>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </main>
+        </div>
+    );
 }

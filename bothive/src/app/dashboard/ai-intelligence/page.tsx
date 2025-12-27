@@ -10,12 +10,12 @@ import DashboardBackground from "@/components/DashboardBackground";
 import ThemeToggle from "@/components/ThemeToggle";
 import AIChatInterface from "@/components/AIChatInterface";
 import AIVoiceIntegration from "@/components/AIVoiceIntegration";
-import { 
-  Brain, 
-  TrendingUp, 
-  Users, 
-  MessageSquare, 
-  Zap, 
+import {
+  Brain,
+  TrendingUp,
+  Users,
+  MessageSquare,
+  Zap,
   Target,
   Clock,
   BarChart3,
@@ -109,7 +109,7 @@ export default function AIIntelligenceDashboard() {
   const { profile } = useAppSession();
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  
+
   const [metrics, setMetrics] = useState<AIMetrics | null>(null);
   const [cronJobs, setCronJobs] = useState<CronJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,8 +162,8 @@ export default function AIIntelligenceDashboard() {
       };
 
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // await new Promise(resolve => setTimeout(resolve, 1000));
+
       setMetrics(mockMetrics);
 
       // Try to fetch real data (will fail gracefully until database is set up)
@@ -201,8 +201,8 @@ export default function AIIntelligenceDashboard() {
     const totalInteractions = conversations.filter(c => c.role === 'user').length;
 
     // Calculate average response time
-    const avgResponseTime = learningData.length > 0 
-      ? learningData.reduce((sum, d) => sum + (d.resolution_time || 0), 0) / learningData.length 
+    const avgResponseTime = learningData.length > 0
+      ? learningData.reduce((sum, d) => sum + (d.resolution_time || 0), 0) / learningData.length
       : 0;
 
     // Calculate user satisfaction
@@ -228,7 +228,7 @@ export default function AIIntelligenceDashboard() {
       }, {} as Record<string, number>);
 
     const topIntents = Object.entries(intentCounts)
-      .sort(([,a]: [string, unknown], [,b]: [string, unknown]) => Number(b) - Number(a))
+      .sort(([, a]: [string, unknown], [, b]: [string, unknown]) => Number(b) - Number(a))
       .slice(0, 5)
       .map(([type, count]) => ({ type, count: Number(count) }));
 
@@ -305,10 +305,10 @@ export default function AIIntelligenceDashboard() {
   }, []);
 
   const handleCronJobToggle = async (jobId: string, enabled: boolean) => {
-    setCronJobs(prev => prev.map(job => 
+    setCronJobs(prev => prev.map(job =>
       job.id === jobId ? { ...job, enabled, status: enabled ? 'active' : 'paused' } : job
     ));
-    
+
     triggerAlert({
       type: 'success',
       title: 'Cron Job Updated',
@@ -319,10 +319,10 @@ export default function AIIntelligenceDashboard() {
   const handleCronJobRun = async (jobId: string) => {
     const job = cronJobs.find(j => j.id === jobId);
     if (job) {
-      setCronJobs(prev => prev.map(j => 
+      setCronJobs(prev => prev.map(j =>
         j.id === jobId ? { ...j, status: 'active' } : j
       ));
-      
+
       triggerAlert({
         type: 'info',
         title: 'Cron Job Triggered',
@@ -392,7 +392,7 @@ export default function AIIntelligenceDashboard() {
 
   const filteredCronJobs = cronJobs.filter(job => {
     const matchesSearch = job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         job.description.toLowerCase().includes(searchQuery.toLowerCase());
+      job.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterStatus === 'all' || job.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -438,7 +438,7 @@ export default function AIIntelligenceDashboard() {
         <div className={radialOverlayClass} />
         <div className={gridOverlayClass} />
       </div>
-      
+
       <div className="relative z-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 gap-4">
@@ -452,7 +452,7 @@ export default function AIIntelligenceDashboard() {
               Advanced AI analytics, automation, and system monitoring
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             {/* Time Range Selector */}
             <div className="flex gap-1 p-1 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
@@ -471,7 +471,7 @@ export default function AIIntelligenceDashboard() {
                 </button>
               ))}
             </div>
-            
+
             {/* Metric Selector */}
             <div className="flex items-center gap-2 p-1 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
               {['overview', 'performance', 'automation'].map((metric) => (
@@ -489,7 +489,7 @@ export default function AIIntelligenceDashboard() {
                 </button>
               ))}
             </div>
-            
+
             <ThemeToggle />
           </div>
         </div>
@@ -632,7 +632,7 @@ export default function AIIntelligenceDashboard() {
                             <span className="text-white">{metrics?.systemHealth.cpu}%</span>
                           </div>
                           <div className="w-full bg-white/10 rounded-full h-2">
-                            <div 
+                            <div
                               className="bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] h-2 rounded-full transition-all duration-500"
                               style={{ width: `${metrics?.systemHealth.cpu}%` }}
                             />
@@ -644,7 +644,7 @@ export default function AIIntelligenceDashboard() {
                             <span className="text-white">{metrics?.systemHealth.memory}%</span>
                           </div>
                           <div className="w-full bg-white/10 rounded-full h-2">
-                            <div 
+                            <div
                               className="bg-gradient-to-r from-[#6C43FF] to-[#8A63FF] h-2 rounded-full transition-all duration-500"
                               style={{ width: `${metrics?.systemHealth.memory}%` }}
                             />
@@ -656,7 +656,7 @@ export default function AIIntelligenceDashboard() {
                             <span className="text-white">{metrics?.systemHealth.uptime}%</span>
                           </div>
                           <div className="w-full bg-white/10 rounded-full h-2">
-                            <div 
+                            <div
                               className="bg-gradient-to-r from-green-500 to-green-400 h-2 rounded-full transition-all duration-500"
                               style={{ width: `${metrics?.systemHealth.uptime}%` }}
                             />
@@ -738,15 +738,15 @@ export default function AIIntelligenceDashboard() {
                         ))}
                       </div>
                     </div>
-                    
+
                     <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
                       <h3 className="text-lg font-semibold text-white mb-4">Learning Progress</h3>
                       <div className="flex items-center justify-center h-32">
                         <div className="relative">
                           <div className="w-32 h-32 rounded-full border-8 border-white/10">
-                            <div 
+                            <div
                               className="absolute inset-0 rounded-full border-8 border-transparent border-t-[#6C43FF] border-r-[#8A63FF] transition-all duration-1000"
-                              style={{ 
+                              style={{
                                 transform: `rotate(${(metrics?.learningProgress || 0) * 3.6}deg)`,
                               }}
                             />
@@ -782,7 +782,7 @@ export default function AIIntelligenceDashboard() {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="flex gap-2">
                       <select
                         value={filterStatus}
@@ -794,7 +794,7 @@ export default function AIIntelligenceDashboard() {
                         <option value="paused">Paused</option>
                         <option value="error">Error</option>
                       </select>
-                      
+
                       <button className="p-2 bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 transition-colors">
                         <Settings className="w-4 h-4" />
                       </button>
@@ -816,8 +816,8 @@ export default function AIIntelligenceDashboard() {
                               <div className={cn(
                                 "p-2 rounded-lg",
                                 job.status === 'active' ? "bg-green-500/20 text-green-400" :
-                                job.status === 'error' ? "bg-red-500/20 text-red-400" :
-                                "bg-gray-500/20 text-gray-400"
+                                  job.status === 'error' ? "bg-red-500/20 text-red-400" :
+                                    "bg-gray-500/20 text-gray-400"
                               )}>
                                 <Terminal className="w-4 h-4" />
                               </div>
@@ -844,7 +844,7 @@ export default function AIIntelligenceDashboard() {
                               </button>
                             </div>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-3 text-xs">
                             <div>
                               <p className={subduedText}>Schedule</p>
@@ -894,7 +894,7 @@ export default function AIIntelligenceDashboard() {
           )}
         </div>
       </div>
-      
+
       {/* Floating Action Button */}
       <motion.div
         initial={{ opacity: 0, scale: 0 }}
@@ -912,7 +912,7 @@ export default function AIIntelligenceDashboard() {
           </div>
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
         </button>
-        
+
         {/* Tooltip */}
         <div className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-black/80 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
           AI Assistant
@@ -935,4 +935,4 @@ export default function AIIntelligenceDashboard() {
     </div>
   );
 }
-                          
+

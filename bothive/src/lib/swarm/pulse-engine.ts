@@ -20,7 +20,6 @@ export interface PulseJob {
     trigger_type: PulseTrigger;
     trigger_config: any; // e.g. { cron: "0 * * * *" } or { event: "new_email" }
     last_run: string | null;
-    next_run: string | null;
     is_active: boolean;
 }
 
@@ -60,14 +59,17 @@ class ProactivePulseEngine {
         this.notifyListeners({ type: 'pulse', timestamp: Date.now() });
 
         try {
+            // 1. Fetch active jobs from DB (mocked for now, assumes 'bot_triggers' table)
+            // In a real scenario, this queries supabase
             const jobs = await this.fetchDueJobs();
 
             if (jobs.length > 0) {
                 console.log(`⚡ Pulse: Waking up ${jobs.length} bots...`);
             }
 
+            // 2. Execute Jobs
             for (const job of jobs) {
-                await this.wakeBot(job);
+                this.wakeBot(job);
             }
 
         } catch (err) {
@@ -76,40 +78,9 @@ class ProactivePulseEngine {
     }
 
     private async fetchDueJobs(): Promise<PulseJob[]> {
-        const nowIso = new Date().toISOString();
-
-        const { data, error } = await supabase
-            .from("pulse_jobs")
-            .select("id, bot_id, trigger_type, trigger_config, last_run, next_run, is_active")
-            .eq("is_active", true)
-            .lte("next_run", nowIso)
-            .limit(50);
-
-        if (error) {
-            console.error("Pulse fetchDueJobs error:", error);
-            return [];
-        }
-
-        return (data ?? []) as PulseJob[];
-    }
-
-    private computeNextRun(job: PulseJob): string | null {
-        const base = new Date();
-        const cfg = job.trigger_config || {};
-
-        if (job.trigger_type === "schedule") {
-            const intervalSeconds =
-                typeof cfg.interval_seconds === "number"
-                    ? cfg.interval_seconds
-                    : typeof cfg.intervalMinutes === "number"
-                        ? cfg.intervalMinutes * 60
-                        : 60;
-
-            const next = new Date(base.getTime() + intervalSeconds * 1000);
-            return next.toISOString();
-        }
-
-        return null;
+        // TODO: Implement actual DB query
+        // For prototype, we check if any active bots have "on schedule" blocks
+        return [];
     }
 
     /**
@@ -137,28 +108,7 @@ class ProactivePulseEngine {
 
         if (result.success) {
             console.log(`✅ Bot ${bot.name} executed successfully via Pulse.`);
-
-            const nextRun = this.computeNextRun(job);
-
-            await supabase
-                .from("pulse_jobs")
-                .update({
-                    last_run: new Date().toISOString(),
-                    next_run: nextRun,
-                    updated_at: new Date().toISOString()
-                })
-                .eq("id", job.id);
-
-            const output = result.output?.slice(0, 2000) ?? "";
-            const executionTimeMs = 0;
-
-            await supabase.from("pulse_logs").insert({
-                job_id: job.id,
-                bot_id: bot.id,
-                status: "success",
-                output,
-                execution_time_ms: executionTimeMs
-            });
+            // Log execution
         }
     }
 

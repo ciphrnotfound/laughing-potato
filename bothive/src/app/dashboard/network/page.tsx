@@ -48,15 +48,15 @@ export default function NetworkPage() {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );
 
-        // 1. Fetch User Wallet
+        // 1. Fetch User Wallet (canonical HiveCredits wallet)
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             const { data: wallet } = await supabase
-                .from('user_wallets')
-                .select('credits')
+                .from('wallets')
+                .select('balance')
                 .eq('user_id', user.id)
                 .single();
-            if (wallet) setUserCredits(wallet.credits);
+            if (wallet) setUserCredits(Number(wallet.balance || 0));
         }
 
         // 2. Fetch Public Bots

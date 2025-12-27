@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "@/lib/theme-context";
 import { useAppSession } from "@/lib/app-session-context";
 import { cn } from "@/lib/utils";
 import { DashboardPageShell } from "@/components/DashboardPageShell";
@@ -21,7 +22,10 @@ import {
   Trash2,
   UserPlus,
   Crown,
-  Shield
+  Shield,
+  ArrowRight,
+  ChevronRight,
+  ExternalLink
 } from "lucide-react";
 import Link from "next/link";
 
@@ -56,6 +60,8 @@ interface Member {
 
 export default function WorkspacesPage() {
   const { profile } = useAppSession();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const { showAlert } = useGlassAlert();
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -80,10 +86,10 @@ export default function WorkspacesPage() {
       const data = await response.json();
 
       if (data.workspaces) {
-        const workspacesWithStats = data.workspaces.map((ws: Workspace) => ({
+        const workspacesWithStats = data.workspaces.map((ws: any) => ({
           ...ws,
-          member_count: (ws as any).members?.length || 0,
-          bots_count: Math.floor(Math.random() * 12)
+          member_count: ws.workspace_members?.length || 0,
+          bots_count: Math.floor(Math.random() * 5) + 1 // Placeholder for now
         }));
         setWorkspaces(workspacesWithStats);
       }
@@ -99,8 +105,8 @@ export default function WorkspacesPage() {
       const response = await fetch(`/api/workspaces/${workspaceId}`);
       const data = await response.json();
 
-      if (data.workspace?.workspace_members) {
-        setMembers(data.workspace.workspace_members);
+      if (data.members) {
+        setMembers(data.members);
       }
     } catch (error) {
       console.error("Error fetching members:", error);
@@ -179,9 +185,9 @@ export default function WorkspacesPage() {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case "owner": return <Crown className="w-3.5 h-3.5" />;
-      case "admin": return <Shield className="w-3.5 h-3.5" />;
-      default: return null;
+      case "owner": return <Crown className="w-3 h-3" />;
+      case "admin": return <Shield className="w-3 h-3" />;
+      default: return <Users className="w-3 h-3" />;
     }
   };
 
@@ -240,44 +246,54 @@ export default function WorkspacesPage() {
         </motion.div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredWorkspaces.map((workspace, index) => (
+          {filteredWorkspaces.map((ws, index) => (
             <motion.div
-              key={workspace.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => {
-                setSelectedWorkspace(workspace);
-                fetchMembers(workspace.id);
-              }}
-              className="group p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 cursor-pointer transition-all"
+              key={ws.id}
+              layoutId={`workspace-${ws.id}`}
+              onClick={() => setSelectedWorkspace(ws)}
+              className={cn(
+                "group relative p-6 rounded-2xl border transition-all duration-300 cursor-pointer",
+                isDark
+                  ? "bg-[#111113] border-white/5 hover:border-violet-500/30 hover:bg-[#161619]"
+                  : "bg-white border-black/5 hover:border-violet-500/30 hover:bg-neutral-50 shadow-sm hover:shadow-md"
+              )}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-semibold text-white mb-1 truncate group-hover:text-violet-300 transition-colors">
-                    {workspace.name}
-                  </h3>
-                  {workspace.description && (
-                    <p className="text-sm text-neutral-500 line-clamp-2">{workspace.description}</p>
-                  )}
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 group-hover:rotate-3 shadow-lg",
+                  isDark ? "bg-white/5" : "bg-neutral-100"
+                )}>
+                  <Users className={cn("w-6 h-6", isDark ? "text-violet-400" : "text-violet-600")} />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-neutral-500">
-                    <Users className="w-4 h-4" />
-                    <span>{workspace.member_count}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-neutral-500">
-                    <Bot className="w-4 h-4" />
-                    <span>{workspace.bots_count}</span>
-                  </div>
+              <h3 className={cn("text-lg font-bold mb-1", isDark ? "text-white" : "text-neutral-900")}>
+                {ws.name}
+              </h3>
+              <p className={cn("text-sm line-clamp-2 mb-6 h-10", isDark ? "text-neutral-400" : "text-neutral-600")}>
+                {ws.description || "No description provided."}
+              </p>
+
+              <div className="flex items-center gap-4 pt-4 border-t border-white/5">
+                <div className="flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-neutral-500" />
+                  <span className="text-xs font-medium text-neutral-500">
+                    {ws.member_count} member{ws.member_count !== 1 ? "s" : ""}
+                  </span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-neutral-600">
-                  <Activity className="w-3 h-3" />
-                  Active
+                <div className="flex items-center gap-1.5">
+                  <Bot className="w-3.5 h-3.5 text-neutral-500" />
+                  <span className="text-xs font-medium text-neutral-500">
+                    {ws.bots_count} bot{ws.bots_count !== 1 ? "s" : ""}
+                  </span>
                 </div>
+              </div>
+
+              <div className={cn(
+                "absolute top-6 right-6 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity",
+                isDark ? "bg-white/5 text-white" : "bg-black/5 text-black"
+              )}>
+                <ChevronRight className="w-4 h-4" />
               </div>
             </motion.div>
           ))}
@@ -296,75 +312,108 @@ export default function WorkspacesPage() {
           >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-lg bg-[#0c0c0f] border border-white/10 rounded-xl overflow-hidden"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              className={cn(
+                "relative h-full w-full max-w-lg shadow-2xl border-l flex flex-col",
+                isDark ? "bg-[#0c0c0f] border-white/10" : "bg-white border-black/10 shadow-lg"
+              )}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
-              <div className="p-5 border-b border-white/5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">{selectedWorkspace.name}</h2>
-                    <p className="text-sm text-neutral-500">{selectedWorkspace.description}</p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedWorkspace(null)}
-                    className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-                  >
-                    <X className="w-5 h-5 text-neutral-500" />
-                  </button>
+              {/* Sidebar Header */}
+              <div className={cn(
+                "p-6 border-b flex items-center justify-between bg-gradient-to-br",
+                isDark ? "from-white/[0.02] to-transparent border-white/10" : "from-neutral-50 to-white border-black/5"
+              )}>
+                <div>
+                  <h2 className={cn("text-xl font-bold", isDark ? "text-white" : "text-neutral-900")}>
+                    {selectedWorkspace.name}
+                  </h2>
+                  <p className="text-sm text-neutral-500">Workspace Management</p>
                 </div>
+                <button
+                  onClick={() => setSelectedWorkspace(null)}
+                  className={cn(
+                    "p-2 rounded-xl transition-colors",
+                    isDark ? "hover:bg-white/5 text-neutral-400" : "hover:bg-neutral-100 text-neutral-600"
+                  )}
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Members Section */}
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-medium text-neutral-400">Team Members</h3>
-                  <button
-                    onClick={() => setShowInviteModal(true)}
-                    className="px-3 py-1.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 rounded-lg text-xs font-medium hover:bg-violet-500/20 transition-colors flex items-center gap-1.5"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    Invite
-                  </button>
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Description */}
+                <div className="mb-8">
+                  <h3 className={cn("text-xs font-bold uppercase tracking-widest mb-3", isDark ? "text-neutral-500" : "text-neutral-400")}>
+                    Description
+                  </h3>
+                  <p className={cn("text-sm leading-relaxed", isDark ? "text-neutral-300" : "text-neutral-600")}>
+                    {selectedWorkspace.description || "No description provided."}
+                  </p>
                 </div>
 
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {members.length === 0 ? (
-                    <p className="text-sm text-neutral-600 py-4 text-center">No members yet</p>
-                  ) : (
-                    members.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400 text-sm font-medium">
-                            {member.user.user_metadata?.name?.[0] || member.user.email[0].toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-white">
-                              {member.user.user_metadata?.name || member.user.email.split('@')[0]}
-                            </p>
-                            <p className="text-xs text-neutral-500">{member.user.email}</p>
-                          </div>
-                        </div>
-                        <div className={cn(
-                          "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium capitalize",
-                          member.role === "owner" ? "bg-amber-500/10 text-amber-400" :
-                            member.role === "admin" ? "bg-blue-500/10 text-blue-400" :
-                              "bg-white/5 text-neutral-400"
-                        )}>
-                          {getRoleIcon(member.role)}
-                          {member.role}
-                        </div>
+                {/* Team Members */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={cn("text-xs font-bold uppercase tracking-widest", isDark ? "text-neutral-500" : "text-neutral-400")}>
+                      Team Members
+                    </h3>
+                    <button
+                      onClick={() => setShowInviteModal(true)}
+                      className="text-xs font-bold text-violet-500 hover:text-violet-400 transition-colors uppercase tracking-widest flex items-center gap-1.5"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Invite
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {members.length === 0 ? (
+                      <div className={cn(
+                        "p-8 rounded-xl border border-dashed text-center",
+                        isDark ? "border-white/10" : "border-black/10"
+                      )}>
+                        <Users className="w-8 h-8 text-neutral-700 mx-auto mb-2 opacity-20" />
+                        <p className="text-xs text-neutral-500">No members found</p>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      members.map((member) => (
+                        <div
+                          key={member.id}
+                          className={cn(
+                            "flex items-center justify-between p-3 rounded-xl border transition-all",
+                            isDark ? "bg-white/[0.02] border-white/5" : "bg-neutral-50 border-black/5"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm",
+                              isDark ? "bg-violet-500/10 text-violet-400" : "bg-violet-500 text-white"
+                            )}>
+                              {member.user.user_metadata?.name?.[0] || member.user.email[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <p className={cn("text-sm font-bold truncate", isDark ? "text-white" : "text-neutral-900")}>
+                                {member.user.user_metadata?.name || member.user.email.split('@')[0]}
+                              </p>
+                              <p className="text-[10px] text-neutral-500 truncate">{member.user.email}</p>
+                            </div>
+                          </div>
+                          <div className={cn(
+                            "flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                            member.role === "owner" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" :
+                              member.role === "admin" ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" :
+                                isDark ? "bg-white/5 text-neutral-400" : "bg-black/5 text-neutral-600"
+                          )}>
+                            {member.role}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-
                 {/* Invite Link Section */}
                 <div className="mt-5 pt-5 border-t border-white/5">
                   <p className="text-xs text-neutral-500 mb-2">Invite Link</p>

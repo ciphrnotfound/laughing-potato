@@ -1,0 +1,44 @@
+}@integration notes
+@auth api_key
+@category productivity
+@description "Personal notes service"
+
+@capability create(title, content, tags)
+    response = http.post(
+        "https://api.my-notes-app.com/v1/notes",
+        headers: {
+            "Authorization": f"Bearer {user.api_key}",
+            "Content-Type": "application/json"
+        },
+        body: {
+            "title": title,
+            "content": content,
+            "tags": tags or []
+        }
+    )
+
+    if not response.ok {
+        error(f"Failed to create note: {response.error}")
+    }
+
+    return {
+        "id": response.data.id,
+        "url": response.data.url
+    }
+
+@capability list_recent(limit)
+    response = http.get(
+        "https://api.my-notes-app.com/v1/notes",
+        params: {
+            "limit": limit or "10"
+        },
+        headers: {
+            "Authorization": f"Bearer {user.api_key}"
+        }
+    )
+
+    if not response.ok {
+        error("Failed to fetch notes")
+    }
+
+    return response.data.items

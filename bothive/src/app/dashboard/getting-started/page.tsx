@@ -124,7 +124,7 @@ export default function GettingStartedPage() {
                     </div>
 
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 tracking-tight">
-                        Welcome{profile?.firstName ? `, ${profile.firstName}` : ''}
+                        Welcome{profile?.fullName ? `, ${profile.fullName.split(' ')[0]}` : ''}
                     </h1>
 
                     <p className="text-neutral-400 text-lg">

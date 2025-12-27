@@ -25,10 +25,14 @@ import { visionTools as importedVisionTools } from "./vision-tools";
 import { analysisTools as importedAnalysisTools } from "./analysis-tools";
 import { googleDocsTools as importedGoogleDocsTools } from "./google-docs-tools";
 import { knowledgeTools as importedKnowledgeTools } from "./knowledge-tools";
+import { lifeFixerTools } from "./life-fixer-tools";
+import { doppelgangerTools } from "./doppelganger-tools";
 
 
 // Re-export agent tools
 export { agentTools } from "./agent-tools";
+export { lifeFixerTools } from "./life-fixer-tools";
+export { doppelgangerTools } from "./doppelganger-tools";
 
 const GROQ_MODEL_CANDIDATES = ["openai/gpt-oss-20b"]; // kept for signature compatibility, though generateText handles defaults
 

@@ -1,6 +1,11 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+
+// Initialize Supabase Admin for public lookups (bypassing RLS for guests)
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(
     req: NextRequest,
@@ -8,24 +13,12 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const cookieStore = await cookies();
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    get(name: string) {
-                        return cookieStore.get(name)?.value;
-                    },
-                },
-            }
-        );
 
         // Try to find workspace by slug or ID
         let workspace;
 
         // First try by slug
-        const { data: bySlug } = await supabase
+        const { data: bySlug } = await supabaseAdmin
             .from("bot_workspaces")
             .select("id, name, slug, owner_id, created_at")
             .eq("slug", id)
@@ -35,7 +28,7 @@ export async function GET(
             workspace = bySlug;
         } else {
             // Try by ID
-            const { data: byId } = await supabase
+            const { data: byId } = await supabaseAdmin
                 .from("bot_workspaces")
                 .select("id, name, slug, owner_id, created_at")
                 .eq("id", id)
@@ -48,7 +41,7 @@ export async function GET(
         }
 
         // Get member count
-        const { count } = await supabase
+        const { count } = await supabaseAdmin
             .from("workspace_members")
             .select("*", { count: "exact", head: true })
             .eq("workspace_id", workspace.id)
